@@ -4,7 +4,7 @@
     "description": "Tilläggsnamn som visas i Chrome"
   },
   "app_description": {
-    "message": "Ändra HTTP-begärans- och svarsrubriker",
+    "message": "Ändra HTTP request- och response headers",
     "description": "Tilläggsbeskrivning som visas i Chrome"
   },
   "app_loading": {
@@ -12,19 +12,19 @@
     "description": "Visas medan appen initieras"
   },
   "list_title_request_headers": {
-    "message": "Begäransrubriker",
+    "message": "Request Headers",
     "description": "Rubrik för listan med begäransrubriker"
   },
   "list_title_response_headers": {
-    "message": "Svarsrubriker",
+    "message": "Response Headers",
     "description": "Rubrik för listan med svarsrubriker"
   },
   "tab_request": {
-    "message": "Begäran",
+    "message": "Request",
     "description": "Fliketikett för begäransrubriker"
   },
   "tab_response": {
-    "message": "Svar",
+    "message": "Response",
     "description": "Fliketikett för svarsrubriker"
   },
   "tab_filters": {
