@@ -4,8 +4,6 @@ import type { HeaderRule, HeaderType } from '@/types'
 import { createSwapy, utils } from 'swapy'
 import type { Swapy, SlotItemMapArray } from 'swapy'
 import HeaderRow from './HeaderRow.vue'
-import { Button } from '@/components/ui/button'
-import { Plus, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -174,24 +172,6 @@ onUnmounted(() => {
       v-if="items.length === 0"
       class="flex items-center justify-center py-6 text-sm text-muted-foreground bg-background">
       {{ t('headers_empty_state') }}
-    </div>
-
-    <!-- Actions Bar -->
-    <div class="flex items-center gap-1 px-2 py-1.5 border-t border-border bg-muted/30">
-      <Button variant="ghost" size="sm" class="h-7 text-xs gap-1" @click="emit('add')">
-        <Plus class="h-3.5 w-3.5" />
-        {{ t('button_add') }}
-      </Button>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 text-xs gap-1 text-destructive hover:text-destructive"
-        @click="emit('clear')"
-        :disabled="items.length === 0">
-        <Trash2 class="h-3.5 w-3.5" />
-        {{ t('button_clear') }}
-      </Button>
     </div>
   </div>
 </template>

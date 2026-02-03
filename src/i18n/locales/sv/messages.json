@@ -27,6 +27,10 @@
     "message": "Svar",
     "description": "Fliketikett för svarsrubriker"
   },
+  "tab_filters": {
+    "message": "Filter",
+    "description": "Fliketikett för URL-filter"
+  },
   "headers_empty_state": {
     "message": "Inga rubriker. Klicka på + för att lägga till en.",
     "description": "Tomtillstånd när inga rubriker finns"

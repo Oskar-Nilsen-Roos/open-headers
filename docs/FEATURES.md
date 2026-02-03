@@ -192,18 +192,18 @@ interface AppState {
 
 #### Request vs. Response Tabs (Popup UI)
 - The popup UI provides **Request** and **Response** tabs to edit each header type separately.
-- Both tabs use the same header list UI and actions (ADD/CLEAR, reorder, duplicate, delete).
+- The popup also provides a **Filters** tab for URL filters.
+- Header list actions (ADD/CLEAR) are shown in a sticky footer.
 
 #### 1. Header List (`HeaderList.vue`)
 - **Display**: Section with colored header showing type and count
 - **Shows**: "(active/total)" count of headers
-- **Actions Bar**: ADD and CLEAR buttons
 - **Header Type Switcher**: The popup UI uses Request/Response tabs to switch which header type is being edited
 
 #### 2. Add Header
 - **Action**:
   - "+" button in profile header
-  - "ADD" button in header list
+  - "ADD" button in the sticky footer
 - **Behavior**:
   - Creates new empty header with `enabled: true`
   - Type defaults to 'request'
@@ -239,7 +239,7 @@ interface AppState {
 - **Behavior**: Removes header from profile
 
 #### 8. Clear All Headers
-- **Action**: "CLEAR" button in header list
+- **Action**: "CLEAR" button in the sticky footer
 - **Behavior**: Removes all headers of that type
 
 #### 9. Reorder Headers
@@ -258,8 +258,9 @@ interface AppState {
 
 #### 1. Manage URL Filters (UI)
 - **Component**: `UrlFilterList.vue` + `UrlFilterRow.vue`
-- **Location**: Shown below the headers list in the main content area
+- **Location**: Shown in a dedicated “Filters” tab in the main content area
 - **Controls**:
+  - Add/Clear actions are shown in a sticky footer
   - Enable/disable each filter
   - Choose include/exclude
   - Choose match type:

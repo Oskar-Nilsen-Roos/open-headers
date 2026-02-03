@@ -27,6 +27,10 @@
     "message": "Response",
     "description": "Tab label for response headers"
   },
+  "tab_filters": {
+    "message": "Filters",
+    "description": "Tab label for URL filters"
+  },
   "headers_empty_state": {
     "message": "No headers. Click + ADD to add one.",
     "description": "Empty state text when no headers exist"

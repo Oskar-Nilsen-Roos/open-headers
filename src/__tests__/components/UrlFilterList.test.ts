@@ -1,12 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import UrlFilterList from '@/components/UrlFilterList.vue'
 import type { UrlFilter } from '@/types'
-
-vi.mock('lucide-vue-next', () => ({
-  Plus: { template: '<span>Plus</span>' },
-  Trash2: { template: '<span>Trash2</span>' },
-}))
 
 describe('UrlFilterList', () => {
   const createFilter = (overrides: Partial<UrlFilter> = {}): UrlFilter => ({
@@ -26,10 +21,6 @@ describe('UrlFilterList', () => {
       },
       global: {
         stubs: {
-          Button: {
-            template: '<button :disabled="disabled" @click="!disabled && $emit(\'click\')"><slot /></button>',
-            props: ['disabled', 'variant', 'size', 'class'],
-          },
           UrlFilterRow: {
             template: `
               <div>
@@ -44,26 +35,9 @@ describe('UrlFilterList', () => {
     })
   }
 
-  it('emits addInclude and addExclude on button clicks', async () => {
+  it('shows empty state when no filters', () => {
     const wrapper = mountComponent([])
-    const buttons = wrapper.findAll('button')
-
-    const addInclude = buttons.find(b => b.text().includes('ADD INCLUDE'))
-    const addExclude = buttons.find(b => b.text().includes('ADD EXCLUDE'))
-
-    await addInclude?.trigger('click')
-    await addExclude?.trigger('click')
-
-    expect(wrapper.emitted('addInclude')).toBeTruthy()
-    expect(wrapper.emitted('addExclude')).toBeTruthy()
-  })
-
-  it('emits clearAll when clear is clicked', async () => {
-    const wrapper = mountComponent([createFilter()])
-    const clearButton = wrapper.findAll('button').find(b => b.text().includes('CLEAR'))
-    await clearButton?.trigger('click')
-
-    expect(wrapper.emitted('clearAll')).toBeTruthy()
+    expect(wrapper.text()).toContain('No URL filters')
   })
 
   it('re-emits row update and remove events', async () => {
@@ -76,4 +50,3 @@ describe('UrlFilterList', () => {
     expect(wrapper.emitted('remove')?.[0]).toEqual(['f1'])
   })
 })
-

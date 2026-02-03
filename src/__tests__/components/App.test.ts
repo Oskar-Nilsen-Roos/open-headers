@@ -15,6 +15,7 @@ const TabsStub = {
     <div data-test="tabs">
       <button data-test="tab-request" @click="$emit('update:modelValue', 'request')">Request</button>
       <button data-test="tab-response" @click="$emit('update:modelValue', 'response')">Response</button>
+      <button data-test="tab-filters" @click="$emit('update:modelValue', 'filters')">Filters</button>
     </div>
   `,
 }
@@ -26,7 +27,6 @@ const ProfileHeaderStub = {
 
 const HeaderListStub = {
   props: ['title', 'type', 'headers'],
-  emits: ['add', 'clear'],
   template: `
     <div
       data-test="header-list"
@@ -34,9 +34,6 @@ const HeaderListStub = {
       :data-type="type"
       :data-count="headers.length"
     >
-      <slot name="tabs" />
-      <button data-test="list-add" @click="$emit('add')">ADD</button>
-      <button data-test="list-clear" @click="$emit('clear')">CLEAR</button>
     </div>
   `,
 }
@@ -61,6 +58,10 @@ describe('App - Header Type Tabs', () => {
           ProfileHeader: ProfileHeaderStub,
           HeaderList: HeaderListStub,
           Tabs: TabsStub,
+          Button: {
+            template: '<button v-bind="$attrs" :disabled="disabled"><slot /></button>',
+            props: ['disabled', 'variant', 'size', 'class'],
+          },
         },
       },
     })
@@ -88,6 +89,10 @@ describe('App - Header Type Tabs', () => {
           ProfileHeader: ProfileHeaderStub,
           HeaderList: HeaderListStub,
           Tabs: TabsStub,
+          Button: {
+            template: '<button v-bind="$attrs" :disabled="disabled"><slot /></button>',
+            props: ['disabled', 'variant', 'size', 'class'],
+          },
         },
       },
     })
@@ -104,7 +109,7 @@ describe('App - Header Type Tabs', () => {
     expect(headerList.attributes('data-count')).toBe('0')
 
     // Add via list action
-    await wrapper.get('[data-test="list-add"]').trigger('click')
+    await wrapper.get('[data-testid="footer-add"]').trigger('click')
     await nextTick()
 
     expect(store.responseHeaders.length).toBe(1)
