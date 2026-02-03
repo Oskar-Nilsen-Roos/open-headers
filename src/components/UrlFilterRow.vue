@@ -80,20 +80,22 @@ function handlePatternChange(value: string) {
 <template>
   <div
     data-testid="url-filter-row"
-    class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group"
+    class="flex items-center gap-2 px-2 py-2 border-b border-border hover:bg-muted/30 group"
   >
     <div
       data-swapy-handle
-      class="shrink-0 self-stretch flex items-center px-3 -my-1.5 cursor-grab active:cursor-grabbing select-none text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors"
+      class="shrink-0 flex items-center justify-center size-8 cursor-grab active:cursor-grabbing select-none text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 rounded-md transition-colors"
     >
       <GripVertical class="h-4 w-4" />
     </div>
 
-    <Checkbox
-      :model-value="filter.enabled"
-      @update:model-value="handleEnabledChange"
-      class="shrink-0"
-    />
+    <div class="flex items-center justify-center size-8">
+      <Checkbox
+        :model-value="filter.enabled"
+        @update:model-value="handleEnabledChange"
+        class="shrink-0"
+      />
+    </div>
 
     <ToggleGroup
       type="single"
@@ -114,7 +116,7 @@ function handlePatternChange(value: string) {
       :model-value="matchType"
       @update:model-value="handleMatchTypeChange"
     >
-      <SelectTrigger size="sm" class="w-40 h-7 px-2">
+      <SelectTrigger size="sm" class="w-40 h-8 px-2">
         <SelectValue :placeholder="t('url_filters_match_type_placeholder')" />
       </SelectTrigger>
       <SelectContent>
@@ -131,7 +133,7 @@ function handlePatternChange(value: string) {
       :model-value="filter.pattern"
       @update:model-value="handlePatternChange"
       :placeholder="patternPlaceholder"
-      class="flex-1 min-w-0 h-7 text-sm"
+      class="flex-1 min-w-0 h-8 text-sm"
     />
 
     <DropdownMenu>
