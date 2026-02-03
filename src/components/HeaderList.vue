@@ -96,6 +96,7 @@ onMounted(() => {
     swapy.value = createSwapy(container.value, {
       manualSwap: true,
       animation: 'dynamic',
+      autoScrollOnDrag: true,
     })
 
     // onSwap fires during drag - update slotItemMap for visual feedback
