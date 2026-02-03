@@ -1,5 +1,17 @@
 export type HeaderType = 'request' | 'response'
 
+/**
+ * Generates a unique ID with fallback for environments without crypto.randomUUID
+ * @returns A unique identifier string
+ */
+export function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback for environments without crypto API
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+}
+
 // ModHeader import types
 export interface ModHeaderHeader {
   enabled: boolean
@@ -47,7 +59,7 @@ export function convertModHeaderProfile(
   // Convert request headers
   for (const h of modProfile.headers || []) {
     headers.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       enabled: h.enabled,
       name: h.name || '',
       value: h.value || '',
@@ -60,7 +72,7 @@ export function convertModHeaderProfile(
   // Convert response headers if present
   for (const h of modProfile.respHeaders || []) {
     headers.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       enabled: h.enabled,
       name: h.name || '',
       value: h.value || '',
@@ -71,7 +83,7 @@ export function convertModHeaderProfile(
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     name: modProfile.title || 'Imported Profile',
     color: DEFAULT_PROFILE_COLORS[colorIndex % DEFAULT_PROFILE_COLORS.length] ?? '#7c3aed',
     headers,
@@ -139,7 +151,7 @@ export const DEFAULT_PROFILE_COLORS = [
  */
 export function createEmptyHeader(type: HeaderType = 'request'): HeaderRule {
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     enabled: true,
     name: '',
     value: '',
@@ -156,7 +168,7 @@ export function createEmptyHeader(type: HeaderType = 'request'): HeaderRule {
  */
 export function createEmptyProfile(name = 'Profile 1'): Profile {
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     name,
     color: DEFAULT_PROFILE_COLORS[0] ?? '#7c3aed',
     headers: [],

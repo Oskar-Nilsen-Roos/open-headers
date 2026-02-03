@@ -5,6 +5,7 @@ import {
   DEFAULT_PROFILE_COLORS,
   isModHeaderFormat,
   convertModHeaderProfile,
+  generateId,
 } from '../types'
 import type { ModHeaderProfile } from '../types'
 
@@ -235,5 +236,21 @@ describe('convertModHeaderProfile', () => {
     expect(result.createdAt).toBeLessThanOrEqual(after)
     expect(result.updatedAt).toBeGreaterThanOrEqual(before)
     expect(result.updatedAt).toBeLessThanOrEqual(after)
+  })
+})
+
+describe('generateId', () => {
+  it('generates a string ID', () => {
+    const id = generateId()
+    expect(typeof id).toBe('string')
+    expect(id.length).toBeGreaterThan(0)
+  })
+
+  it('generates unique IDs', () => {
+    const ids = new Set<string>()
+    for (let i = 0; i < 100; i++) {
+      ids.add(generateId())
+    }
+    expect(ids.size).toBe(100)
   })
 })

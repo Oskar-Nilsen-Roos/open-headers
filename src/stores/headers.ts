@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference } from '../types'
-import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile } from '../types'
+import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -221,7 +221,7 @@ export const useHeadersStore = defineStore('headers', () => {
 
     const newProfile: Profile = {
       ...JSON.parse(JSON.stringify(profile)),
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: `${profile.name} (Copy)`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -281,7 +281,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const index = activeProfile.value.headers.findIndex(h => h.id === headerId)
     const newHeader: HeaderRule = {
       ...JSON.parse(JSON.stringify(header)),
-      id: crypto.randomUUID(),
+      id: generateId(),
     }
 
     // Insert after the original header
@@ -383,7 +383,7 @@ export const useHeadersStore = defineStore('headers', () => {
     if (!activeProfile.value) return
 
     const filter: UrlFilter = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       enabled: true,
       pattern: '',
       type,
@@ -434,15 +434,24 @@ export const useHeadersStore = defineStore('headers', () => {
       // Check if this is ModHeader format (array of profiles with 'title' and 'headers')
       if (isModHeaderFormat(data)) {
         const startingColorIndex = profiles.value.length
+        let importedCount = 0
         for (let i = 0; i < data.length; i++) {
           const modProfile = data[i]
           if (!modProfile) continue
-          const converted = convertModHeaderProfile(modProfile, startingColorIndex + i)
-          profiles.value.push(converted)
+          try {
+            const converted = convertModHeaderProfile(modProfile, startingColorIndex + i)
+            profiles.value.push(converted)
+            importedCount++
+          } catch (error) {
+            console.warn(`Failed to convert ModHeader profile at index ${i}:`, error)
+            // Continue with other profiles
+          }
         }
-        saveToHistory()
-        persistState()
-        return true
+        if (importedCount > 0) {
+          saveToHistory()
+          persistState()
+        }
+        return importedCount > 0
       }
 
       // OpenHeaders format
@@ -457,14 +466,14 @@ export const useHeadersStore = defineStore('headers', () => {
         // Generate new IDs to avoid conflicts
         const newProfile: Profile = {
           ...profile,
-          id: crypto.randomUUID(),
+          id: generateId(),
           headers: profile.headers?.map((h: HeaderRule) => ({
             ...h,
-            id: crypto.randomUUID(),
+            id: generateId(),
           })) ?? [],
           urlFilters: profile.urlFilters?.map((f: UrlFilter) => ({
             ...f,
-            id: crypto.randomUUID(),
+            id: generateId(),
           })) ?? [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
