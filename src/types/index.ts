@@ -51,6 +51,11 @@ export const DEFAULT_PROFILE_COLORS = [
   '#4f46e5', // indigo
 ]
 
+/**
+ * Creates a new empty header rule with default values
+ * @param type - The header type ('request' or 'response'), defaults to 'request'
+ * @returns A new HeaderRule with a unique ID and default values
+ */
 export function createEmptyHeader(type: HeaderType = 'request'): HeaderRule {
   return {
     id: crypto.randomUUID(),
@@ -63,6 +68,11 @@ export function createEmptyHeader(type: HeaderType = 'request'): HeaderRule {
   }
 }
 
+/**
+ * Creates a new empty profile with default values
+ * @param name - The profile name, defaults to 'Profile 1'
+ * @returns A new Profile with a unique ID, default color, and empty arrays
+ */
 export function createEmptyProfile(name = 'Profile 1'): Profile {
   return {
     id: crypto.randomUUID(),

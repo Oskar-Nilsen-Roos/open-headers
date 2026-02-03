@@ -16,7 +16,7 @@ import { useHeadersStore } from '@/stores/headers'
 |----------|------|-------------|
 | `profiles` | `Ref<Profile[]>` | All user profiles |
 | `activeProfileId` | `Ref<string \| null>` | Currently selected profile ID |
-| `darkMode` | `Ref<boolean>` | Dark mode preference |
+| `darkModePreference` | `Ref<DarkModePreference>` | Dark mode preference ('system' \| 'light' \| 'dark') |
 | `isInitialized` | `Ref<boolean>` | Whether store has loaded from storage |
 
 ### Computed Properties
@@ -26,6 +26,7 @@ import { useHeadersStore } from '@/stores/headers'
 | `activeProfile` | `ComputedRef<Profile \| null>` | The currently active profile object |
 | `requestHeaders` | `ComputedRef<HeaderRule[]>` | Request headers from active profile |
 | `responseHeaders` | `ComputedRef<HeaderRule[]>` | Response headers from active profile |
+| `isDarkMode` | `ComputedRef<boolean>` | Actual dark mode state (respects system preference) |
 | `canUndo` | `ComputedRef<boolean>` | Whether undo is available |
 | `canRedo` | `ComputedRef<boolean>` | Whether redo is available |
 
@@ -44,7 +45,9 @@ await store.loadState()
 ```
 
 **Behavior:**
-- Loads profiles, activeProfileId, and darkMode from storage
+- Loads profiles, activeProfileId, and darkModePreference from storage
+- Handles migration from old `darkMode` boolean format
+- Initializes system dark mode detection
 - Creates default profile if none exist
 - Sets activeProfileId to first profile if not set
 - Initializes history
@@ -126,20 +129,6 @@ store.updateProfile('profile-uuid', {
 
 **Behavior:**
 - Merges updates into profile
-- Updates `updatedAt` timestamp
-- Saves to history and persists
-
----
-
-#### `toggleProfile(profileId: string): void`
-Toggles profile enabled/disabled state.
-
-```typescript
-store.toggleProfile('profile-uuid')
-```
-
-**Behavior:**
-- Inverts `enabled` boolean
 - Updates `updatedAt` timestamp
 - Saves to history and persists
 
@@ -385,15 +374,30 @@ if (!success) {
 
 ### Settings Actions
 
+#### `setDarkModePreference(preference: DarkModePreference): void`
+Sets dark mode preference directly.
+
+```typescript
+store.setDarkModePreference('dark')
+store.setDarkModePreference('light')
+store.setDarkModePreference('system')
+```
+
+**Behavior:**
+- Updates `darkModePreference`
+- Persists (does NOT save to history)
+
+---
+
 #### `toggleDarkMode(): void`
-Toggles dark mode preference.
+Cycles through dark mode preferences: system → dark → light → system.
 
 ```typescript
 store.toggleDarkMode()
 ```
 
 **Behavior:**
-- Inverts `darkMode` boolean
+- Cycles through preference options
 - Persists (does NOT save to history)
 
 ---
@@ -421,14 +425,11 @@ if (header) {
   })
 }
 
-// Toggle profile
-store.toggleProfile(store.activeProfileId!)
+// Set dark mode
+store.setDarkModePreference('dark')
 
 // Export
 const backup = store.exportProfiles()
-
-// Undo the toggle
-store.undo()
 ```
 
 ---

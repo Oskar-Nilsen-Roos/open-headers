@@ -1,0 +1,21 @@
+[
+    {
+        "headers": [
+            {
+                "enabled": false,
+                "name": "x-custom-region",
+                "value": "us-west"
+            },
+            {
+                "appendMode": false,
+                "enabled": false,
+                "name": "X-Forwarded-Host",
+                "value": "example.com"
+            }
+        ],
+        "hideComment": false,
+        "shortTitle": "1",
+        "title": "Profile 1",
+        "version": 2
+    }
+]

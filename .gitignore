@@ -16,6 +16,9 @@ dist-ssr
 *.pem
 *.crx
 
+# Repomix output
+repomix-output.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

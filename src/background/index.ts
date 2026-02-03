@@ -21,6 +21,11 @@ function headerOperationToChrome(operation: HeaderRule['operation']): chrome.dec
   }
 }
 
+/**
+ * Builds Chrome declarativeNetRequest rules from the active profile
+ * @param state - The application state containing profiles
+ * @returns Array of Chrome extension rules to apply headers
+ */
 function buildRulesFromActiveProfile(state: AppState): chrome.declarativeNetRequest.Rule[] {
   const rules: chrome.declarativeNetRequest.Rule[] = []
   let ruleId = 1

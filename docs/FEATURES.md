@@ -95,7 +95,6 @@ A collection of header rules and URL filters.
 interface Profile {
   id: string                    // Unique identifier
   name: string                  // Display name
-  enabled: boolean              // Whether profile is active
   color: string                 // Profile color (hex)
   headers: HeaderRule[]         // Header modification rules
   urlFilters: UrlFilter[]       // URL filters
@@ -111,7 +110,7 @@ The complete application state.
 interface AppState {
   profiles: Profile[]           // All profiles
   activeProfileId: string | null // Currently selected profile
-  darkMode: boolean             // Dark mode preference
+  darkModePreference: DarkModePreference // Dark mode preference: 'system' | 'light' | 'dark'
 }
 ```
 
@@ -124,14 +123,11 @@ interface AppState {
 #### 1. Profile Sidebar (`ProfileSidebar.vue`)
 - **Location**: Left side of the application
 - **Display**: Numbered colored circles for each profile
-- **Indicators**:
-  - Green dot: Profile is enabled and has active headers
-  - Red dot: Profile is disabled/paused
 - **Interactions**:
   - Click to select a profile
   - Drag and drop to reorder profiles
   - "+" button to add new profile
-- **Tooltips**: Hover shows profile name and status
+- **Tooltips**: Hover shows profile name
 
 #### 2. Create Profile
 - **Action**: Click "+" button in sidebar
@@ -171,14 +167,7 @@ interface AppState {
   - If deleted profile was active, switches to first profile
   - Ensures at least one profile always exists (creates default if needed)
 
-#### 7. Toggle Profile (Pause/Enable)
-- **Action**: Pause/Play button in header bar
-- **Behavior**:
-  - Toggles `enabled` state
-  - When disabled, headers are not applied
-  - Visual indicator in sidebar changes
-
-#### 8. Reorder Profiles
+#### 7. Reorder Profiles
 - **Action**: Drag and drop in sidebar
 - **Implementation**: Uses Swapy library
 - **Behavior**:
@@ -372,14 +361,16 @@ swapy.value.onSwapEnd((event) => {
 
 ## Dark Mode
 
-### Toggle
-- **Action**: More menu (⋮) → "Dark mode" / "Light mode"
-- **Store Method**: `toggleDarkMode()`
+### Theme Selection
+- **Action**: More menu (⋮) → Theme selector with three options
+- **Options**: System, Light, Dark
+- **Store Methods**: `setDarkModePreference(preference)`, `toggleDarkMode()`
 
 ### Implementation
+- Detects system preference using `matchMedia('(prefers-color-scheme: dark)')`
 - Adds/removes `dark` class on `document.documentElement`
 - CSS variables in `style.css` define dark theme colors
-- Persisted to storage
+- Persisted to storage as `darkModePreference`
 
 ---
 
@@ -424,7 +415,7 @@ Rules apply to all resource types:
 | profileIndex | number | Index in profiles array |
 | canUndo | boolean | Undo button enabled |
 | canRedo | boolean | Redo button enabled |
-| darkMode | boolean | Current theme |
+| darkModePreference | DarkModePreference | Current theme preference |
 
 #### Emits
 | Event | Payload | Description |
@@ -432,23 +423,21 @@ Rules apply to all resource types:
 | undo | - | Trigger undo |
 | redo | - | Trigger redo |
 | addHeader | - | Add new header |
-| toggleProfile | - | Pause/enable profile |
 | export | - | Export profiles |
 | import | - | Import profiles |
 | duplicate | - | Duplicate current profile |
 | delete | - | Delete current profile |
 | rename | string | Rename profile |
-| toggleDarkMode | - | Toggle dark mode |
+| setDarkMode | DarkModePreference | Set dark mode preference |
 
 #### Buttons (left to right)
 1. Profile number badge
 2. Profile name (double-click to edit)
 3. Undo
 4. Add header (+)
-5. Pause/Play
-6. Redo
-7. Export (download)
-8. More menu (⋮)
+5. Redo
+6. Export (download)
+7. More menu (⋮)
 
 ### Header Row (`HeaderRow.vue`)
 
@@ -494,7 +483,7 @@ Rules apply to all resource types:
 {
   profiles: Profile[],
   activeProfileId: string | null,
-  darkMode: boolean
+  darkModePreference: DarkModePreference  // 'system' | 'light' | 'dark'
 }
 ```
 

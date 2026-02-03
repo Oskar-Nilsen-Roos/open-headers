@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "profiles": [
+    {
+      "color": "#7c3aed",
+      "createdAt": 1770037998082,
+      "headers": [
+        {
+          "comment": "comment 1",
+          "enabled": true,
+          "id": "8a08cbad-afb7-44b7-a6aa-8e76a814cc9e",
+          "name": "my-header-1",
+          "operation": "set",
+          "type": "request",
+          "value": "header-value-1"
+        },
+        {
+          "id": "ad30187e-0bf0-4c94-9da0-ce61a155d758",
+          "enabled": true,
+          "name": "my-header-2",
+          "value": "header-value-2",
+          "comment": "comment 2",
+          "type": "request",
+          "operation": "set"
+        }
+      ],
+      "id": "f8447491-c25f-4487-ae2a-f2d0b647271f",
+      "name": "Profile 1",
+      "updatedAt": 1770038758107,
+      "urlFilters": []
+    },
+    {
+      "id": "8d6cfc18-85db-4246-bfb3-27765be32e4a",
+      "name": "Profile 2",
+      "color": "#2563eb",
+      "headers": [
+        {
+          "id": "b7c61bde-d345-42c4-bb26-9b2de17237c0",
+          "enabled": true,
+          "name": "profile-2-header",
+          "value": "profile-2-header-value",
+          "comment": "some comment",
+          "type": "request",
+          "operation": "set"
+        }
+      ],
+      "urlFilters": [],
+      "createdAt": 1770038760006,
+      "updatedAt": 1770038778096
+    }
+  ],
+  "exportedAt": 1770038787642
+}

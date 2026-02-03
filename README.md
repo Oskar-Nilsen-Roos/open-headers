@@ -1,4 +1,4 @@
-# Header Modifier
+# OpenHeaders
 
 A Chrome extension for modifying HTTP request and response headers. Built with Vue 3, TypeScript, Tailwind CSS 4, and shadcn-vue.
 
@@ -83,5 +83,5 @@ src/
 - `npm run test:run` - Run tests once
 
 ## License
-
+Proprietary — All rights reserved. See `LICENSE`.
 MIT
