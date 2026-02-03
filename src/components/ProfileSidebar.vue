@@ -121,9 +121,9 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
 
 <template>
   <TooltipProvider>
-    <div class="flex flex-col gap-1 p-2 bg-muted/50 border-r border-border">
+    <div class="flex flex-col gap-2 p-2 bg-muted/50 border-r border-border">
       <!-- Profile Tabs -->
-      <div ref="container" class="flex flex-col gap-1">
+      <div ref="container" class="flex flex-col gap-2">
         <div
           v-for="{ slotId, itemId, item } in slottedItems"
           :key="slotId"
@@ -166,7 +166,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
           <Button
             variant="ghost"
             size="icon"
-            class="mt-1 border border-dashed border-muted-foreground/30"
+            class="mt-2 border border-dashed border-muted-foreground/30"
             @click="emit('add')"
           >
             <Plus class="h-4 w-4 text-muted-foreground" />

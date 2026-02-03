@@ -132,7 +132,7 @@ function cancelEditing() {
       <Input
         v-else
         v-model="editName"
-        class="flex-1 h-7 bg-white/20 border-white/30 text-white placeholder:text-white/50"
+        class="flex-1 h-8 bg-white/20 border-white/30 text-white placeholder:text-white/50"
         @blur="finishEditing"
         @keyup.enter="finishEditing"
         @keyup.escape="cancelEditing"
@@ -140,7 +140,7 @@ function cancelEditing() {
       />
 
       <!-- Action Buttons -->
-      <div class="flex items-center gap-0.5">
+      <div class="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
@@ -228,7 +228,7 @@ function cancelEditing() {
             <div class="px-2 py-2">
               <div class="flex gap-2 justify-center">
                 <!-- System -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'system'"
@@ -244,7 +244,7 @@ function cancelEditing() {
                   <span class="text-xs text-muted-foreground">{{ t('theme_system') }}</span>
                 </div>
                 <!-- Light -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'light'"
@@ -260,7 +260,7 @@ function cancelEditing() {
                   <span class="text-xs text-muted-foreground">{{ t('theme_light') }}</span>
                 </div>
                 <!-- Dark -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'dark'"
