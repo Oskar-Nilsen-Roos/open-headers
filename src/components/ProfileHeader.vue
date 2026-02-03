@@ -201,8 +201,8 @@ function cancelEditing() {
 
         <DropdownMenu>
           <Tooltip>
-            <DropdownMenuTrigger as-child>
-              <TooltipTrigger as-child>
+            <TooltipTrigger as-child>
+              <DropdownMenuTrigger as-child>
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -211,8 +211,8 @@ function cancelEditing() {
                 >
                   <MoreVertical class="h-4 w-4" />
                 </Button>
-              </TooltipTrigger>
-            </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
             <TooltipContent>{{ t('tooltip_more_actions') }}</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end">
