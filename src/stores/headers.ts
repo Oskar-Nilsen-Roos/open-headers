@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference } from '../types'
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS } from '../types'
-import { setLanguagePreference as setI18nLanguagePreference, t } from '@/i18n'
+import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -175,7 +175,9 @@ export const useHeadersStore = defineStore('headers', () => {
 
       // Create default profile if none exist
       if (profiles.value.length === 0) {
-        const defaultProfile = createEmptyProfile(t('profile_default_name', { number: 1 }))
+        const defaultProfile = createEmptyProfile(
+          getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+        )
         profiles.value.push(defaultProfile)
         activeProfileId.value = defaultProfile.id
       } else if (!activeProfileId.value && profiles.value.length > 0) {
@@ -192,7 +194,9 @@ export const useHeadersStore = defineStore('headers', () => {
       languagePreference.value = 'auto'
       setI18nLanguagePreference(languagePreference.value)
       // Create default profile on error
-      const defaultProfile = createEmptyProfile(t('profile_default_name', { number: 1 }))
+      const defaultProfile = createEmptyProfile(
+        getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+      )
       profiles.value.push(defaultProfile)
       activeProfileId.value = defaultProfile.id
       history.value = [getState()]
@@ -205,7 +209,9 @@ export const useHeadersStore = defineStore('headers', () => {
   function addProfile(): void {
     const profileNumber = profiles.value.length + 1
     const colorIndex = (profiles.value.length) % DEFAULT_PROFILE_COLORS.length
-    const profile = createEmptyProfile(t('profile_default_name', { number: profileNumber }))
+    const profile = createEmptyProfile(
+      getMessageForPreference(languagePreference.value, 'profile_default_name', { number: profileNumber })
+    )
     profile.color = DEFAULT_PROFILE_COLORS[colorIndex] ?? '#7c3aed'
     profiles.value.push(profile)
     activeProfileId.value = profile.id
@@ -225,7 +231,9 @@ export const useHeadersStore = defineStore('headers', () => {
 
     // Ensure at least one profile exists
     if (profiles.value.length === 0) {
-      const defaultProfile = createEmptyProfile(t('profile_default_name', { number: 1 }))
+      const defaultProfile = createEmptyProfile(
+        getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+      )
       profiles.value.push(defaultProfile)
       activeProfileId.value = defaultProfile.id
     }
@@ -241,7 +249,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const newProfile: Profile = {
       ...JSON.parse(JSON.stringify(profile)),
       id: crypto.randomUUID(),
-      name: `${profile.name} ${t('profile_copy_suffix')}`,
+      name: `${profile.name} ${getMessageForPreference(languagePreference.value, 'profile_copy_suffix')}`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }

@@ -39,6 +39,23 @@ export function t(key: string, params?: Params): string {
   return interpolate(message, params)
 }
 
+function normalizeLocale(locale: string): 'en' | 'sv' {
+  return locale.toLowerCase().startsWith('sv') ? 'sv' : 'en'
+}
+
+export function getMessageForPreference(
+  preference: LanguagePreference,
+  key: string,
+  params?: Params
+): string {
+  const chromeApi = typeof chrome !== 'undefined' ? chrome : undefined
+  const locale = preference === 'auto'
+    ? normalizeLocale(chromeApi?.i18n?.getUILanguage?.() ?? 'en')
+    : preference
+  const message = messagesByLocale[locale]?.[key]?.message ?? messagesByLocale.en[key]?.message ?? key
+  return interpolate(message, params)
+}
+
 export function getUiLanguage(): string {
   if (languagePreference.value !== 'auto') {
     return languagePreference.value
