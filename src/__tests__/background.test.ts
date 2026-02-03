@@ -130,6 +130,7 @@ describe('Background Script Logic', () => {
     profiles: [createProfile()],
     activeProfileId: 'profile-id',
     darkModePreference: 'system',
+    languagePreference: 'auto',
     ...overrides,
   })
 

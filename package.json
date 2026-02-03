@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build && bun run copy-manifest",
     "build:watch": "vite build --watch",
-    "copy-manifest": "cp public/manifest.json dist/manifest.json && cp -r public/icons dist/",
+    "copy-manifest": "cp public/manifest.json dist/manifest.json && cp -r public/icons dist/ && mkdir -p dist/_locales && cp -r src/i18n/locales/* dist/_locales/",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run"
