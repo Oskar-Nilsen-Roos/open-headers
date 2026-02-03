@@ -464,6 +464,24 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
+  function reorderUrlFilters(orderedIds: string[]): void {
+    if (!activeProfile.value) return
+
+    const orderedSet = new Set(orderedIds)
+    const byId = new Map(activeProfile.value.urlFilters.map(filter => [filter.id, filter] as const))
+
+    const reordered = orderedIds
+      .map(id => byId.get(id))
+      .filter((filter): filter is UrlFilter => filter !== undefined)
+
+    const remaining = activeProfile.value.urlFilters.filter(filter => !orderedSet.has(filter.id))
+
+    activeProfile.value.urlFilters = [...reordered, ...remaining]
+    activeProfile.value.updatedAt = Date.now()
+    saveToHistory()
+    persistState()
+  }
+
   // Import/Export
   function exportProfiles(): string {
     return JSON.stringify({
@@ -606,5 +624,6 @@ export const useHeadersStore = defineStore('headers', () => {
     toggleDarkMode,
     setDarkModePreference,
     setLanguagePreference,
+    reorderUrlFilters,
   }
 })

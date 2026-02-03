@@ -20,6 +20,10 @@ describe('UrlFilterList', () => {
       },
       global: {
         stubs: {
+          DraggableList: {
+            template: '<div><slot v-for="item in items" :item="item" /></div>',
+            props: ['items'],
+          },
           UrlFilterRow: {
             template: `
               <div>

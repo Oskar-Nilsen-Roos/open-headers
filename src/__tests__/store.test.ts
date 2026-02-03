@@ -577,6 +577,23 @@ describe('useHeadersStore', () => {
       store.clearUrlFilters()
       expect(store.activeProfile?.urlFilters.length).toBe(0)
     })
+
+    it('reorders url filters', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addUrlFilter('include')
+      store.addUrlFilter('exclude')
+      store.addUrlFilter('include')
+
+      const ids = store.activeProfile?.urlFilters.map(f => f.id) ?? []
+      expect(ids.length).toBe(3)
+
+      const reversed = [...ids].reverse()
+      store.reorderUrlFilters(reversed)
+
+      expect(store.activeProfile?.urlFilters.map(f => f.id)).toEqual(reversed)
+    })
   })
 
   describe('header duplication', () => {

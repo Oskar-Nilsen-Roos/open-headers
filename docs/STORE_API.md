@@ -312,6 +312,20 @@ store.clearUrlFilters()
 
 ---
 
+#### `reorderUrlFilters(orderedIds: string[]): void`
+Reorders URL filters in the active profile.
+
+```typescript
+store.reorderUrlFilters(['id3', 'id1', 'id2'])
+```
+
+**Behavior:**
+- Rebuilds the filter list in the new order
+- Keeps any missing IDs at the end (safety)
+- Saves to history and persists
+
+---
+
 ### History Actions
 
 #### `undo(): void`

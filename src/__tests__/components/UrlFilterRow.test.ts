@@ -6,6 +6,7 @@ import type { UrlFilter } from '@/types'
 vi.mock('lucide-vue-next', () => ({
   MoreVertical: { template: '<span>MoreVertical</span>' },
   Trash2: { template: '<span>Trash2</span>' },
+  GripVertical: { template: '<span>GripVertical</span>' },
 }))
 
 describe('UrlFilterRow', () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UrlFilter } from '@/types'
 import UrlFilterRow from './UrlFilterRow.vue'
+import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [filterId: string, updates: Partial<UrlFilter>]
   remove: [filterId: string]
+  reorder: [orderedIds: string[]]
 }>()
 
 function handleUpdate(filterId: string, updates: Partial<UrlFilter>) {
@@ -24,15 +26,15 @@ function handleRemove(filterId: string) {
 <template>
   <div class="flex flex-col bg-background">
     <!-- Filters List -->
-    <div class="flex flex-col bg-background">
-      <UrlFilterRow
-        v-for="filter in filters"
-        :key="filter.id"
-        :filter="filter"
-        @update="handleUpdate"
-        @remove="handleRemove"
-      />
-    </div>
+    <DraggableList :items="filters" @reorder="emit('reorder', $event)">
+      <template #default="{ item }">
+        <UrlFilterRow
+          :filter="item"
+          @update="handleUpdate"
+          @remove="handleRemove"
+        />
+      </template>
+    </DraggableList>
 
     <!-- Empty state -->
     <div

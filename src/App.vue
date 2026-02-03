@@ -275,7 +275,8 @@ function handleImport() {
             v-else
             :filters="store.activeProfile?.urlFilters ?? []"
             @update="handleUpdateUrlFilter"
-            @remove="handleRemoveUrlFilter" />
+            @remove="handleRemoveUrlFilter"
+            @reorder="store.reorderUrlFilters" />
         </div>
 
         <!-- Sticky Footer Actions -->
@@ -284,9 +285,9 @@ function handleImport() {
           <div class="flex items-center gap-2 px-3 py-2">
             <Button
               data-testid="footer-add"
-              variant="outline"
+              variant="secondary"
               size="default"
-              class="flex-1 bg-primary/10 border-primary/25 hover:bg-primary/15 hover:border-primary/35 text-foreground shadow-sm"
+              class="flex-1 shadow-xs"
               @click="handleFooterAdd">
               <Plus class="h-4 w-4" />
               {{ t('button_add') }}

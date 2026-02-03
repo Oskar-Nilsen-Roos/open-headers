@@ -262,6 +262,7 @@ interface AppState {
   - Add/Clear actions are shown in a sticky footer
   - Info tooltip on the “URL filters” tab explains matching is against the current tab URL
   - Enable/disable each filter
+  - Drag and drop to reorder filters
   - Choose include/exclude
   - Choose match type:
     - Host equals
@@ -278,6 +279,7 @@ interface AppState {
 - `updateUrlFilter(filterId, updates)`
 - `removeUrlFilter(filterId)`
 - `clearUrlFilters()`
+- `reorderUrlFilters(orderedIds: string[])`
 
 ### Filter Behavior (Top-level site / tab URL)
 - Filters are evaluated against the **current tab URL** (the top-level site you’re visiting).
@@ -307,6 +309,11 @@ Uses the Swapy library for smooth drag and drop functionality.
 #### HeaderList
 - Grip icon (`GripVertical`) is the drag handle
 - Reorders headers within the list
+- Emits `reorder` event with new ID order
+
+#### UrlFilterList
+- Grip icon (`GripVertical`) is the drag handle
+- Reorders URL filters within the list
 - Emits `reorder` event with new ID order
 
 ### Technical Details

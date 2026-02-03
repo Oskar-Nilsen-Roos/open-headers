@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreVertical, Trash2 } from 'lucide-vue-next'
+import { MoreVertical, Trash2, GripVertical } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -80,8 +80,15 @@ function handlePatternChange(value: string) {
 <template>
   <div
     data-testid="url-filter-row"
-    class="flex items-center gap-2 px-3 py-1.5 border-b border-border hover:bg-muted/30 group"
+    class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group"
   >
+    <div
+      data-swapy-handle
+      class="shrink-0 self-stretch flex items-center px-3 -my-1.5 cursor-grab active:cursor-grabbing select-none text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors"
+    >
+      <GripVertical class="h-4 w-4" />
+    </div>
+
     <Checkbox
       :model-value="filter.enabled"
       @update:model-value="handleEnabledChange"
@@ -95,7 +102,7 @@ function handlePatternChange(value: string) {
       :model-value="filter.type"
       @update:model-value="handleTypeChange"
     >
-    <ToggleGroupItem value="include">
+      <ToggleGroupItem value="include">
         {{ t('url_filters_type_include') }}
       </ToggleGroupItem>
       <ToggleGroupItem value="exclude">
