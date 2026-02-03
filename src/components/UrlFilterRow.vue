@@ -4,7 +4,6 @@ import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Select,
@@ -136,21 +135,17 @@ function handlePatternChange(value: string) {
     />
 
     <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger as-child>
-          <DropdownMenuTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              class="text-muted-foreground hover:text-foreground"
-              :aria-label="t('tooltip_more_actions')"
-            >
-              <MoreVertical class="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>{{ t('tooltip_more_actions') }}</TooltipContent>
-      </Tooltip>
+      <DropdownMenuTrigger as-child>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="text-muted-foreground hover:text-foreground"
+          :aria-label="t('tooltip_more_actions')"
+          :title="t('tooltip_more_actions')"
+        >
+          <MoreVertical class="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem class="text-destructive" @select="emit('remove', filter.id)">
           <Trash2 class="h-4 w-4 mr-2" />

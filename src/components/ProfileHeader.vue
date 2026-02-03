@@ -148,6 +148,7 @@ function cancelEditing() {
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
               :disabled="!canUndo"
+              :aria-label="t('tooltip_undo')"
               @click="emit('undo')"
             >
               <Undo2 class="h-4 w-4" />
@@ -162,6 +163,7 @@ function cancelEditing() {
               variant="ghost"
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_add_header')"
               @click="emit('addHeader')"
             >
               <Plus class="h-4 w-4" />
@@ -177,6 +179,7 @@ function cancelEditing() {
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
               :disabled="!canRedo"
+              :aria-label="t('tooltip_redo')"
               @click="emit('redo')"
             >
               <Redo2 class="h-4 w-4" />
@@ -191,6 +194,7 @@ function cancelEditing() {
               variant="ghost"
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_export_profiles')"
               @click="emit('export')"
             >
               <Download class="h-4 w-4" />
@@ -200,21 +204,17 @@ function cancelEditing() {
         </Tooltip>
 
         <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <DropdownMenuTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  class="text-white/80 hover:text-white hover:bg-white/10"
-                  :aria-label="t('tooltip_more_actions')"
-                >
-                  <MoreVertical class="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>{{ t('tooltip_more_actions') }}</TooltipContent>
-          </Tooltip>
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_more_actions')"
+              :title="t('tooltip_more_actions')"
+            >
+              <MoreVertical class="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem @select="emit('import')">
               <Upload class="h-4 w-4 mr-2" />
@@ -232,6 +232,7 @@ function cancelEditing() {
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'system'"
+                    :aria-label="t('theme_system')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'system'
                       ? 'bg-accent text-accent-foreground'
@@ -247,6 +248,7 @@ function cancelEditing() {
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'light'"
+                    :aria-label="t('theme_light')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'light'
                       ? 'bg-accent text-accent-foreground'
@@ -262,6 +264,7 @@ function cancelEditing() {
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'dark'"
+                    :aria-label="t('theme_dark')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'dark'
                       ? 'bg-accent text-accent-foreground'
