@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "OpenHeaders",
+  "default_locale": "en",
+  "name": "__MSG_app_name__",
   "version": "1.0.0",
-  "description": "Modify HTTP request and response headers",
+  "description": "__MSG_app_description__",
   "permissions": [
     "storage",
     "declarativeNetRequest",
@@ -12,6 +13,7 @@
     "<all_urls>"
   ],
   "action": {
+    "default_title": "__MSG_app_name__",
     "default_popup": "index.html",
     "default_icon": {
       "16": "icons/icon16.png",

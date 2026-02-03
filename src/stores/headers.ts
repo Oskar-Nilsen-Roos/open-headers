@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference } from '../types'
+import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference } from '../types'
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
+import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -12,6 +13,7 @@ export const useHeadersStore = defineStore('headers', () => {
   const profiles = ref<Profile[]>([])
   const activeProfileId = ref<string | null>(null)
   const darkModePreference = ref<DarkModePreference>('system')
+  const languagePreference = ref<LanguagePreference>('auto')
   const systemPrefersDark = ref(false)
   const history = ref<AppState[]>([])
   const historyIndex = ref(-1)
@@ -63,6 +65,7 @@ export const useHeadersStore = defineStore('headers', () => {
       profiles: JSON.parse(JSON.stringify(profiles.value)),
       activeProfileId: activeProfileId.value,
       darkModePreference: darkModePreference.value,
+      languagePreference: languagePreference.value,
     }
   }
 
@@ -89,6 +92,8 @@ export const useHeadersStore = defineStore('headers', () => {
     profiles.value = JSON.parse(JSON.stringify(state.profiles))
     activeProfileId.value = state.activeProfileId
     darkModePreference.value = state.darkModePreference
+    languagePreference.value = state.languagePreference ?? 'auto'
+    setI18nLanguagePreference(languagePreference.value)
   }
 
   // Actions
@@ -152,14 +157,28 @@ export const useHeadersStore = defineStore('headers', () => {
           // Migrate from old format: if darkMode was true, set to 'dark', otherwise 'system'
           darkModePreference.value = (state as { darkMode?: boolean }).darkMode ? 'dark' : 'system'
         }
+        if ('languagePreference' in state) {
+          const storedLanguage = state.languagePreference
+          if (storedLanguage === 'auto' || storedLanguage === 'en' || storedLanguage === 'sv') {
+            languagePreference.value = storedLanguage
+          } else {
+            languagePreference.value = 'auto'
+          }
+        } else {
+          languagePreference.value = 'auto'
+        }
       }
+
+      setI18nLanguagePreference(languagePreference.value)
 
       // Initialize system dark mode detection
       initSystemDarkModeDetection()
 
       // Create default profile if none exist
       if (profiles.value.length === 0) {
-        const defaultProfile = createEmptyProfile('Profile 1')
+        const defaultProfile = createEmptyProfile(
+          getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+        )
         profiles.value.push(defaultProfile)
         activeProfileId.value = defaultProfile.id
       } else if (!activeProfileId.value && profiles.value.length > 0) {
@@ -173,8 +192,12 @@ export const useHeadersStore = defineStore('headers', () => {
       isInitialized.value = true
     } catch (error) {
       console.error('Failed to load state:', error)
+      languagePreference.value = 'auto'
+      setI18nLanguagePreference(languagePreference.value)
       // Create default profile on error
-      const defaultProfile = createEmptyProfile('Profile 1')
+      const defaultProfile = createEmptyProfile(
+        getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+      )
       profiles.value.push(defaultProfile)
       activeProfileId.value = defaultProfile.id
       history.value = [getState()]
@@ -187,7 +210,9 @@ export const useHeadersStore = defineStore('headers', () => {
   function addProfile(): void {
     const profileNumber = profiles.value.length + 1
     const colorIndex = (profiles.value.length) % DEFAULT_PROFILE_COLORS.length
-    const profile = createEmptyProfile(`Profile ${profileNumber}`)
+    const profile = createEmptyProfile(
+      getMessageForPreference(languagePreference.value, 'profile_default_name', { number: profileNumber })
+    )
     profile.color = DEFAULT_PROFILE_COLORS[colorIndex] ?? '#7c3aed'
     profiles.value.push(profile)
     activeProfileId.value = profile.id
@@ -207,7 +232,9 @@ export const useHeadersStore = defineStore('headers', () => {
 
     // Ensure at least one profile exists
     if (profiles.value.length === 0) {
-      const defaultProfile = createEmptyProfile('Profile 1')
+      const defaultProfile = createEmptyProfile(
+        getMessageForPreference(languagePreference.value, 'profile_default_name', { number: 1 })
+      )
       profiles.value.push(defaultProfile)
       activeProfileId.value = defaultProfile.id
     }
@@ -223,7 +250,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const newProfile: Profile = {
       ...JSON.parse(JSON.stringify(profile)),
       id: generateId(),
-      name: `${profile.name} (Copy)`,
+      name: `${profile.name} ${getMessageForPreference(languagePreference.value, 'profile_copy_suffix')}`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
@@ -513,12 +540,19 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
+  function setLanguagePreference(preference: LanguagePreference): void {
+    languagePreference.value = preference
+    setI18nLanguagePreference(preference)
+    persistState()
+  }
+
   return {
     // State
     profiles,
     activeProfileId,
     activeProfile,
     darkModePreference,
+    languagePreference,
     isDarkMode,
     isInitialized,
     requestHeaders,
@@ -551,5 +585,6 @@ export const useHeadersStore = defineStore('headers', () => {
     importProfiles,
     toggleDarkMode,
     setDarkModePreference,
+    setLanguagePreference,
   }
 })

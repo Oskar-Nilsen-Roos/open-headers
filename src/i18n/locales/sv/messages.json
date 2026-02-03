@@ -1,0 +1,150 @@
+{
+  "app_name": {
+    "message": "OpenHeaders",
+    "description": "Tilläggsnamn som visas i Chrome"
+  },
+  "app_description": {
+    "message": "Ändra HTTP-begärans- och svarsrubriker",
+    "description": "Tilläggsbeskrivning som visas i Chrome"
+  },
+  "app_loading": {
+    "message": "Laddar...",
+    "description": "Visas medan appen initieras"
+  },
+  "list_title_request_headers": {
+    "message": "Begäransrubriker",
+    "description": "Rubrik för listan med begäransrubriker"
+  },
+  "list_title_response_headers": {
+    "message": "Svarsrubriker",
+    "description": "Rubrik för listan med svarsrubriker"
+  },
+  "tab_request": {
+    "message": "Begäran",
+    "description": "Fliketikett för begäransrubriker"
+  },
+  "tab_response": {
+    "message": "Svar",
+    "description": "Fliketikett för svarsrubriker"
+  },
+  "headers_empty_state": {
+    "message": "Inga rubriker. Klicka på + för att lägga till en.",
+    "description": "Tomtillstånd när inga rubriker finns"
+  },
+  "button_add": {
+    "message": "LÄGG TILL",
+    "description": "Etikett för lägg till-knapp"
+  },
+  "button_clear": {
+    "message": "RENSA",
+    "description": "Etikett för rensa-knapp"
+  },
+  "placeholder_header_name": {
+    "message": "Rubriknamn",
+    "description": "Platshållare för rubriknamn"
+  },
+  "placeholder_value": {
+    "message": "Värde",
+    "description": "Platshållare för rubrikvärde"
+  },
+  "placeholder_comment": {
+    "message": "Kommentar",
+    "description": "Platshållare för kommentar"
+  },
+  "menu_duplicate": {
+    "message": "Duplicera",
+    "description": "Menyval för att duplicera en rubrik"
+  },
+  "menu_delete": {
+    "message": "Ta bort",
+    "description": "Menyval för att ta bort ett objekt"
+  },
+  "tooltip_undo": {
+    "message": "Ångra",
+    "description": "Tooltip för ångra-knapp"
+  },
+  "tooltip_add_header": {
+    "message": "Lägg till rubrik",
+    "description": "Tooltip för lägg till rubrik-knapp"
+  },
+  "tooltip_redo": {
+    "message": "Gör om",
+    "description": "Tooltip för gör om-knapp"
+  },
+  "tooltip_export_profiles": {
+    "message": "Exportera profiler",
+    "description": "Tooltip för exportera profiler-knapp"
+  },
+  "menu_import_profiles": {
+    "message": "Importera profiler",
+    "description": "Menyval för att importera profiler"
+  },
+  "menu_duplicate_profile": {
+    "message": "Duplicera profil",
+    "description": "Menyval för att duplicera en profil"
+  },
+  "menu_delete_profile": {
+    "message": "Ta bort profil",
+    "description": "Menyval för att ta bort en profil"
+  },
+  "theme_system": {
+    "message": "System",
+    "description": "Etikett för systemtema"
+  },
+  "theme_light": {
+    "message": "Ljust",
+    "description": "Etikett för ljust tema"
+  },
+  "theme_dark": {
+    "message": "Mörkt",
+    "description": "Etikett för mörkt tema"
+  },
+  "language_label": {
+    "message": "Språk",
+    "description": "Etikett för språkval"
+  },
+  "language_option_auto": {
+    "message": "Auto",
+    "description": "Automatiskt språkalternativ"
+  },
+  "language_option_en": {
+    "message": "Engelska",
+    "description": "Engelskt språkalternativ"
+  },
+  "language_option_sv": {
+    "message": "Svenska",
+    "description": "Svenskt språkalternativ"
+  },
+  "dialog_delete_profile_title": {
+    "message": "Ta bort profil?",
+    "description": "Titel för bekräftelsedialog vid borttagning av profil"
+  },
+  "dialog_delete_profile_description": {
+    "message": "Det här tar bort \"{{name}}\" permanent. Det går inte att ångra.",
+    "description": "Beskrivning för bekräftelsedialog vid borttagning av profil"
+  },
+  "button_cancel": {
+    "message": "Avbryt",
+    "description": "Etikett för avbryt-knapp"
+  },
+  "profile_unnamed": {
+    "message": "Profil",
+    "description": "Fallbacketikett när profilen saknas"
+  },
+  "profile_default_name": {
+    "message": "Profil {{number}}",
+    "description": "Standardnamn för profil med nummer"
+  },
+  "profile_copy_suffix": {
+    "message": "(Kopia)",
+    "description": "Suffix när en profil dupliceras"
+  },
+  "tooltip_add_profile": {
+    "message": "Lägg till profil",
+    "description": "Tooltip för lägg till profil-knapp"
+  },
+  "export_file_name": {
+    "message": "openheaders-profiles.json",
+    "description": "Standardfilnamn för profilexport"
+  }
+}

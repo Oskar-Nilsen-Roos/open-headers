@@ -6,6 +6,7 @@ import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
 import type { HeaderType } from '@/types'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { t } from '@/i18n'
 
 const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
@@ -35,7 +36,9 @@ const activeHeaders = computed(() => {
 })
 
 const activeTitle = computed(() => {
-  return activeHeaderType.value === 'request' ? 'Request headers' : 'Response headers'
+  return activeHeaderType.value === 'request'
+    ? t('list_title_request_headers')
+    : t('list_title_response_headers')
 })
 
 // Header actions
@@ -93,7 +96,7 @@ function handleExport() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'openheaders-profiles.json'
+  a.download = t('export_file_name')
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -137,6 +140,7 @@ function handleImport() {
         :can-undo="store.canUndo"
         :can-redo="store.canRedo"
         :dark-mode-preference="store.darkModePreference"
+        :language-preference="store.languagePreference"
         @undo="store.undo"
         @redo="store.redo"
         @add-header="handleAddHeader"
@@ -146,6 +150,7 @@ function handleImport() {
         @delete="handleDeleteProfile"
         @rename="handleRenameProfile"
         @set-dark-mode="store.setDarkModePreference"
+        @set-language="store.setLanguagePreference"
       />
 
       <!-- Headers Content -->
@@ -166,8 +171,8 @@ function handleImport() {
           <template #tabs>
             <Tabs v-model="activeHeaderType" class="w-full">
               <TabsList class="w-full">
-                <TabsTrigger value="request">Request</TabsTrigger>
-                <TabsTrigger value="response">Response</TabsTrigger>
+                <TabsTrigger value="request">{{ t('tab_request') }}</TabsTrigger>
+                <TabsTrigger value="response">{{ t('tab_response') }}</TabsTrigger>
               </TabsList>
             </Tabs>
           </template>
@@ -178,6 +183,6 @@ function handleImport() {
 
   <!-- Loading State -->
   <div v-else class="flex items-center justify-center h-64 text-muted-foreground">
-    Loading...
+    {{ t('app_loading') }}
   </div>
 </template>
