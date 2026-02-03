@@ -1,8 +1,9 @@
 import type { HeaderRule, AppState, Profile } from '../types'
-import { isUrlAllowedByFilters } from '../lib/urlFilters'
+import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
 
 const STORAGE_KEY = 'openheaders_state'
 const SESSION_RULE_ID = 1
+const DEBUG = false
 
 interface RuleAction {
   type: 'modifyHeaders'
@@ -43,19 +44,14 @@ function headerOperationToChrome(operation: HeaderRule['operation']): chrome.dec
 
 /**
  * Builds a Chrome declarativeNetRequest session rule from the active profile
- * @param state - The application state containing profiles
+ * @param profile - The active profile
  * @param enabledTabIds - The tab IDs where the active profile should apply
  * @returns A Chrome extension rule to apply headers, or null if none should apply
  */
-function buildSessionRuleFromActiveProfile(
-  state: AppState,
+function buildSessionRuleFromProfile(
+  profile: Profile,
   enabledTabIds: number[]
 ): chrome.declarativeNetRequest.Rule | null {
-  if (!state.activeProfileId) return null
-
-  const profile = state.profiles.find(p => p.id === state.activeProfileId) as Profile | undefined
-  if (!profile) return null
-
   if (enabledTabIds.length === 0) return null
 
   const enabledHeaders = profile.headers.filter(h => h.enabled && h.name.trim())
@@ -99,16 +95,8 @@ function buildSessionRuleFromActiveProfile(
 const tabUrls = new Map<number, string>()
 let latestState: AppState | null = null
 let hasClearedDynamicRules = false
-let updateQueued = false
-
-function queueUpdateRules(): void {
-  if (updateQueued) return
-  updateQueued = true
-  queueMicrotask(() => {
-    updateQueued = false
-    updateRules().catch((error) => console.error('Failed to update rules:', error))
-  })
-}
+let pendingUpdate = false
+let updateInFlight: Promise<void> | null = null
 
 async function clearDynamicRulesOnce(): Promise<void> {
   if (hasClearedDynamicRules) return
@@ -127,10 +115,10 @@ async function clearDynamicRulesOnce(): Promise<void> {
 
 function computeEnabledTabIds(profile: Profile): number[] {
   const enabled: number[] = []
-  const filters = profile.urlFilters ?? []
 
   for (const [tabId, url] of tabUrls.entries()) {
-    if (isUrlAllowedByFilters(url, filters)) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) continue
+    if (isProfileEnabledForTabUrl(profile, url)) {
       enabled.push(tabId)
     }
   }
@@ -138,16 +126,34 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
-async function updateRules(): Promise<void> {
+function queueUpdateRules(): void {
+  pendingUpdate = true
+  if (updateInFlight) return
+
+  updateInFlight = (async () => {
+    await new Promise<void>(resolve => setTimeout(resolve, 0))
+    try {
+      while (pendingUpdate) {
+        pendingUpdate = false
+        await updateRulesOnce()
+      }
+    } finally {
+      updateInFlight = null
+      if (pendingUpdate) queueUpdateRules()
+    }
+  })()
+}
+
+async function updateRulesOnce(): Promise<void> {
   try {
+    await clearDynamicRulesOnce()
+
     if (!latestState) {
       await chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [SESSION_RULE_ID],
       })
       return
     }
-
-    await clearDynamicRulesOnce()
 
     const profile = latestState.profiles.find(p => p.id === latestState?.activeProfileId) ?? null
     if (!profile) {
@@ -158,20 +164,23 @@ async function updateRules(): Promise<void> {
     }
 
     const enabledTabIds = computeEnabledTabIds(profile)
-    const rule = buildSessionRuleFromActiveProfile(latestState, enabledTabIds)
+    const rule = buildSessionRuleFromProfile(profile, enabledTabIds)
 
     await chrome.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [SESSION_RULE_ID],
       addRules: rule ? [rule] : [],
     })
 
-    console.log(
-      'Session rules updated:',
-      rule ? 1 : 0,
-      'active;',
-      enabledTabIds.length,
-      'tab(s) matched'
-    )
+    if (DEBUG) {
+      // eslint-disable-next-line no-console
+      console.log(
+        'Session rules updated:',
+        rule ? 1 : 0,
+        'active;',
+        enabledTabIds.length,
+        'tab(s) matched'
+      )
+    }
   } catch (error) {
     console.error('Failed to update rules:', error)
   }

@@ -427,6 +427,15 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
+  function clearUrlFilters(): void {
+    if (!activeProfile.value) return
+
+    activeProfile.value.urlFilters = []
+    activeProfile.value.updatedAt = Date.now()
+    saveToHistory()
+    persistState()
+  }
+
   // Import/Export
   function exportProfiles(): string {
     return JSON.stringify({
@@ -524,6 +533,7 @@ export const useHeadersStore = defineStore('headers', () => {
     addUrlFilter,
     removeUrlFilter,
     updateUrlFilter,
+    clearUrlFilters,
     exportProfiles,
     importProfiles,
     toggleDarkMode,
