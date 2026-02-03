@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { AppState, Profile, HeaderRule } from '@/types'
-import { isUrlAllowedByFilters } from '@/lib/urlFilters'
+import { isProfileEnabledForTabUrl } from '@/lib/urlFilters'
 
 // We need to test the background script logic without Chrome APIs
 // So we recreate and test the pure logic and rule shape
@@ -46,7 +46,8 @@ type TabInfo = { id: number; url: string }
 function computeEnabledTabIds(profile: Profile, tabs: TabInfo[]): number[] {
   const enabled: number[] = []
   for (const tab of tabs) {
-    if (isUrlAllowedByFilters(tab.url, profile.urlFilters)) {
+    if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) continue
+    if (isProfileEnabledForTabUrl(profile, tab.url)) {
       enabled.push(tab.id)
     }
   }
@@ -310,4 +311,3 @@ describe('Background Script Logic', () => {
     })
   })
 })
-

@@ -5,11 +5,12 @@ import type { UrlFilter } from '@/types'
 
 vi.mock('lucide-vue-next', () => ({
   Plus: { template: '<span>Plus</span>' },
+  Trash2: { template: '<span>Trash2</span>' },
 }))
 
 describe('UrlFilterList', () => {
   const createFilter = (overrides: Partial<UrlFilter> = {}): UrlFilter => ({
-    id: crypto.randomUUID(),
+    id: 'f1',
     enabled: true,
     type: 'include',
     matchType: 'host_equals',
@@ -17,70 +18,62 @@ describe('UrlFilterList', () => {
     ...overrides,
   })
 
-  it('renders counts', () => {
-    const filters = [
-      createFilter({ enabled: true }),
-      createFilter({ enabled: false }),
-    ]
-
-    const wrapper = mount(UrlFilterList, {
-      props: { filters, color: '#000000' },
+  const mountComponent = (filters: UrlFilter[]) => {
+    return mount(UrlFilterList, {
+      props: {
+        filters,
+        color: '#7c3aed',
+      },
       global: {
         stubs: {
-          UrlFilterRow: { template: '<div />' },
-          Button: { template: '<button><slot /></button>' },
+          Button: {
+            template: '<button :disabled="disabled" @click="!disabled && $emit(\'click\')"><slot /></button>',
+            props: ['disabled', 'variant', 'size', 'class'],
+          },
+          UrlFilterRow: {
+            template: `
+              <div>
+                <button data-testid="row-update" @click="$emit('update', filter.id, { pattern: 'x' })">update</button>
+                <button data-testid="row-remove" @click="$emit('remove', filter.id)">remove</button>
+              </div>
+            `,
+            props: ['filter'],
+          },
         },
       },
     })
+  }
 
-    expect(wrapper.text()).toContain('URL filters')
-    expect(wrapper.text()).toContain('(1/2)')
-  })
-
-  it('emits addInclude and addExclude', async () => {
-    const wrapper = mount(UrlFilterList, {
-      props: { filters: [] },
-      global: {
-        stubs: {
-          UrlFilterRow: { template: '<div />' },
-          Button: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
-        },
-      },
-    })
-
+  it('emits addInclude and addExclude on button clicks', async () => {
+    const wrapper = mountComponent([])
     const buttons = wrapper.findAll('button')
-    await buttons[0]!.trigger('click')
-    await buttons[1]!.trigger('click')
+
+    const addInclude = buttons.find(b => b.text().includes('ADD INCLUDE'))
+    const addExclude = buttons.find(b => b.text().includes('ADD EXCLUDE'))
+
+    await addInclude?.trigger('click')
+    await addExclude?.trigger('click')
 
     expect(wrapper.emitted('addInclude')).toBeTruthy()
     expect(wrapper.emitted('addExclude')).toBeTruthy()
   })
 
-  it('forwards update and remove from UrlFilterRow', async () => {
-    const filter = createFilter({ id: 'f1' })
+  it('emits clearAll when clear is clicked', async () => {
+    const wrapper = mountComponent([createFilter()])
+    const clearButton = wrapper.findAll('button').find(b => b.text().includes('CLEAR'))
+    await clearButton?.trigger('click')
 
-    const wrapper = mount(UrlFilterList, {
-      props: { filters: [filter] },
-      global: {
-        stubs: {
-          Button: { template: '<button><slot /></button>' },
-          UrlFilterRow: {
-            props: ['filter'],
-            template: `
-              <div>
-                <button data-testid="update" @click="$emit('update', { pattern: 'x' })" />
-                <button data-testid="remove" @click="$emit('remove')" />
-              </div>
-            `,
-          },
-        },
-      },
-    })
+    expect(wrapper.emitted('clearAll')).toBeTruthy()
+  })
 
-    await wrapper.find('button[data-testid="update"]').trigger('click')
-    await wrapper.find('button[data-testid="remove"]').trigger('click')
+  it('re-emits row update and remove events', async () => {
+    const wrapper = mountComponent([createFilter()])
+
+    await wrapper.find('[data-testid="row-update"]').trigger('click')
+    await wrapper.find('[data-testid="row-remove"]').trigger('click')
 
     expect(wrapper.emitted('update')?.[0]).toEqual(['f1', { pattern: 'x' }])
     expect(wrapper.emitted('remove')?.[0]).toEqual(['f1'])
   })
 })
+

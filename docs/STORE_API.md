@@ -303,6 +303,15 @@ store.updateUrlFilter('filter-uuid', {
 
 ---
 
+#### `clearUrlFilters(): void`
+Removes all URL filters from the active profile.
+
+```typescript
+store.clearUrlFilters()
+```
+
+---
+
 ### History Actions
 
 #### `undo(): void`

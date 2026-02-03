@@ -1,144 +1,171 @@
-import { describe, it, expect } from 'vitest'
-import { doesUrlFilterMatch, isUrlAllowedByFilters } from '@/lib/urlFilters'
-import type { UrlFilterLike } from '@/lib/urlFilters'
+import { describe, expect, it } from 'vitest'
+import type { Profile, UrlFilter } from '@/types'
+import { globToRegExp, isProfileEnabledForTabUrl, matchesUrlFilter, normalizeHostPattern } from '@/lib/urlFilters'
 
-describe('urlFilters', () => {
-  describe('doesUrlFilterMatch', () => {
-    it('matches host_equals with plain hostname', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'host_equals',
-        pattern: 'example.com',
-      }
+function createProfile(overrides: Partial<Profile> = {}): Profile {
+  return {
+    id: 'profile-id',
+    name: 'Test Profile',
+    color: '#7c3aed',
+    headers: [],
+    urlFilters: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  }
+}
 
-      expect(doesUrlFilterMatch('https://example.com/path', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://api.example.com/path', filter)).toBe(false)
+function createFilter(overrides: Partial<UrlFilter> = {}): UrlFilter {
+  return {
+    id: 'filter-id',
+    enabled: true,
+    type: 'include',
+    matchType: 'host_equals',
+    pattern: '',
+    ...overrides,
+  }
+}
+
+describe('urlFilters utilities', () => {
+  describe('normalizeHostPattern', () => {
+    it('normalizes a hostname', () => {
+      expect(normalizeHostPattern('example.com')).toBe('example.com')
     })
 
-    it('matches host_equals when pattern is a full URL', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'host_equals',
-        pattern: 'https://example.com/somewhere',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/elsewhere', filter)).toBe(true)
+    it('extracts hostname from a full URL', () => {
+      expect(normalizeHostPattern('https://Example.COM/path')).toBe('example.com')
     })
 
-    it('matches host_ends_with for subdomains', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'host_ends_with',
-        pattern: 'example.com',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://api.example.com/', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://badexample.com/', filter)).toBe(false)
+    it('strips port when present', () => {
+      expect(normalizeHostPattern('example.com:8080')).toBe('example.com')
     })
 
-    it('matches url_starts_with against full URL when scheme is present', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'url_starts_with',
-        pattern: 'https://example.com/app',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/app/1', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://example.com/other', filter)).toBe(false)
-    })
-
-    it('matches url_starts_with against host+path when scheme is not present', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'url_starts_with',
-        pattern: 'example.com/app',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/app/1', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://example.com/other', filter)).toBe(false)
-    })
-
-    it('matches url_contains', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'url_contains',
-        pattern: 'example.com/app',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/app/1', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://example.com/other', filter)).toBe(false)
-    })
-
-    it('matches regex against full URL', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'regex',
-        pattern: '^https://example\\.com/.*$',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/app/1', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://api.example.com/app/1', filter)).toBe(false)
-    })
-
-    it('returns false for invalid regex pattern', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'regex',
-        pattern: '(',
-      }
-
-      expect(doesUrlFilterMatch('https://example.com/', filter)).toBe(false)
-    })
-
-    it('matches legacy dnr_url_filter glob', () => {
-      const filter: UrlFilterLike = {
-        enabled: true,
-        type: 'include',
-        matchType: 'dnr_url_filter',
-        pattern: '*.example.com/*',
-      }
-
-      expect(doesUrlFilterMatch('https://api.example.com/v1', filter)).toBe(true)
-      expect(doesUrlFilterMatch('https://example.org/', filter)).toBe(false)
+    it('returns null for empty input', () => {
+      expect(normalizeHostPattern('  ')).toBeNull()
     })
   })
 
-  describe('isUrlAllowedByFilters', () => {
-    it('allows all URLs when there are no enabled include filters', () => {
-      const filters: UrlFilterLike[] = [
-        { enabled: false, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
-      ]
+  describe('globToRegExp', () => {
+    it('treats * as wildcard and anchors the result', () => {
+      const re = globToRegExp('*.example.com/*')
+      expect(re).not.toBeNull()
+      expect(re!.test('https://api.example.com/foo')).toBe(true)
+      expect(re!.test('https://example.com/foo')).toBe(false)
+    })
+  })
 
-      expect(isUrlAllowedByFilters('https://anything.com/', filters)).toBe(true)
+  describe('matchesUrlFilter', () => {
+    const url = 'https://api.example.com/v1/users?x=1'
+
+    it('matches host_equals', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'host_equals',
+        pattern: 'api.example.com',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'host_equals',
+        pattern: 'example.com',
+      }))).toBe(false)
     })
 
-    it('allows when any enabled include matches', () => {
-      const filters: UrlFilterLike[] = [
-        { enabled: true, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
-        { enabled: true, type: 'include', matchType: 'host_equals', pattern: 'other.com' },
-      ]
-
-      expect(isUrlAllowedByFilters('https://example.com/', filters)).toBe(true)
-      expect(isUrlAllowedByFilters('https://nope.com/', filters)).toBe(false)
+    it('matches host_ends_with', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'host_ends_with',
+        pattern: 'example.com',
+      }))).toBe(true)
     })
 
-    it('blocks when any enabled exclude matches (even if include matches)', () => {
-      const filters: UrlFilterLike[] = [
-        { enabled: true, type: 'include', matchType: 'host_ends_with', pattern: 'example.com' },
-        { enabled: true, type: 'exclude', matchType: 'host_equals', pattern: 'blocked.example.com' },
-      ]
+    it('matches url_starts_with (with scheme)', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'url_starts_with',
+        pattern: 'https://api.example.com/v1',
+      }))).toBe(true)
+    })
 
-      expect(isUrlAllowedByFilters('https://api.example.com/', filters)).toBe(true)
-      expect(isUrlAllowedByFilters('https://blocked.example.com/', filters)).toBe(false)
+    it('matches url_starts_with (without scheme)', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'url_starts_with',
+        pattern: 'api.example.com/v1',
+      }))).toBe(true)
+    })
+
+    it('matches url_contains', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'url_contains',
+        pattern: 'v1/users',
+      }))).toBe(true)
+    })
+
+    it('matches dnr_url_filter glob on url.href', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'dnr_url_filter',
+        pattern: '*.example.com/*',
+      }))).toBe(true)
+    })
+
+    it('matches regex on url.href', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'regex',
+        pattern: '^https://api\\.example\\.com/.*$',
+      }))).toBe(true)
+    })
+
+    it('returns false for invalid regex patterns', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'regex',
+        pattern: '[',
+      }))).toBe(false)
+    })
+  })
+
+  describe('isProfileEnabledForTabUrl', () => {
+    const url = 'https://api.example.com/'
+
+    it('enables when there are no include filters', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'exclude', matchType: 'host_equals', pattern: 'blocked.example.com' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, url)).toBe(true)
+    })
+
+    it('requires at least one include match when includes exist', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'include', matchType: 'host_equals', pattern: 'example.com' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, url)).toBe(false)
+    })
+
+    it('enables when an include matches', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'include', matchType: 'host_equals', pattern: 'api.example.com' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, url)).toBe(true)
+    })
+
+    it('exclude overrides include', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'include', matchType: 'host_ends_with', pattern: 'example.com' }),
+          createFilter({ type: 'exclude', matchType: 'host_equals', pattern: 'api.example.com' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, url)).toBe(false)
+    })
+
+    it('ignores disabled filters', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'include', enabled: false, matchType: 'host_equals', pattern: 'api.example.com' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, url)).toBe(true)
     })
   })
 })

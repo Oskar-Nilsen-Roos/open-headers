@@ -466,6 +466,18 @@ describe('useHeadersStore', () => {
       expect(store.activeProfile?.urlFilters[0]?.pattern).toBe('*.example.com/*')
       expect(store.activeProfile?.urlFilters[0]?.enabled).toBe(false)
     })
+
+    it('clears all url filters', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addUrlFilter('include')
+      store.addUrlFilter('exclude')
+      expect(store.activeProfile?.urlFilters.length).toBe(2)
+
+      store.clearUrlFilters()
+      expect(store.activeProfile?.urlFilters.length).toBe(0)
+    })
   })
 
   describe('header duplication', () => {

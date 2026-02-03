@@ -257,7 +257,13 @@ interface AppState {
 - **Controls**:
   - Enable/disable each filter
   - Choose include/exclude
-  - Choose match type (host/url/regex/advanced)
+  - Choose match type:
+    - Host equals
+    - Host ends with
+    - URL starts with
+    - URL contains
+    - Advanced (glob)
+    - Regex
   - Edit the pattern
   - Delete filters
 
@@ -265,6 +271,7 @@ interface AppState {
 - `addUrlFilter(type: 'include' | 'exclude')`
 - `updateUrlFilter(filterId, updates)`
 - `removeUrlFilter(filterId)`
+- `clearUrlFilters()`
 
 ### Filter Behavior (Top-level site / tab URL)
 - Filters are evaluated against the **current tab URL** (the top-level site you’re visiting).
