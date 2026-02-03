@@ -4,6 +4,7 @@ import { useHeadersStore } from '@/stores/headers'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
+import { t } from '@/i18n'
 
 const store = useHeadersStore()
 
@@ -82,7 +83,7 @@ function handleExport() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'openheaders-profiles.json'
+  a.download = t('export_file_name')
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -126,6 +127,7 @@ function handleImport() {
         :can-undo="store.canUndo"
         :can-redo="store.canRedo"
         :dark-mode-preference="store.darkModePreference"
+        :language-preference="store.languagePreference"
         @undo="store.undo"
         @redo="store.redo"
         @add-header="handleAddHeader"
@@ -135,12 +137,13 @@ function handleImport() {
         @delete="handleDeleteProfile"
         @rename="handleRenameProfile"
         @set-dark-mode="store.setDarkModePreference"
+        @set-language="store.setLanguagePreference"
       />
 
       <!-- Headers Content -->
       <div class="flex-1 overflow-y-auto">
         <HeaderList
-          title="Request headers"
+          :title="t('list_title_request_headers')"
           type="request"
           :headers="store.requestHeaders"
           :color="store.activeProfile?.color"
@@ -158,6 +161,6 @@ function handleImport() {
 
   <!-- Loading State -->
   <div v-else class="flex items-center justify-center h-64 text-muted-foreground">
-    Loading...
+    {{ t('app_loading') }}
   </div>
 </template>

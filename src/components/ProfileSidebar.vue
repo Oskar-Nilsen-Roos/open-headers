@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Plus } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   profiles: Profile[]
@@ -153,7 +154,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
             <Plus class="h-4 w-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="right">Add profile</TooltipContent>
+        <TooltipContent side="right">{{ t('tooltip_add_profile') }}</TooltipContent>
       </Tooltip>
     </div>
 

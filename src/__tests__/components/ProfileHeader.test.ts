@@ -36,6 +36,7 @@ describe('ProfileHeader', () => {
     canUndo: false,
     canRedo: false,
     darkModePreference: 'system' as const,
+    languagePreference: 'auto' as const,
   }
 
   const mountComponent = (props = {}) => {
@@ -69,6 +70,11 @@ describe('ProfileHeader', () => {
           },
           DropdownMenuSeparator: { template: '<hr />' },
           DropdownMenuLabel: { template: '<div><slot /></div>' },
+          Select: { template: '<div><slot /></div>' },
+          SelectTrigger: { template: '<div><slot /></div>' },
+          SelectValue: { template: '<div><slot /></div>', props: ['placeholder'] },
+          SelectContent: { template: '<div><slot /></div>' },
+          SelectItem: { template: '<div><slot /></div>', props: ['value'] },
           AlertDialog: { template: '<div v-if="open"><slot /></div>', props: ['open'] },
           AlertDialogContent: { template: '<div><slot /></div>' },
           AlertDialogHeader: { template: '<div><slot /></div>' },

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical, GripVertical, Copy, Trash2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   header: HeaderRule
@@ -53,14 +54,14 @@ function handleCommentChange(value: string) {
     <Input
       :model-value="header.name"
       @update:model-value="handleNameChange"
-      placeholder="Header name"
+      :placeholder="t('placeholder_header_name')"
       class="flex-1 min-w-0 h-7 text-sm"
     />
 
     <Input
       :model-value="header.value"
       @update:model-value="handleValueChange"
-      placeholder="Value"
+      :placeholder="t('placeholder_value')"
       class="flex-1 min-w-0 h-7 text-sm"
       :disabled="header.operation === 'remove'"
     />
@@ -68,7 +69,7 @@ function handleCommentChange(value: string) {
     <Input
       :model-value="header.comment"
       @update:model-value="handleCommentChange"
-      placeholder="Comment"
+      :placeholder="t('placeholder_comment')"
       class="w-32 h-7 text-sm text-muted-foreground"
     />
 
@@ -81,11 +82,11 @@ function handleCommentChange(value: string) {
       <DropdownMenuContent align="end">
         <DropdownMenuItem @select="emit('duplicate')">
           <Copy class="h-4 w-4 mr-2" />
-          Duplicate
+          {{ t('menu_duplicate') }}
         </DropdownMenuItem>
         <DropdownMenuItem class="text-destructive" @select="emit('remove')">
           <Trash2 class="h-4 w-4 mr-2" />
-          Delete
+          {{ t('menu_delete') }}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

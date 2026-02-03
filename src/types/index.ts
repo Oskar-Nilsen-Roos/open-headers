@@ -1,6 +1,7 @@
 export type HeaderType = 'request' | 'response'
 export type HeaderOperation = 'set' | 'remove' | 'append'
 export type DarkModePreference = 'system' | 'light' | 'dark'
+export type LanguagePreference = 'auto' | 'en' | 'sv'
 
 export interface HeaderRule {
   id: string
@@ -33,6 +34,7 @@ export interface AppState {
   profiles: Profile[]
   activeProfileId: string | null
   darkModePreference: DarkModePreference
+  languagePreference: LanguagePreference
 }
 
 export interface HistoryEntry {
