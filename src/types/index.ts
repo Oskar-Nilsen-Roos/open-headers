@@ -1,4 +1,85 @@
 export type HeaderType = 'request' | 'response'
+
+// ModHeader import types
+export interface ModHeaderHeader {
+  enabled: boolean
+  name: string
+  value: string
+  appendMode?: boolean
+  comment?: string
+}
+
+export interface ModHeaderProfile {
+  headers: ModHeaderHeader[]
+  respHeaders?: ModHeaderHeader[]
+  hideComment?: boolean
+  shortTitle?: string
+  title: string
+  version?: number
+}
+
+/**
+ * Detects if the given data is a ModHeader export format
+ * ModHeader exports an array of profiles directly, not wrapped in an object
+ */
+export function isModHeaderFormat(data: unknown): data is ModHeaderProfile[] {
+  if (!Array.isArray(data)) return false
+  if (data.length === 0) return false
+  const first = data[0]
+  return (
+    typeof first === 'object' &&
+    first !== null &&
+    'title' in first &&
+    'headers' in first &&
+    Array.isArray(first.headers)
+  )
+}
+
+/**
+ * Converts a ModHeader profile to OpenHeaders format
+ */
+export function convertModHeaderProfile(
+  modProfile: ModHeaderProfile,
+  colorIndex: number
+): Profile {
+  const headers: HeaderRule[] = []
+
+  // Convert request headers
+  for (const h of modProfile.headers || []) {
+    headers.push({
+      id: crypto.randomUUID(),
+      enabled: h.enabled,
+      name: h.name || '',
+      value: h.value || '',
+      comment: h.comment || '',
+      type: 'request',
+      operation: h.appendMode ? 'append' : 'set',
+    })
+  }
+
+  // Convert response headers if present
+  for (const h of modProfile.respHeaders || []) {
+    headers.push({
+      id: crypto.randomUUID(),
+      enabled: h.enabled,
+      name: h.name || '',
+      value: h.value || '',
+      comment: h.comment || '',
+      type: 'response',
+      operation: h.appendMode ? 'append' : 'set',
+    })
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    name: modProfile.title || 'Imported Profile',
+    color: DEFAULT_PROFILE_COLORS[colorIndex % DEFAULT_PROFILE_COLORS.length] ?? '#7c3aed',
+    headers,
+    urlFilters: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }
+}
 export type HeaderOperation = 'set' | 'remove' | 'append'
 export type DarkModePreference = 'system' | 'light' | 'dark'
 

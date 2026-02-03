@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference } from '../types'
-import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS } from '../types'
+import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile } from '../types'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -430,6 +430,22 @@ export const useHeadersStore = defineStore('headers', () => {
   function importProfiles(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString)
+
+      // Check if this is ModHeader format (array of profiles with 'title' and 'headers')
+      if (isModHeaderFormat(data)) {
+        const startingColorIndex = profiles.value.length
+        for (let i = 0; i < data.length; i++) {
+          const modProfile = data[i]
+          if (!modProfile) continue
+          const converted = convertModHeaderProfile(modProfile, startingColorIndex + i)
+          profiles.value.push(converted)
+        }
+        saveToHistory()
+        persistState()
+        return true
+      }
+
+      // OpenHeaders format
       if (!data.profiles || !Array.isArray(data.profiles)) {
         throw new Error('Invalid format')
       }
