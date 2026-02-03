@@ -149,17 +149,7 @@ function handleImport() {
       />
 
       <!-- Headers Content -->
-      <div class="flex-1 flex flex-col min-h-0">
-        <div class="px-3 py-2 border-b border-border bg-background">
-          <Tabs v-model="activeHeaderType" class="w-full">
-            <TabsList class="w-full">
-              <TabsTrigger value="request">Request</TabsTrigger>
-              <TabsTrigger value="response">Response</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto min-h-0">
         <HeaderList
           :title="activeTitle"
           :type="activeHeaderType"
@@ -172,8 +162,16 @@ function handleImport() {
           @duplicate="handleDuplicateHeader"
           @clear="handleClearHeaders"
           @reorder="handleReorderHeaders"
-        />
-        </div>
+        >
+          <template #tabs>
+            <Tabs v-model="activeHeaderType" class="w-full">
+              <TabsList class="w-full">
+                <TabsTrigger value="request">Request</TabsTrigger>
+                <TabsTrigger value="response">Response</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </template>
+        </HeaderList>
       </div>
     </div>
   </div>

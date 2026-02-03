@@ -34,6 +34,7 @@ const HeaderListStub = {
       :data-type="type"
       :data-count="headers.length"
     >
+      <slot name="tabs" />
       <button data-test="list-add" @click="$emit('add')">ADD</button>
       <button data-test="list-clear" @click="$emit('clear')">CLEAR</button>
     </div>
