@@ -145,7 +145,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
                   data-swapy-handle
                 >
                   <div
-                    class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium text-white"
+                    class="grid place-items-center size-6 rounded-full text-[11px] font-semibold leading-none tabular-nums text-white"
                     :style="{ backgroundColor: item.color }"
                   >
                     {{ slottedItems.findIndex(s => s.itemId === itemId) + 1 }}

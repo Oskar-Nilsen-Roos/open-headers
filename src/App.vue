@@ -70,17 +70,14 @@ const canClearFooter = computed(() => {
   return activeHeaders.value.length > 0
 })
 
-const requestHeaderCount = computed(() => store.requestHeaders.length)
 const requestHeaderEnabledCount = computed(
   () => store.requestHeaders.filter(h => h.enabled).length
 )
 
-const responseHeaderCount = computed(() => store.responseHeaders.length)
 const responseHeaderEnabledCount = computed(
   () => store.responseHeaders.filter(h => h.enabled).length
 )
 
-const urlFilterCount = computed(() => store.activeProfile?.urlFilters.length ?? 0)
 const urlFilterEnabledCount = computed(
   () => (store.activeProfile?.urlFilters ?? []).filter(f => f.enabled).length
 )
@@ -239,20 +236,29 @@ function handleImport() {
               <TabsList class="w-full">
                 <TabsTrigger value="request">
                   <span>{{ t('tab_request') }}</span>
-                  <span class="text-xs text-muted-foreground">
-                    ({{ requestHeaderEnabledCount }}/{{ requestHeaderCount }})
+                  <span
+                    v-if="requestHeaderEnabledCount > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-muted/70 text-muted-foreground text-[10px] font-medium h-5 min-w-5 px-1.5"
+                  >
+                    {{ requestHeaderEnabledCount }}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="response">
                   <span>{{ t('tab_response') }}</span>
-                  <span class="text-xs text-muted-foreground">
-                    ({{ responseHeaderEnabledCount }}/{{ responseHeaderCount }})
+                  <span
+                    v-if="responseHeaderEnabledCount > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-muted/70 text-muted-foreground text-[10px] font-medium h-5 min-w-5 px-1.5"
+                  >
+                    {{ responseHeaderEnabledCount }}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="filters">
                   <span>{{ t('tab_filters') }}</span>
-                  <span class="text-xs text-muted-foreground">
-                    ({{ urlFilterEnabledCount }}/{{ urlFilterCount }})
+                  <span
+                    v-if="urlFilterEnabledCount > 0"
+                    class="inline-flex items-center justify-center rounded-full bg-muted/70 text-muted-foreground text-[10px] font-medium h-5 min-w-5 px-1.5"
+                  >
+                    {{ urlFilterEnabledCount }}
                   </span>
                   <Tooltip>
                     <TooltipTrigger as-child>
