@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { UrlFilter } from '@/types'
 import UrlFilterRow from './UrlFilterRow.vue'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-vue-next'
+import { Plus, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   filters: UrlFilter[]
@@ -13,12 +13,21 @@ const props = defineProps<{
 const emit = defineEmits<{
   addInclude: []
   addExclude: []
+  clearAll: []
   update: [filterId: string, updates: Partial<UrlFilter>]
   remove: [filterId: string]
 }>()
 
 const filterCount = computed(() => props.filters.length)
-const activeCount = computed(() => props.filters.filter(f => f.enabled).length)
+const enabledCount = computed(() => props.filters.filter(f => f.enabled).length)
+
+function handleUpdate(filterId: string, updates: Partial<UrlFilter>) {
+  emit('update', filterId, updates)
+}
+
+function handleRemove(filterId: string) {
+  emit('remove', filterId)
+}
 </script>
 
 <template>
@@ -28,24 +37,27 @@ const activeCount = computed(() => props.filters.filter(f => f.enabled).length)
       class="flex items-center justify-between px-3 py-2 text-primary-foreground"
       :style="{ backgroundColor: color || 'hsl(var(--primary))' }"
     >
-      <div class="flex items-center gap-2">
-        <span class="font-medium text-sm text-white">URL filters</span>
-        <span v-if="filterCount > 0" class="text-xs opacity-80">
-          ({{ activeCount }}/{{ filterCount }})
+      <div class="flex flex-col gap-0.5">
+        <div class="flex items-center gap-2">
+          <span class="font-medium text-sm text-white">URL filters</span>
+          <span v-if="filterCount > 0" class="text-xs opacity-80 text-white">
+            ({{ enabledCount }}/{{ filterCount }})
+          </span>
+        </div>
+        <span class="text-xs text-white/80">
+          Matched against current tab URL (top-level site)
         </span>
       </div>
-
-      <span class="text-xs text-white/80">Matched against current tab URL</span>
     </div>
 
-    <!-- Filters list -->
+    <!-- Filters List -->
     <div class="flex flex-col bg-background">
       <UrlFilterRow
         v-for="filter in filters"
         :key="filter.id"
         :filter="filter"
-        @update="updates => emit('update', filter.id, updates)"
-        @remove="emit('remove', filter.id)"
+        @update="handleUpdate"
+        @remove="handleRemove"
       />
     </div>
 
@@ -54,7 +66,7 @@ const activeCount = computed(() => props.filters.filter(f => f.enabled).length)
       v-if="filters.length === 0"
       class="flex items-center justify-center py-6 text-sm text-muted-foreground bg-background"
     >
-      No URL filters. Add an include to limit where headers apply.
+      No URL filters. Add an include/exclude filter to control where this profile applies.
     </div>
 
     <!-- Actions Bar -->
@@ -68,7 +80,17 @@ const activeCount = computed(() => props.filters.filter(f => f.enabled).length)
         <Plus class="h-3.5 w-3.5" />
         ADD EXCLUDE
       </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        class="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+        @click="emit('clearAll')"
+        :disabled="filters.length === 0"
+      >
+        <Trash2 class="h-3.5 w-3.5" />
+        CLEAR
+      </Button>
     </div>
   </div>
 </template>
-

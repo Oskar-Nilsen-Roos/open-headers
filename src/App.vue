@@ -180,6 +180,7 @@ function handleImport() {
           @add-exclude="handleAddExcludeFilter"
           @update="handleUpdateUrlFilter"
           @remove="handleRemoveUrlFilter"
+          @clear-all="store.clearUrlFilters"
         />
       </div>
     </div>

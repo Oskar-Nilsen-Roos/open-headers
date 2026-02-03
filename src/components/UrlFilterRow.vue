@@ -1,52 +1,85 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-vue-next'
-import { URL_FILTER_MATCH_TYPE_LABELS, URL_FILTER_MATCH_TYPE_PLACEHOLDERS } from '@/lib/urlFilters'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreVertical, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   filter: UrlFilter
 }>()
 
 const emit = defineEmits<{
-  update: [updates: Partial<UrlFilter>]
-  remove: []
+  update: [filterId: string, updates: Partial<UrlFilter>]
+  remove: [filterId: string]
 }>()
 
-const matchTypeOrder: UrlFilterMatchType[] = [
-  'host_equals',
-  'host_ends_with',
-  'url_starts_with',
-  'url_contains',
-  'dnr_url_filter',
-  'regex',
-]
+const matchType = computed<UrlFilterMatchType>(() => props.filter.matchType ?? 'dnr_url_filter')
+
+const patternPlaceholder = computed(() => {
+  switch (matchType.value) {
+    case 'host_equals':
+    case 'host_ends_with':
+      return 'example.com'
+    case 'url_starts_with':
+      return 'https://example.com/path'
+    case 'url_contains':
+      return 'api/v1'
+    case 'regex':
+      return 'https?://(www\\.)?example\\.com/.*'
+    case 'dnr_url_filter':
+    default:
+      return '*.example.com/*'
+  }
+})
 
 function handleEnabledChange(value: boolean | 'indeterminate') {
-  emit('update', { enabled: value === true })
+  emit('update', props.filter.id, { enabled: value === true })
 }
 
-function handleTypeChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value as UrlFilter['type']
-  emit('update', { type: value })
+function handleTypeChange(value: unknown) {
+  if (value !== 'include' && value !== 'exclude') return
+  emit('update', props.filter.id, { type: value })
 }
 
-function handleMatchTypeChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value as UrlFilterMatchType
-  emit('update', { matchType: value })
+function handleMatchTypeChange(value: unknown) {
+  if (typeof value !== 'string') return
+  const allowed: UrlFilterMatchType[] = [
+    'host_equals',
+    'host_ends_with',
+    'url_starts_with',
+    'url_contains',
+    'dnr_url_filter',
+    'regex',
+  ]
+  if (!allowed.includes(value as UrlFilterMatchType)) return
+  emit('update', props.filter.id, { matchType: value as UrlFilterMatchType })
 }
 
 function handlePatternChange(value: string) {
-  emit('update', { pattern: value })
+  emit('update', props.filter.id, { pattern: value })
 }
 </script>
 
 <template>
   <div
-    class="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/30"
     data-testid="url-filter-row"
+    class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group"
   >
     <Checkbox
       :model-value="filter.enabled"
@@ -54,42 +87,57 @@ function handlePatternChange(value: string) {
       class="shrink-0"
     />
 
-    <select
-      class="h-7 rounded-md border border-border bg-background px-2 text-sm"
-      :value="filter.type"
-      @change="handleTypeChange"
-      aria-label="Filter type"
+    <ToggleGroup
+      type="single"
+      variant="outline"
+      size="sm"
+      :model-value="filter.type"
+      @update:model-value="handleTypeChange"
     >
-      <option value="include">Include</option>
-      <option value="exclude">Exclude</option>
-    </select>
+      <ToggleGroupItem value="include">
+        Include
+      </ToggleGroupItem>
+      <ToggleGroupItem value="exclude">
+        Exclude
+      </ToggleGroupItem>
+    </ToggleGroup>
 
-    <select
-      class="h-7 w-44 rounded-md border border-border bg-background px-2 text-sm"
-      :value="filter.matchType"
-      @change="handleMatchTypeChange"
-      aria-label="Match type"
+    <Select
+      :model-value="matchType"
+      @update:model-value="handleMatchTypeChange"
     >
-      <option v-for="matchType in matchTypeOrder" :key="matchType" :value="matchType">
-        {{ URL_FILTER_MATCH_TYPE_LABELS[matchType] }}
-      </option>
-    </select>
+      <SelectTrigger size="sm" class="w-40 h-7 px-2">
+        <SelectValue placeholder="Match type" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="host_equals">Host equals</SelectItem>
+        <SelectItem value="host_ends_with">Host ends with</SelectItem>
+        <SelectItem value="url_starts_with">URL starts with</SelectItem>
+        <SelectItem value="url_contains">URL contains</SelectItem>
+        <SelectItem value="dnr_url_filter">Advanced (glob)</SelectItem>
+        <SelectItem value="regex">Regex</SelectItem>
+      </SelectContent>
+    </Select>
 
     <Input
       :model-value="filter.pattern"
       @update:model-value="handlePatternChange"
-      :placeholder="URL_FILTER_MATCH_TYPE_PLACEHOLDERS[filter.matchType]"
+      :placeholder="patternPlaceholder"
       class="flex-1 min-w-0 h-7 text-sm"
     />
 
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      class="text-muted-foreground hover:text-destructive"
-      @click="emit('remove')"
-      aria-label="Delete filter"
-    >
-      <Trash2 class="h-4 w-4" />
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger as-child>
+        <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground">
+          <MoreVertical class="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem class="text-destructive" @select="emit('remove', filter.id)">
+          <Trash2 class="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   </div>
 </template>
