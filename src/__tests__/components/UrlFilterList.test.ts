@@ -17,7 +17,6 @@ describe('UrlFilterList', () => {
     return mount(UrlFilterList, {
       props: {
         filters,
-        color: '#7c3aed',
       },
       global: {
         stubs: {

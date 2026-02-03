@@ -7,9 +7,10 @@ import HeaderList from '@/components/HeaderList.vue'
 import UrlFilterList from '@/components/UrlFilterList.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { t } from '@/i18n'
 import type { HeaderType, UrlFilter } from '@/types'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { Plus, Trash2, Info } from 'lucide-vue-next'
 
 const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
@@ -54,12 +55,6 @@ const activeHeaders = computed(() => {
   return activeHeaderType.value === 'request' ? store.requestHeaders : store.responseHeaders
 })
 
-const activeTitle = computed(() => {
-  return activeHeaderType.value === 'request'
-    ? t('list_title_request_headers')
-    : t('list_title_response_headers')
-})
-
 const canClearFooter = computed(() => {
   if (activeMainTab.value === 'filters') {
     return (store.activeProfile?.urlFilters.length ?? 0) > 0
@@ -67,6 +62,15 @@ const canClearFooter = computed(() => {
 
   return activeHeaders.value.length > 0
 })
+
+const requestHeaderCount = computed(() => store.requestHeaders.length)
+const requestHeaderEnabledCount = computed(() => store.requestHeaders.filter(h => h.enabled).length)
+
+const responseHeaderCount = computed(() => store.responseHeaders.length)
+const responseHeaderEnabledCount = computed(() => store.responseHeaders.filter(h => h.enabled).length)
+
+const urlFilterCount = computed(() => store.activeProfile?.urlFilters.length ?? 0)
+const urlFilterEnabledCount = computed(() => (store.activeProfile?.urlFilters ?? []).filter(f => f.enabled).length)
 
 // Header actions
 function handleAddHeader() {
@@ -209,23 +213,48 @@ function handleImport() {
       <div class="flex-1 flex flex-col min-h-0">
         <!-- Main Tabs -->
         <div class="px-3 py-2 bg-background border-b border-border/50">
-          <Tabs v-model="activeMainTab" class="w-full">
-            <TabsList class="w-full">
-              <TabsTrigger value="request">{{ t('tab_request') }}</TabsTrigger>
-              <TabsTrigger value="response">{{ t('tab_response') }}</TabsTrigger>
-              <TabsTrigger value="filters">{{ t('tab_filters') }}</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <TooltipProvider>
+            <Tabs v-model="activeMainTab" class="w-full">
+              <TabsList class="w-full">
+                <TabsTrigger value="request">
+                  <span>{{ t('tab_request') }}</span>
+                  <span class="text-xs text-muted-foreground">
+                    ({{ requestHeaderEnabledCount }}/{{ requestHeaderCount }})
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="response">
+                  <span>{{ t('tab_response') }}</span>
+                  <span class="text-xs text-muted-foreground">
+                    ({{ responseHeaderEnabledCount }}/{{ responseHeaderCount }})
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="filters">
+                  <span>{{ t('tab_filters') }}</span>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <span
+                        class="inline-flex items-center"
+                        :aria-label="t('url_filters_help_text')"
+                      >
+                        <Info class="h-3.5 w-3.5 opacity-70" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{{ t('url_filters_help_text') }}</TooltipContent>
+                  </Tooltip>
+                  <span class="text-xs text-muted-foreground">
+                    ({{ urlFilterEnabledCount }}/{{ urlFilterCount }})
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </TooltipProvider>
         </div>
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto min-h-0">
           <HeaderList
             v-if="activeMainTab !== 'filters'"
-            :title="activeTitle"
-            :type="activeHeaderType"
             :headers="activeHeaders"
-            :color="store.activeProfile?.color"
             @remove="handleRemoveHeader"
             @update="handleUpdateHeader"
             @toggle="handleToggleHeader"
@@ -236,7 +265,6 @@ function handleImport() {
           <UrlFilterList
             v-else
             :filters="store.activeProfile?.urlFilters ?? []"
-            :color="store.activeProfile?.color"
             @update="handleUpdateUrlFilter"
             @remove="handleRemoveUrlFilter"
           />

@@ -26,12 +26,10 @@ const ProfileHeaderStub = {
 }
 
 const HeaderListStub = {
-  props: ['title', 'type', 'headers'],
+  props: ['headers'],
   template: `
     <div
       data-test="header-list"
-      :data-title="title"
-      :data-type="type"
       :data-count="headers.length"
     >
     </div>
@@ -68,10 +66,15 @@ describe('App - Header Type Tabs', () => {
 
     await nextTick()
 
-    const headerList = wrapper.get('[data-test="header-list"]')
-    expect(headerList.attributes('data-type')).toBe('request')
-    expect(headerList.attributes('data-title')).toBe('Request headers')
-    expect(headerList.attributes('data-count')).toBe('0')
+    expect(store.requestHeaders.length).toBe(0)
+    expect(store.responseHeaders.length).toBe(0)
+
+    expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('0')
+
+    await wrapper.get('[data-testid="footer-add"]').trigger('click')
+    await nextTick()
+    expect(store.requestHeaders.length).toBe(1)
+    expect(store.responseHeaders.length).toBe(0)
   })
 
   it('switches to response headers tab and targets actions to response', async () => {
@@ -103,10 +106,7 @@ describe('App - Header Type Tabs', () => {
     await wrapper.get('[data-test="tab-response"]').trigger('click')
     await nextTick()
 
-    const headerList = wrapper.get('[data-test="header-list"]')
-    expect(headerList.attributes('data-type')).toBe('response')
-    expect(headerList.attributes('data-title')).toBe('Response headers')
-    expect(headerList.attributes('data-count')).toBe('0')
+    expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('0')
 
     // Add via list action
     await wrapper.get('[data-testid="footer-add"]').trigger('click')
@@ -119,7 +119,6 @@ describe('App - Header Type Tabs', () => {
     // Switch back to request tab and verify isolation
     await wrapper.get('[data-test="tab-request"]').trigger('click')
     await nextTick()
-    expect(wrapper.get('[data-test="header-list"]').attributes('data-type')).toBe('request')
     expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('0')
 
     // Add via profile header (+) while on request tab

@@ -20,15 +20,15 @@
     "description": "Title for the response headers list"
   },
   "tab_request": {
-    "message": "Request",
+    "message": "Request Headers",
     "description": "Tab label for request headers"
   },
   "tab_response": {
-    "message": "Response",
+    "message": "Response Headers",
     "description": "Tab label for response headers"
   },
   "tab_filters": {
-    "message": "Filters",
+    "message": "URL filters",
     "description": "Tab label for URL filters"
   },
   "headers_empty_state": {

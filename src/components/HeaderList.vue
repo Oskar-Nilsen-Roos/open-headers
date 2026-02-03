@@ -1,30 +1,22 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import type { HeaderRule, HeaderType } from '@/types'
+import type { HeaderRule } from '@/types'
 import { createSwapy, utils } from 'swapy'
 import type { Swapy, SlotItemMapArray } from 'swapy'
 import HeaderRow from './HeaderRow.vue'
 import { t } from '@/i18n'
 
 const props = defineProps<{
-  title: string
-  type: HeaderType
   headers: HeaderRule[]
-  color?: string
 }>()
 
 const emit = defineEmits<{
-  add: []
   remove: [headerId: string]
   update: [headerId: string, updates: Partial<HeaderRule>]
   toggle: [headerId: string]
   duplicate: [headerId: string]
-  clear: []
   reorder: [orderedIds: string[]]
 }>()
-
-const headerCount = computed(() => props.headers.length)
-const activeCount = computed(() => props.headers.filter(h => h.enabled).length)
 
 // Swapy state
 const container = ref<HTMLElement | null>(null)
@@ -132,24 +124,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <!-- Section Header -->
-    <div
-      class="flex items-center justify-between px-3 py-2 text-primary-foreground"
-      :style="{ backgroundColor: color || 'hsl(var(--primary))' }">
-      <div class="flex items-center gap-2">
-        <span class="font-medium text-sm text-white">{{ title }}</span>
-        <span v-if="headerCount > 0" class="text-xs opacity-80">
-          ({{ activeCount }}/{{ headerCount }})
-        </span>
-      </div>
-    </div>
-
-    <!-- Optional controls (e.g., Request/Response tabs) -->
-    <div v-if="$slots.tabs" class="px-3 py-2 bg-background border-b border-border/50">
-      <slot name="tabs" />
-    </div>
-
+  <div class="flex flex-col bg-background">
     <!-- Headers List -->
     <div ref="container" class="flex flex-col bg-background">
       <div

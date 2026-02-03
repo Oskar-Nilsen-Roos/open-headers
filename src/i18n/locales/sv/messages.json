@@ -20,15 +20,15 @@
     "description": "Rubrik för listan med svarsrubriker"
   },
   "tab_request": {
-    "message": "Request",
+    "message": "Begäransrubriker",
     "description": "Fliketikett för begäransrubriker"
   },
   "tab_response": {
-    "message": "Response",
+    "message": "Svarsrubriker",
     "description": "Fliketikett för svarsrubriker"
   },
   "tab_filters": {
-    "message": "Filter",
+    "message": "URL-filter",
     "description": "Fliketikett för URL-filter"
   },
   "headers_empty_state": {

@@ -80,7 +80,7 @@ function handlePatternChange(value: string) {
 <template>
   <div
     data-testid="url-filter-row"
-    class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group"
+    class="flex items-center gap-2 px-3 py-1.5 border-b border-border hover:bg-muted/30 group"
   >
     <Checkbox
       :model-value="filter.enabled"
