@@ -1,115 +1,124 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { defineComponent, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import App from '@/App.vue'
 import { useHeadersStore } from '@/stores/headers'
 
-// App uses chrome.storage when available; tests should use localStorage.
+// Ensure the store uses localStorage in tests
 vi.stubGlobal('chrome', undefined)
 
-const ProfileSidebarStub = defineComponent({
-  name: 'ProfileSidebar',
-  template: '<div data-testid="profile-sidebar" />',
-})
-
-const ProfileHeaderStub = defineComponent({
-  name: 'ProfileHeader',
-  emits: ['addHeader'],
-  template: '<button data-testid="profile-add" @click="$emit(\'addHeader\')">add</button>',
-})
-
-const HeaderListStub = defineComponent({
-  name: 'HeaderList',
-  props: {
-    title: { type: String, required: true },
-    type: { type: String, required: true },
-    headers: { type: Array, required: true },
-  },
-  emits: ['add'],
+const TabsStub = {
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
   template: `
-    <div data-testid="header-list">
-      <div data-testid="header-list-title">{{ title }}</div>
-      <div data-testid="header-list-type">{{ type }}</div>
-      <div data-testid="header-list-count">{{ headers.length }}</div>
-      <button data-testid="header-list-add" @click="$emit('add')">add</button>
+    <div data-test="tabs">
+      <button data-test="tab-request" @click="$emit('update:modelValue', 'request')">Request</button>
+      <button data-test="tab-response" @click="$emit('update:modelValue', 'response')">Response</button>
     </div>
   `,
-})
-
-async function waitForStoreInit(store: ReturnType<typeof useHeadersStore>): Promise<void> {
-  for (let i = 0; i < 25; i++) {
-    if (store.isInitialized) return
-    await new Promise(resolve => setTimeout(resolve, 0))
-  }
-  throw new Error('Store did not initialize')
 }
 
-describe('App - Request/Response tabs', () => {
+const ProfileHeaderStub = {
+  emits: ['addHeader'],
+  template: `<button data-test="profile-add" @click="$emit('addHeader')">+</button>`,
+}
+
+const HeaderListStub = {
+  props: ['title', 'type', 'headers'],
+  emits: ['add', 'clear'],
+  template: `
+    <div
+      data-test="header-list"
+      :data-title="title"
+      :data-type="type"
+      :data-count="headers.length"
+    >
+      <button data-test="list-add" @click="$emit('add')">ADD</button>
+      <button data-test="list-clear" @click="$emit('clear')">CLEAR</button>
+    </div>
+  `,
+}
+
+describe('App - Header Type Tabs', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('defaults to request headers', async () => {
+  it('defaults to request headers tab', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
+    const store = useHeadersStore()
+    await store.loadState()
+    store.loadState = vi.fn(async () => {})
 
     const wrapper = mount(App, {
       global: {
         plugins: [pinia],
         stubs: {
-          ProfileSidebar: ProfileSidebarStub,
+          ProfileSidebar: { template: '<div />' },
           ProfileHeader: ProfileHeaderStub,
           HeaderList: HeaderListStub,
+          Tabs: TabsStub,
         },
       },
     })
 
-    const store = useHeadersStore()
-    await waitForStoreInit(store)
     await nextTick()
 
-    expect(wrapper.get('[data-testid="header-list-title"]').text()).toBe('Request headers')
-    expect(wrapper.get('[data-testid="header-list-type"]').text()).toBe('request')
+    const headerList = wrapper.get('[data-test="header-list"]')
+    expect(headerList.attributes('data-type')).toBe('request')
+    expect(headerList.attributes('data-title')).toBe('Request headers')
+    expect(headerList.attributes('data-count')).toBe('0')
   })
 
-  it('switches to response headers and adds response header', async () => {
+  it('switches to response headers tab and targets actions to response', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
+    const store = useHeadersStore()
+    await store.loadState()
+    store.loadState = vi.fn(async () => {})
 
     const wrapper = mount(App, {
       global: {
         plugins: [pinia],
         stubs: {
-          ProfileSidebar: ProfileSidebarStub,
+          ProfileSidebar: { template: '<div />' },
           ProfileHeader: ProfileHeaderStub,
           HeaderList: HeaderListStub,
+          Tabs: TabsStub,
         },
       },
     })
 
-    const store = useHeadersStore()
-    await waitForStoreInit(store)
     await nextTick()
 
-    const triggers = wrapper.findAll('[data-slot="tabs-trigger"]')
-    const responseTrigger = triggers.find(t => t.text() === 'Response')
-    expect(responseTrigger).toBeTruthy()
-    // Reka UI activates tabs on mousedown.left (not click).
-    await responseTrigger!.trigger('mousedown', { button: 0 })
+    // Switch to response tab
+    await wrapper.get('[data-test="tab-response"]').trigger('click')
     await nextTick()
 
-    expect(wrapper.get('[data-testid="header-list-title"]').text()).toBe('Response headers')
-    expect(wrapper.get('[data-testid="header-list-type"]').text()).toBe('response')
+    const headerList = wrapper.get('[data-test="header-list"]')
+    expect(headerList.attributes('data-type')).toBe('response')
+    expect(headerList.attributes('data-title')).toBe('Response headers')
+    expect(headerList.attributes('data-count')).toBe('0')
 
-    expect(store.requestHeaders).toHaveLength(0)
-    expect(store.responseHeaders).toHaveLength(0)
-
-    await wrapper.get('[data-testid="header-list-add"]').trigger('click')
+    // Add via list action
+    await wrapper.get('[data-test="list-add"]').trigger('click')
     await nextTick()
 
-    expect(store.requestHeaders).toHaveLength(0)
-    expect(store.responseHeaders).toHaveLength(1)
-    expect(wrapper.get('[data-testid="header-list-count"]').text()).toBe('1')
+    expect(store.responseHeaders.length).toBe(1)
+    expect(store.requestHeaders.length).toBe(0)
+    expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('1')
+
+    // Switch back to request tab and verify isolation
+    await wrapper.get('[data-test="tab-request"]').trigger('click')
+    await nextTick()
+    expect(wrapper.get('[data-test="header-list"]').attributes('data-type')).toBe('request')
+    expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('0')
+
+    // Add via profile header (+) while on request tab
+    await wrapper.get('[data-test="profile-add"]').trigger('click')
+    await nextTick()
+    expect(store.requestHeaders.length).toBe(1)
   })
 })
