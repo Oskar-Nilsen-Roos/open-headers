@@ -50,6 +50,11 @@ watch(
     const orderChanged = !idsChanged && !areIdArraysEqual(newIds, prevIds)
 
     if (idsChanged) {
+      if (!swapy.value) {
+        slotItemMap.value = [...utils.initSlotItemMap(props.items, 'id')]
+        return
+      }
+
       nextTick(() => {
         utils.dynamicSwapy(
           swapy.value,
