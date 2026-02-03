@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useHeadersStore } from '@/stores/headers'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
 import UrlFilterList from '@/components/UrlFilterList.vue'
-import type { UrlFilter } from '@/types'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { HeaderType, UrlFilter } from '@/types'
 
 const store = useHeadersStore()
+const activeHeaderType = ref<HeaderType>('request')
 
 // Initialize store on mount
 onMounted(async () => {
@@ -29,9 +31,17 @@ const activeProfileIndex = computed(() => {
   return store.profiles.findIndex(p => p.id === store.activeProfileId)
 })
 
+const activeHeaders = computed(() => {
+  return activeHeaderType.value === 'request' ? store.requestHeaders : store.responseHeaders
+})
+
+const activeTitle = computed(() => {
+  return activeHeaderType.value === 'request' ? 'Request headers' : 'Response headers'
+})
+
 // Header actions
 function handleAddHeader() {
-  store.addHeader('request')
+  store.addHeader(activeHeaderType.value)
 }
 
 function handleRemoveHeader(headerId: string) {
@@ -51,11 +61,11 @@ function handleDuplicateHeader(headerId: string) {
 }
 
 function handleClearHeaders() {
-  store.clearHeaders('request')
+  store.clearHeaders(activeHeaderType.value)
 }
 
 function handleReorderHeaders(orderedIds: string[]) {
-  store.reorderHeaders(orderedIds, 'request')
+  store.reorderHeaders(orderedIds, activeHeaderType.value)
 }
 
 // URL filter actions
@@ -157,34 +167,45 @@ function handleImport() {
       />
 
       <!-- Headers Content -->
-      <div class="flex-1 overflow-y-auto">
-        <HeaderList
-          title="Request headers"
-          type="request"
-          :headers="store.requestHeaders"
-          :color="store.activeProfile?.color"
-          @add="handleAddHeader"
-          @remove="handleRemoveHeader"
-          @update="handleUpdateHeader"
-          @toggle="handleToggleHeader"
-          @duplicate="handleDuplicateHeader"
-          @clear="handleClearHeaders"
-          @reorder="handleReorderHeaders"
-        />
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="px-3 py-2 border-b border-border bg-background">
+          <Tabs v-model="activeHeaderType" class="w-full">
+            <TabsList class="w-full">
+              <TabsTrigger value="request">Request</TabsTrigger>
+              <TabsTrigger value="response">Response</TabsTrigger>
+            </TabsList>
+          </Tabs>
+	        </div>
+	
+	        <div class="flex-1 overflow-y-auto">
+	          <HeaderList
+	            :title="activeTitle"
+	            :type="activeHeaderType"
+	            :headers="activeHeaders"
+	            :color="store.activeProfile?.color"
+	            @add="handleAddHeader"
+	            @remove="handleRemoveHeader"
+	            @update="handleUpdateHeader"
+	            @toggle="handleToggleHeader"
+	            @duplicate="handleDuplicateHeader"
+	            @clear="handleClearHeaders"
+	            @reorder="handleReorderHeaders"
+	          />
 
-        <UrlFilterList
-          class="mt-3"
-          :filters="store.activeProfile?.urlFilters ?? []"
-          :color="store.activeProfile?.color"
-          @add-include="handleAddIncludeFilter"
-          @add-exclude="handleAddExcludeFilter"
-          @update="handleUpdateUrlFilter"
-          @remove="handleRemoveUrlFilter"
-          @clear-all="store.clearUrlFilters"
-        />
-      </div>
-    </div>
-  </div>
+	          <UrlFilterList
+	            class="mt-3"
+	            :filters="store.activeProfile?.urlFilters ?? []"
+	            :color="store.activeProfile?.color"
+	            @add-include="handleAddIncludeFilter"
+	            @add-exclude="handleAddExcludeFilter"
+	            @update="handleUpdateUrlFilter"
+	            @remove="handleRemoveUrlFilter"
+	            @clear-all="store.clearUrlFilters"
+	          />
+	        </div>
+	      </div>
+	    </div>
+	  </div>
 
   <!-- Loading State -->
   <div v-else class="flex items-center justify-center h-64 text-muted-foreground">
