@@ -7,7 +7,12 @@ import HeaderList from '@/components/HeaderList.vue'
 import UrlFilterList from '@/components/UrlFilterList.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { t } from '@/i18n'
 import type { HeaderType, UrlFilter } from '@/types'
 import { Plus, Trash2, Info } from 'lucide-vue-next'
@@ -20,7 +25,7 @@ type MainTab = HeaderType | 'filters'
 
 const activeMainTab = computed<MainTab>({
   get: () => (isShowingFilters.value ? 'filters' : activeHeaderType.value),
-  set: (value) => {
+  set: value => {
     if (value === 'filters') {
       isShowingFilters.value = true
       return
@@ -39,7 +44,7 @@ onMounted(async () => {
 // Watch dark mode - uses computed isDarkMode which respects system preference
 watch(
   () => store.isDarkMode,
-  (isDark) => {
+  isDark => {
     document.documentElement.classList.toggle('dark', isDark)
   },
   { immediate: true }
@@ -52,7 +57,9 @@ const activeProfileIndex = computed(() => {
 })
 
 const activeHeaders = computed(() => {
-  return activeHeaderType.value === 'request' ? store.requestHeaders : store.responseHeaders
+  return activeHeaderType.value === 'request'
+    ? store.requestHeaders
+    : store.responseHeaders
 })
 
 const canClearFooter = computed(() => {
@@ -64,13 +71,19 @@ const canClearFooter = computed(() => {
 })
 
 const requestHeaderCount = computed(() => store.requestHeaders.length)
-const requestHeaderEnabledCount = computed(() => store.requestHeaders.filter(h => h.enabled).length)
+const requestHeaderEnabledCount = computed(
+  () => store.requestHeaders.filter(h => h.enabled).length
+)
 
 const responseHeaderCount = computed(() => store.responseHeaders.length)
-const responseHeaderEnabledCount = computed(() => store.responseHeaders.filter(h => h.enabled).length)
+const responseHeaderEnabledCount = computed(
+  () => store.responseHeaders.filter(h => h.enabled).length
+)
 
 const urlFilterCount = computed(() => store.activeProfile?.urlFilters.length ?? 0)
-const urlFilterEnabledCount = computed(() => (store.activeProfile?.urlFilters ?? []).filter(f => f.enabled).length)
+const urlFilterEnabledCount = computed(
+  () => (store.activeProfile?.urlFilters ?? []).filter(f => f.enabled).length
+)
 
 // Header actions
 function handleAddHeader() {
@@ -162,12 +175,12 @@ function handleImport() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = '.json'
-  input.onchange = (e) => {
+  input.onchange = e => {
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = event => {
       const content = event.target?.result as string
       store.importProfiles(content)
     }
@@ -185,8 +198,7 @@ function handleImport() {
       :active-profile-id="store.activeProfileId"
       @select="store.setActiveProfile"
       @add="store.addProfile"
-      @reorder="store.reorderProfiles"
-    />
+      @reorder="store.reorderProfiles" />
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -207,8 +219,7 @@ function handleImport() {
         @delete="handleDeleteProfile"
         @rename="handleRenameProfile"
         @set-dark-mode="store.setDarkModePreference"
-        @set-language="store.setLanguagePreference"
-      />
+        @set-language="store.setLanguagePreference" />
 
       <div class="flex-1 flex flex-col min-h-0">
         <!-- Main Tabs -->
@@ -230,20 +241,19 @@ function handleImport() {
                 </TabsTrigger>
                 <TabsTrigger value="filters">
                   <span>{{ t('tab_filters') }}</span>
+                  <span class="text-xs text-muted-foreground">
+                    ({{ urlFilterEnabledCount }}/{{ urlFilterCount }})
+                  </span>
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <span
                         class="inline-flex items-center"
-                        :aria-label="t('url_filters_help_text')"
-                      >
+                        :aria-label="t('url_filters_help_text')">
                         <Info class="h-3.5 w-3.5 opacity-70" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>{{ t('url_filters_help_text') }}</TooltipContent>
                   </Tooltip>
-                  <span class="text-xs text-muted-foreground">
-                    ({{ urlFilterEnabledCount }}/{{ urlFilterCount }})
-                  </span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -259,39 +269,37 @@ function handleImport() {
             @update="handleUpdateHeader"
             @toggle="handleToggleHeader"
             @duplicate="handleDuplicateHeader"
-            @reorder="handleReorderHeaders"
-          />
+            @reorder="handleReorderHeaders" />
 
           <UrlFilterList
             v-else
             :filters="store.activeProfile?.urlFilters ?? []"
             @update="handleUpdateUrlFilter"
-            @remove="handleRemoveUrlFilter"
-          />
+            @remove="handleRemoveUrlFilter" />
         </div>
 
         <!-- Sticky Footer Actions -->
-        <div class="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div
+          class="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div class="flex items-center gap-2 px-3 py-2">
             <Button
               data-testid="footer-add"
-              size="lg"
-              class="flex-1"
-              @click="handleFooterAdd"
-            >
+              variant="outline"
+              size="default"
+              class="flex-1 bg-primary/10 border-primary/25 hover:bg-primary/15 hover:border-primary/35 text-foreground shadow-sm"
+              @click="handleFooterAdd">
               <Plus class="h-4 w-4" />
               {{ t('button_add') }}
             </Button>
 
             <Button
               data-testid="footer-clear"
-              variant="ghost"
+              variant="outline"
               size="icon"
-              class="text-destructive hover:text-destructive"
+              class="border-destructive/25 text-destructive hover:bg-destructive/10 hover:border-destructive/35"
               :disabled="!canClearFooter"
               :aria-label="t('button_clear')"
-              @click="handleFooterClear"
-            >
+              @click="handleFooterClear">
               <Trash2 class="h-4 w-4" />
               <span class="sr-only">{{ t('button_clear') }}</span>
             </Button>
