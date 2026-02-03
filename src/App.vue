@@ -167,45 +167,43 @@ function handleImport() {
       />
 
       <!-- Headers Content -->
-      <div class="flex-1 flex flex-col min-h-0">
-        <div class="px-3 py-2 border-b border-border bg-background">
-          <Tabs v-model="activeHeaderType" class="w-full">
-            <TabsList class="w-full">
-              <TabsTrigger value="request">Request</TabsTrigger>
-              <TabsTrigger value="response">Response</TabsTrigger>
-            </TabsList>
-          </Tabs>
-	        </div>
-	
-	        <div class="flex-1 overflow-y-auto">
-	          <HeaderList
-	            :title="activeTitle"
-	            :type="activeHeaderType"
-	            :headers="activeHeaders"
-	            :color="store.activeProfile?.color"
-	            @add="handleAddHeader"
-	            @remove="handleRemoveHeader"
-	            @update="handleUpdateHeader"
-	            @toggle="handleToggleHeader"
-	            @duplicate="handleDuplicateHeader"
-	            @clear="handleClearHeaders"
-	            @reorder="handleReorderHeaders"
-	          />
+      <div class="flex-1 overflow-y-auto min-h-0">
+        <HeaderList
+          :title="activeTitle"
+          :type="activeHeaderType"
+          :headers="activeHeaders"
+          :color="store.activeProfile?.color"
+          @add="handleAddHeader"
+          @remove="handleRemoveHeader"
+          @update="handleUpdateHeader"
+          @toggle="handleToggleHeader"
+          @duplicate="handleDuplicateHeader"
+          @clear="handleClearHeaders"
+          @reorder="handleReorderHeaders"
+        >
+          <template #tabs>
+            <Tabs v-model="activeHeaderType" class="w-full">
+              <TabsList class="w-full">
+                <TabsTrigger value="request">Request</TabsTrigger>
+                <TabsTrigger value="response">Response</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </template>
+        </HeaderList>
 
-	          <UrlFilterList
-	            class="mt-3"
-	            :filters="store.activeProfile?.urlFilters ?? []"
-	            :color="store.activeProfile?.color"
-	            @add-include="handleAddIncludeFilter"
-	            @add-exclude="handleAddExcludeFilter"
-	            @update="handleUpdateUrlFilter"
-	            @remove="handleRemoveUrlFilter"
-	            @clear-all="store.clearUrlFilters"
-	          />
-	        </div>
-	      </div>
-	    </div>
-	  </div>
+        <UrlFilterList
+          class="mt-3"
+          :filters="store.activeProfile?.urlFilters ?? []"
+          :color="store.activeProfile?.color"
+          @add-include="handleAddIncludeFilter"
+          @add-exclude="handleAddExcludeFilter"
+          @update="handleUpdateUrlFilter"
+          @remove="handleRemoveUrlFilter"
+          @clear-all="store.clearUrlFilters"
+        />
+      </div>
+    </div>
+  </div>
 
   <!-- Loading State -->
   <div v-else class="flex items-center justify-center h-64 text-muted-foreground">

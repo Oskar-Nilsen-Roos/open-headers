@@ -82,7 +82,3 @@ src/
 - `bun run build` - Build for production
 - `bun run test` - Run tests
 - `bun run test:run` - Run tests once
-
-## License
-Proprietary — All rights reserved. See `LICENSE`.
-MIT
