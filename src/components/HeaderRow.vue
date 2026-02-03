@@ -3,6 +3,7 @@ import type { HeaderRule } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,11 +78,21 @@ function handleCommentChange(value: string) {
     />
 
     <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-foreground">
-          <MoreVertical class="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
+      <Tooltip>
+        <DropdownMenuTrigger as-child>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              class="text-muted-foreground hover:text-foreground"
+              :aria-label="t('tooltip_more_actions')"
+            >
+              <MoreVertical class="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+        </DropdownMenuTrigger>
+        <TooltipContent>{{ t('tooltip_more_actions') }}</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent align="end">
         <DropdownMenuItem @select="emit('duplicate')">
           <Copy class="h-4 w-4 mr-2" />

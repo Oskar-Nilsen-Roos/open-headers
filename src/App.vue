@@ -85,6 +85,16 @@ const urlFilterEnabledCount = computed(
   () => (store.activeProfile?.urlFilters ?? []).filter(f => f.enabled).length
 )
 
+const footerAddTooltip = computed(() => {
+  if (activeMainTab.value === 'filters') return t('tooltip_add_filter')
+  return t('tooltip_add_header')
+})
+
+const footerClearTooltip = computed(() => {
+  if (activeMainTab.value === 'filters') return t('tooltip_clear_filters')
+  return t('tooltip_clear_headers')
+})
+
 // Header actions
 function handleAddHeader() {
   store.addHeader(activeHeaderType.value)
@@ -222,9 +232,9 @@ function handleImport() {
         @set-language="store.setLanguagePreference" />
 
       <div class="flex-1 flex flex-col min-h-0">
-        <!-- Main Tabs -->
-        <div class="px-3 py-2 bg-background border-b border-border/50">
-          <TooltipProvider>
+        <TooltipProvider>
+          <!-- Main Tabs -->
+          <div class="px-3 py-2 bg-background border-b border-border/50">
             <Tabs v-model="activeMainTab" class="w-full">
               <TabsList class="w-full">
                 <TabsTrigger value="request">
@@ -257,55 +267,68 @@ function handleImport() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          </TooltipProvider>
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto min-h-0">
-          <HeaderList
-            v-if="activeMainTab !== 'filters'"
-            :headers="activeHeaders"
-            @remove="handleRemoveHeader"
-            @update="handleUpdateHeader"
-            @toggle="handleToggleHeader"
-            @duplicate="handleDuplicateHeader"
-            @reorder="handleReorderHeaders" />
-
-          <UrlFilterList
-            v-else
-            :filters="store.activeProfile?.urlFilters ?? []"
-            @update="handleUpdateUrlFilter"
-            @remove="handleRemoveUrlFilter"
-            @reorder="store.reorderUrlFilters" />
-        </div>
-
-        <!-- Sticky Footer Actions -->
-        <div
-          class="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div class="flex items-center gap-2 px-3 py-2">
-            <Button
-              data-testid="footer-add"
-              variant="secondary"
-              size="default"
-              class="flex-1 shadow-xs"
-              @click="handleFooterAdd">
-              <Plus class="h-4 w-4" />
-              {{ t('button_add') }}
-            </Button>
-
-            <Button
-              data-testid="footer-clear"
-              variant="outline"
-              size="icon"
-              class="border-destructive/25 text-destructive hover:bg-destructive/10 hover:border-destructive/35"
-              :disabled="!canClearFooter"
-              :aria-label="t('button_clear')"
-              @click="handleFooterClear">
-              <Trash2 class="h-4 w-4" />
-              <span class="sr-only">{{ t('button_clear') }}</span>
-            </Button>
           </div>
-        </div>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto min-h-0">
+            <HeaderList
+              v-if="activeMainTab !== 'filters'"
+              :headers="activeHeaders"
+              @remove="handleRemoveHeader"
+              @update="handleUpdateHeader"
+              @toggle="handleToggleHeader"
+              @duplicate="handleDuplicateHeader"
+              @reorder="handleReorderHeaders" />
+
+            <UrlFilterList
+              v-else
+              :filters="store.activeProfile?.urlFilters ?? []"
+              @update="handleUpdateUrlFilter"
+              @remove="handleRemoveUrlFilter"
+              @reorder="store.reorderUrlFilters" />
+          </div>
+
+          <!-- Sticky Footer Actions -->
+          <div
+            class="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div class="flex items-center gap-2 px-3 py-2">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    data-testid="footer-add"
+                    variant="secondary"
+                    size="default"
+                    class="flex-1 shadow-xs"
+                    :aria-label="footerAddTooltip"
+                    @click="handleFooterAdd">
+                    <Plus class="h-4 w-4" />
+                    <span class="sr-only">{{ t('button_add') }}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{{ footerAddTooltip }}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <span class="inline-flex">
+                    <Button
+                      data-testid="footer-clear"
+                      variant="outline"
+                      size="icon"
+                      class="border-destructive/25 text-destructive hover:bg-destructive/10 hover:border-destructive/35"
+                      :disabled="!canClearFooter"
+                      :aria-label="footerClearTooltip"
+                      @click="handleFooterClear">
+                      <Trash2 class="h-4 w-4" />
+                      <span class="sr-only">{{ t('button_clear') }}</span>
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{{ footerClearTooltip }}</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+        </TooltipProvider>
       </div>
     </div>
   </div>

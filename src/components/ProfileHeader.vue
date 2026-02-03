@@ -200,15 +200,21 @@ function cancelEditing() {
         </Tooltip>
 
         <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              class="text-white/80 hover:text-white hover:bg-white/10"
-            >
-              <MoreVertical class="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tooltip>
+            <DropdownMenuTrigger as-child>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-white/80 hover:text-white hover:bg-white/10"
+                  :aria-label="t('tooltip_more_actions')"
+                >
+                  <MoreVertical class="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+            </DropdownMenuTrigger>
+            <TooltipContent>{{ t('tooltip_more_actions') }}</TooltipContent>
+          </Tooltip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem @select="emit('import')">
               <Upload class="h-4 w-4 mr-2" />

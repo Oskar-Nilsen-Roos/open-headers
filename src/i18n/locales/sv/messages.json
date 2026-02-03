@@ -147,6 +147,22 @@
     "message": "Lägg till profil",
     "description": "Tooltip för lägg till profil-knapp"
   },
+  "tooltip_more_actions": {
+    "message": "Fler åtgärder",
+    "description": "Tooltip för fler åtgärder-knapp"
+  },
+  "tooltip_add_filter": {
+    "message": "Lägg till filter",
+    "description": "Tooltip för lägg till filter-knapp"
+  },
+  "tooltip_clear_headers": {
+    "message": "Rensa rubriker",
+    "description": "Tooltip för rensa rubriker-knapp"
+  },
+  "tooltip_clear_filters": {
+    "message": "Rensa filter",
+    "description": "Tooltip för rensa filter-knapp"
+  },
   "export_file_name": {
     "message": "openheaders-profiles.json",
     "description": "Standardfilnamn för profilexport"
@@ -156,7 +172,7 @@
     "description": "Titel för URL-filtersektionen"
   },
   "url_filters_help_text": {
-    "message": "Matchas mot den aktuella flikens URL (topnivåwebbplats)",
+    "message": "Matchas mot den aktuella flikens URL (topnivåwebbplats). Flera filter är ELLER (någon match), inte OCH; exkludera går före inkludera.",
     "description": "Hjälptext som förklarar vad URL-filter matchas mot"
   },
   "url_filters_empty_state": {

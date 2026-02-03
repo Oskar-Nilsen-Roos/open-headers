@@ -147,6 +147,22 @@
     "message": "Add profile",
     "description": "Tooltip for add profile button"
   },
+  "tooltip_more_actions": {
+    "message": "More actions",
+    "description": "Tooltip for more actions button"
+  },
+  "tooltip_add_filter": {
+    "message": "Add filter",
+    "description": "Tooltip for add filter button"
+  },
+  "tooltip_clear_headers": {
+    "message": "Clear headers",
+    "description": "Tooltip for clear headers button"
+  },
+  "tooltip_clear_filters": {
+    "message": "Clear filters",
+    "description": "Tooltip for clear filters button"
+  },
   "export_file_name": {
     "message": "openheaders-profiles.json",
     "description": "Default filename for profile export"
@@ -156,7 +172,7 @@
     "description": "Title for URL filters section"
   },
   "url_filters_help_text": {
-    "message": "Matched against current tab URL (top-level site)",
+    "message": "Matched against current tab URL (top-level site). Multiple filters are OR'ed (any match), not AND; excludes override includes.",
     "description": "Helper text explaining what URL filters are matched against"
   },
   "url_filters_empty_state": {
