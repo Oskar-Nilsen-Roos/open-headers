@@ -39,9 +39,9 @@ src/
 
 ## Commands
 ```bash
-npm run dev      # Dev server at localhost:5173
-npm run build    # Build to dist/
-npm run test     # Run tests
+bun run dev      # Dev server at localhost:5173
+bun run build    # Build to dist/
+bun run test     # Run tests
 ```
 
 ## TODO

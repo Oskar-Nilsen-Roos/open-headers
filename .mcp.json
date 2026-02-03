@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn-vue@latest",
+        "mcp"
+      ]
+    },
+    "vue-mcp": {
+      "type": "sse",
+      "url": "http://localhost:5173/__mcp/sse"
+    }
+  }
+}

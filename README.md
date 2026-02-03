@@ -20,12 +20,12 @@ A Chrome extension for modifying HTTP request and response headers. Built with V
 
 1. Install dependencies:
 ```bash
-npm install
+bun install
 ```
 
 2. Build the extension:
 ```bash
-npm run build
+bun run build
 ```
 
 3. Load in Chrome:
@@ -38,7 +38,7 @@ npm run build
 
 For development, you can run:
 ```bash
-npm run dev
+bun run dev
 ```
 
 Then open `http://localhost:5173` in your browser to preview the popup UI.
@@ -77,10 +77,10 @@ src/
 
 ## Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm test` - Run tests
-- `npm run test:run` - Run tests once
+- `bun run dev` - Start development server
+- `bun run build` - Build for production
+- `bun run test` - Run tests
+- `bun run test:run` - Run tests once
 
 ## License
 Proprietary — All rights reserved. See `LICENSE`.
