@@ -25,7 +25,7 @@ async function openProfileDropdown(page: Page) {
 // Helper to open header row dropdown menu
 async function openHeaderDropdown(page: Page, headerIndex = 0) {
   // Find the header row and click its dropdown button (last button in the row)
-  const headerRow = page.locator('.border-b.border-border').nth(headerIndex)
+  const headerRow = page.locator('[data-testid="header-row"]').nth(headerIndex)
   const dropdownTrigger = headerRow.locator('button').last()
   await dropdownTrigger.click()
   await page.waitForSelector('[role="menu"]', { timeout: 2000 })

@@ -4,6 +4,8 @@ import { useHeadersStore } from '@/stores/headers'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
+import UrlFilterList from '@/components/UrlFilterList.vue'
+import type { UrlFilter } from '@/types'
 
 const store = useHeadersStore()
 
@@ -54,6 +56,23 @@ function handleClearHeaders() {
 
 function handleReorderHeaders(orderedIds: string[]) {
   store.reorderHeaders(orderedIds, 'request')
+}
+
+// URL filter actions
+function handleAddIncludeFilter() {
+  store.addUrlFilter('include')
+}
+
+function handleAddExcludeFilter() {
+  store.addUrlFilter('exclude')
+}
+
+function handleUpdateUrlFilter(filterId: string, updates: Partial<UrlFilter>) {
+  store.updateUrlFilter(filterId, updates)
+}
+
+function handleRemoveUrlFilter(filterId: string) {
+  store.removeUrlFilter(filterId)
 }
 
 // Profile actions
@@ -151,6 +170,16 @@ function handleImport() {
           @duplicate="handleDuplicateHeader"
           @clear="handleClearHeaders"
           @reorder="handleReorderHeaders"
+        />
+
+        <UrlFilterList
+          class="mt-3"
+          :filters="store.activeProfile?.urlFilters ?? []"
+          :color="store.activeProfile?.color"
+          @add-include="handleAddIncludeFilter"
+          @add-exclude="handleAddExcludeFilter"
+          @update="handleUpdateUrlFilter"
+          @remove="handleRemoveUrlFilter"
         />
       </div>
     </div>

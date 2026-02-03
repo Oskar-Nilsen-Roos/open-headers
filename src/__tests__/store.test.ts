@@ -427,6 +427,7 @@ describe('useHeadersStore', () => {
 
       expect(store.activeProfile?.urlFilters.length).toBe(1)
       expect(store.activeProfile?.urlFilters[0]?.type).toBe('include')
+      expect(store.activeProfile?.urlFilters[0]?.matchType).toBe('host_equals')
     })
 
     it('adds an exclude filter', async () => {
@@ -436,6 +437,7 @@ describe('useHeadersStore', () => {
       store.addUrlFilter('exclude')
 
       expect(store.activeProfile?.urlFilters[0]?.type).toBe('exclude')
+      expect(store.activeProfile?.urlFilters[0]?.matchType).toBe('host_equals')
     })
 
     it('removes a url filter', async () => {

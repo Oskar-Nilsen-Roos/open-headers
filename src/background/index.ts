@@ -1,12 +1,32 @@
-import type { HeaderRule, AppState } from '../types'
+import type { HeaderRule, AppState, Profile } from '../types'
+import { isUrlAllowedByFilters } from '../lib/urlFilters'
 
 const STORAGE_KEY = 'openheaders_state'
+const SESSION_RULE_ID = 1
 
 interface RuleAction {
   type: 'modifyHeaders'
   requestHeaders?: chrome.declarativeNetRequest.ModifyHeaderInfo[]
   responseHeaders?: chrome.declarativeNetRequest.ModifyHeaderInfo[]
 }
+
+const RESOURCE_TYPES = [
+  'main_frame',
+  'sub_frame',
+  'stylesheet',
+  'script',
+  'image',
+  'font',
+  'object',
+  'xmlhttprequest',
+  'ping',
+  'csp_report',
+  'media',
+  'websocket',
+  'webtransport',
+  'webbundle',
+  'other',
+] satisfies Array<`${chrome.declarativeNetRequest.ResourceType}`>
 
 function headerOperationToChrome(operation: HeaderRule['operation']): chrome.declarativeNetRequest.HeaderOperation {
   switch (operation) {
@@ -22,25 +42,24 @@ function headerOperationToChrome(operation: HeaderRule['operation']): chrome.dec
 }
 
 /**
- * Builds Chrome declarativeNetRequest rules from the active profile
+ * Builds a Chrome declarativeNetRequest session rule from the active profile
  * @param state - The application state containing profiles
- * @returns Array of Chrome extension rules to apply headers
+ * @param enabledTabIds - The tab IDs where the active profile should apply
+ * @returns A Chrome extension rule to apply headers, or null if none should apply
  */
-function buildRulesFromActiveProfile(state: AppState): chrome.declarativeNetRequest.Rule[] {
-  const rules: chrome.declarativeNetRequest.Rule[] = []
-  let ruleId = 1
+function buildSessionRuleFromActiveProfile(
+  state: AppState,
+  enabledTabIds: number[]
+): chrome.declarativeNetRequest.Rule | null {
+  if (!state.activeProfileId) return null
 
-  // Find the active profile
-  const profile = state.profiles.find(p => p.id === state.activeProfileId)
+  const profile = state.profiles.find(p => p.id === state.activeProfileId) as Profile | undefined
+  if (!profile) return null
 
-  if (!profile) {
-    return rules
-  }
+  if (enabledTabIds.length === 0) return null
 
   const enabledHeaders = profile.headers.filter(h => h.enabled && h.name.trim())
-  if (enabledHeaders.length === 0) {
-    return rules
-  }
+  if (enabledHeaders.length === 0) return null
 
   const requestHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
   const responseHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
@@ -59,99 +78,100 @@ function buildRulesFromActiveProfile(state: AppState): chrome.declarativeNetRequ
     }
   }
 
-  if (requestHeaders.length > 0 || responseHeaders.length > 0) {
-    const action: RuleAction = {
-      type: 'modifyHeaders',
-    }
+  if (requestHeaders.length === 0 && responseHeaders.length === 0) return null
 
-    if (requestHeaders.length > 0) {
-      action.requestHeaders = requestHeaders
-    }
-    if (responseHeaders.length > 0) {
-      action.responseHeaders = responseHeaders
-    }
+  const action: RuleAction = { type: 'modifyHeaders' }
+  if (requestHeaders.length > 0) action.requestHeaders = requestHeaders
+  if (responseHeaders.length > 0) action.responseHeaders = responseHeaders
 
-    // Build URL filter condition
-    const includeFilters = profile.urlFilters.filter(f => f.enabled && f.type === 'include' && f.pattern.trim())
+  return {
+    id: SESSION_RULE_ID,
+    priority: 1,
+    action: action as chrome.declarativeNetRequest.RuleAction,
+    condition: {
+      urlFilter: '*',
+      tabIds: enabledTabIds,
+      resourceTypes: RESOURCE_TYPES,
+    },
+  }
+}
 
-    if (includeFilters.length > 0) {
-      // Create a rule for each include filter
-      for (const filter of includeFilters) {
-        rules.push({
-          id: ruleId++,
-          priority: 1,
-          action: action as chrome.declarativeNetRequest.RuleAction,
-          condition: {
-            urlFilter: filter.pattern,
-            resourceTypes: [
-              'main_frame',
-              'sub_frame',
-              'stylesheet',
-              'script',
-              'image',
-              'font',
-              'object',
-              'xmlhttprequest',
-              'ping',
-              'csp_report',
-              'media',
-              'websocket',
-              'webtransport',
-              'webbundle',
-              'other',
-            ] as chrome.declarativeNetRequest.ResourceType[],
-          },
-        })
-      }
-    } else {
-      // No include filters, apply to all URLs
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action: action as chrome.declarativeNetRequest.RuleAction,
-        condition: {
-          urlFilter: '*',
-          resourceTypes: [
-            'main_frame',
-            'sub_frame',
-            'stylesheet',
-            'script',
-            'image',
-            'font',
-            'object',
-            'xmlhttprequest',
-            'ping',
-            'csp_report',
-            'media',
-            'websocket',
-            'webtransport',
-            'webbundle',
-            'other',
-          ] as chrome.declarativeNetRequest.ResourceType[],
-        },
-      })
+const tabUrls = new Map<number, string>()
+let latestState: AppState | null = null
+let hasClearedDynamicRules = false
+let updateQueued = false
+
+function queueUpdateRules(): void {
+  if (updateQueued) return
+  updateQueued = true
+  queueMicrotask(() => {
+    updateQueued = false
+    updateRules().catch((error) => console.error('Failed to update rules:', error))
+  })
+}
+
+async function clearDynamicRulesOnce(): Promise<void> {
+  if (hasClearedDynamicRules) return
+  try {
+    const dynamic = await chrome.declarativeNetRequest.getDynamicRules()
+    const ids = dynamic.map(r => r.id)
+    if (ids.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids })
+    }
+  } catch (error) {
+    console.warn('Failed to clear dynamic rules (continuing):', error)
+  } finally {
+    hasClearedDynamicRules = true
+  }
+}
+
+function computeEnabledTabIds(profile: Profile): number[] {
+  const enabled: number[] = []
+  const filters = profile.urlFilters ?? []
+
+  for (const [tabId, url] of tabUrls.entries()) {
+    if (isUrlAllowedByFilters(url, filters)) {
+      enabled.push(tabId)
     }
   }
 
-  return rules
+  return enabled
 }
 
-async function updateRules(state: AppState): Promise<void> {
+async function updateRules(): Promise<void> {
   try {
-    // Get existing rules
-    const existingRules = await chrome.declarativeNetRequest.getDynamicRules()
-    const existingRuleIds = existingRules.map(rule => rule.id)
+    if (!latestState) {
+      await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [SESSION_RULE_ID],
+      })
+      return
+    }
 
-    // Build new rules from active profile only
-    const newRules = buildRulesFromActiveProfile(state)
+    await clearDynamicRulesOnce()
 
-    // Update rules
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: existingRuleIds,
-      addRules: newRules,
+    const profile = latestState.profiles.find(p => p.id === latestState?.activeProfileId) ?? null
+    if (!profile) {
+      await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [SESSION_RULE_ID],
+      })
+      return
+    }
+
+    const enabledTabIds = computeEnabledTabIds(profile)
+    const rule = buildSessionRuleFromActiveProfile(latestState, enabledTabIds)
+
+    await chrome.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: [SESSION_RULE_ID],
+      addRules: rule ? [rule] : [],
     })
 
-    console.log('Rules updated:', newRules.length, 'rules active')
+    console.log(
+      'Session rules updated:',
+      rule ? 1 : 0,
+      'active;',
+      enabledTabIds.length,
+      'tab(s) matched'
+    )
   } catch (error) {
     console.error('Failed to update rules:', error)
   }
@@ -160,35 +180,76 @@ async function updateRules(state: AppState): Promise<void> {
 // Listen for storage changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes[STORAGE_KEY]) {
-    const newState = changes[STORAGE_KEY].newValue as AppState
-    if (newState) {
-      updateRules(newState)
-    }
+    latestState = changes[STORAGE_KEY].newValue as AppState
+    queueUpdateRules()
   }
+})
+
+function updateTabUrl(tabId: number, url: string | undefined): void {
+  if (!url) return
+  tabUrls.set(tabId, url)
+  queueUpdateRules()
+}
+
+// Track tab URL changes so we can apply rules based on the top-level site (tab URL)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    updateTabUrl(tabId, changeInfo.url)
+    return
+  }
+
+  if (changeInfo.status === 'complete' && tab.url) {
+    updateTabUrl(tabId, tab.url)
+  }
+})
+
+chrome.tabs.onCreated.addListener((tab) => {
+  if (tab.id && tab.url) {
+    updateTabUrl(tab.id, tab.url)
+  }
+})
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  tabUrls.delete(tabId)
+  queueUpdateRules()
 })
 
 // Initialize on startup
-chrome.runtime.onInstalled.addListener(async () => {
+async function initialize(): Promise<void> {
   const result = await chrome.storage.local.get(STORAGE_KEY)
-  const state = result[STORAGE_KEY] as AppState | undefined
-  if (state) {
-    await updateRules(state)
+  latestState = result[STORAGE_KEY] as AppState | null
+
+  // Prime tab URL cache
+  try {
+    const tabs = await chrome.tabs.query({})
+    for (const tab of tabs) {
+      if (tab.id && tab.url) {
+        tabUrls.set(tab.id, tab.url)
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to query tabs on startup:', error)
   }
+
+  queueUpdateRules()
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
+  await initialize()
 })
 
-// Also update on startup (not just install)
-chrome.storage.local.get(STORAGE_KEY).then((result) => {
-  const state = result[STORAGE_KEY] as AppState | undefined
-  if (state) {
-    updateRules(state)
-  }
-})
+initialize().catch((error) => console.error('Failed to initialize background script:', error))
 
 // Message handler for popup communication
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GET_ACTIVE_RULES') {
-    chrome.declarativeNetRequest.getDynamicRules().then(rules => {
-      sendResponse({ rules })
+    Promise.all([
+      chrome.declarativeNetRequest.getSessionRules(),
+      chrome.declarativeNetRequest.getDynamicRules(),
+    ]).then(([sessionRules, dynamicRules]) => {
+      sendResponse({ sessionRules, dynamicRules })
+    }).catch((error) => {
+      sendResponse({ error: String(error) })
     })
     return true // Keep channel open for async response
   }

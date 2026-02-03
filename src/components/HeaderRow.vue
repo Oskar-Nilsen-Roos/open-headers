@@ -36,7 +36,10 @@ function handleCommentChange(value: string) {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group">
+  <div
+    class="flex items-center gap-2 pr-3 py-1.5 border-b border-border hover:bg-muted/30 group"
+    data-testid="header-row"
+  >
     <div
       data-swapy-handle
       class="shrink-0 self-stretch flex items-center px-3 -my-1.5 cursor-grab active:cursor-grabbing select-none text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/50 transition-colors"

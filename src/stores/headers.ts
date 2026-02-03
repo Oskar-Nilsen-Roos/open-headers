@@ -142,7 +142,15 @@ export const useHeadersStore = defineStore('headers', () => {
       }
 
       if (state && state.profiles) {
-        profiles.value = state.profiles
+        // Migrate stored profiles to ensure required fields exist
+        profiles.value = state.profiles.map((profile) => ({
+          ...profile,
+          headers: profile.headers ?? [],
+          urlFilters: (profile.urlFilters ?? []).map((filter) => ({
+            ...filter,
+            matchType: (filter as Partial<UrlFilter>).matchType ?? 'dnr_url_filter',
+          })),
+        }))
         activeProfileId.value = state.activeProfileId
         // Handle migration from old darkMode boolean to new darkModePreference
         if ('darkModePreference' in state) {
@@ -385,6 +393,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const filter: UrlFilter = {
       id: crypto.randomUUID(),
       enabled: true,
+      matchType: 'host_equals',
       pattern: '',
       type,
     }
@@ -449,6 +458,7 @@ export const useHeadersStore = defineStore('headers', () => {
           urlFilters: profile.urlFilters?.map((f: UrlFilter) => ({
             ...f,
             id: crypto.randomUUID(),
+            matchType: (f as Partial<UrlFilter>).matchType ?? 'dnr_url_filter',
           })) ?? [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
