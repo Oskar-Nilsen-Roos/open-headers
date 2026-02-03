@@ -19,6 +19,14 @@
     "message": "Response headers",
     "description": "Title for the response headers list"
   },
+  "tab_request": {
+    "message": "Request",
+    "description": "Tab label for request headers"
+  },
+  "tab_response": {
+    "message": "Response",
+    "description": "Tab label for response headers"
+  },
   "headers_empty_state": {
     "message": "No headers. Click + ADD to add one.",
     "description": "Empty state text when no headers exist"

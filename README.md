@@ -46,11 +46,12 @@ Then open `http://localhost:5173` in your browser to preview the popup UI.
 ## Usage
 
 1. Click the extension icon in your browser toolbar
-2. Add headers using the "+ ADD" button
-3. Enter the header name and value
-4. Toggle headers on/off using the checkbox
-5. Switch between profiles using the sidebar
-6. Use the menu (three dots) for additional options like import/export
+2. Switch between **Request** and **Response** tabs to choose which headers you're editing
+3. Add headers using the "+ ADD" button
+4. Enter the header name and value
+5. Toggle headers on/off using the checkbox
+6. Switch between profiles using the sidebar
+7. Use the menu (three dots) for additional options like import/export
 
 ## Tech Stack
 

@@ -19,6 +19,14 @@
     "message": "Svarsrubriker",
     "description": "Rubrik för listan med svarsrubriker"
   },
+  "tab_request": {
+    "message": "Begäran",
+    "description": "Fliketikett för begäransrubriker"
+  },
+  "tab_response": {
+    "message": "Svar",
+    "description": "Fliketikett för svarsrubriker"
+  },
   "headers_empty_state": {
     "message": "Inga rubriker. Klicka på + för att lägga till en.",
     "description": "Tomtillstånd när inga rubriker finns"

@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useHeadersStore } from '@/stores/headers'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
+import type { HeaderType } from '@/types'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { t } from '@/i18n'
 
 const store = useHeadersStore()
+const activeHeaderType = ref<HeaderType>('request')
 
 // Initialize store on mount
 onMounted(async () => {
@@ -28,9 +31,19 @@ const activeProfileIndex = computed(() => {
   return store.profiles.findIndex(p => p.id === store.activeProfileId)
 })
 
+const activeHeaders = computed(() => {
+  return activeHeaderType.value === 'request' ? store.requestHeaders : store.responseHeaders
+})
+
+const activeTitle = computed(() => {
+  return activeHeaderType.value === 'request'
+    ? t('list_title_request_headers')
+    : t('list_title_response_headers')
+})
+
 // Header actions
 function handleAddHeader() {
-  store.addHeader('request')
+  store.addHeader(activeHeaderType.value)
 }
 
 function handleRemoveHeader(headerId: string) {
@@ -50,11 +63,11 @@ function handleDuplicateHeader(headerId: string) {
 }
 
 function handleClearHeaders() {
-  store.clearHeaders('request')
+  store.clearHeaders(activeHeaderType.value)
 }
 
 function handleReorderHeaders(orderedIds: string[]) {
-  store.reorderHeaders(orderedIds, 'request')
+  store.reorderHeaders(orderedIds, activeHeaderType.value)
 }
 
 // Profile actions
@@ -141,11 +154,21 @@ function handleImport() {
       />
 
       <!-- Headers Content -->
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="px-3 py-2 border-b border-border bg-background">
+          <Tabs v-model="activeHeaderType" class="w-full">
+            <TabsList class="w-full">
+              <TabsTrigger value="request">{{ t('tab_request') }}</TabsTrigger>
+              <TabsTrigger value="response">{{ t('tab_response') }}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
         <HeaderList
-          :title="t('list_title_request_headers')"
-          type="request"
-          :headers="store.requestHeaders"
+          :title="activeTitle"
+          :type="activeHeaderType"
+          :headers="activeHeaders"
           :color="store.activeProfile?.color"
           @add="handleAddHeader"
           @remove="handleRemoveHeader"
@@ -155,6 +178,7 @@ function handleImport() {
           @clear="handleClearHeaders"
           @reorder="handleReorderHeaders"
         />
+        </div>
       </div>
     </div>
   </div>
