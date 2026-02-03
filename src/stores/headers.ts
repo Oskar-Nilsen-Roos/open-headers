@@ -5,6 +5,7 @@ import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHea
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
+const IMPORT_SIZE_WARNING_THRESHOLD = 100
 
 export const useHeadersStore = defineStore('headers', () => {
   // State
@@ -433,6 +434,9 @@ export const useHeadersStore = defineStore('headers', () => {
 
       // Check if this is ModHeader format (array of profiles with 'title' and 'headers')
       if (isModHeaderFormat(data)) {
+        if (data.length > IMPORT_SIZE_WARNING_THRESHOLD) {
+          console.warn(`Importing ${data.length} profiles may impact performance`)
+        }
         const startingColorIndex = profiles.value.length
         let importedCount = 0
         for (let i = 0; i < data.length; i++) {
@@ -457,6 +461,10 @@ export const useHeadersStore = defineStore('headers', () => {
       // OpenHeaders format
       if (!data.profiles || !Array.isArray(data.profiles)) {
         throw new Error('Invalid format')
+      }
+
+      if (data.profiles.length > IMPORT_SIZE_WARNING_THRESHOLD) {
+        console.warn(`Importing ${data.profiles.length} profiles may impact performance`)
       }
 
       // Validate and add profiles
