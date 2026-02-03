@@ -4,6 +4,7 @@ import type { UrlFilter } from '@/types'
 import UrlFilterRow from './UrlFilterRow.vue'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   filters: UrlFilter[]
@@ -39,13 +40,13 @@ function handleRemove(filterId: string) {
     >
       <div class="flex flex-col gap-0.5">
         <div class="flex items-center gap-2">
-          <span class="font-medium text-sm text-white">URL filters</span>
+          <span class="font-medium text-sm text-white">{{ t('url_filters_title') }}</span>
           <span v-if="filterCount > 0" class="text-xs opacity-80 text-white">
             ({{ enabledCount }}/{{ filterCount }})
           </span>
         </div>
         <span class="text-xs text-white/80">
-          Matched against current tab URL (top-level site)
+          {{ t('url_filters_help_text') }}
         </span>
       </div>
     </div>
@@ -66,19 +67,19 @@ function handleRemove(filterId: string) {
       v-if="filters.length === 0"
       class="flex items-center justify-center py-6 text-sm text-muted-foreground bg-background"
     >
-      No URL filters. Add an include/exclude filter to control where this profile applies.
+      {{ t('url_filters_empty_state') }}
     </div>
 
     <!-- Actions Bar -->
     <div class="flex items-center gap-1 px-2 py-1.5 border-t border-border bg-muted/30">
       <Button variant="ghost" size="sm" class="h-7 text-xs gap-1" @click="emit('addInclude')">
         <Plus class="h-3.5 w-3.5" />
-        ADD INCLUDE
+        {{ t('button_add_include') }}
       </Button>
 
       <Button variant="ghost" size="sm" class="h-7 text-xs gap-1" @click="emit('addExclude')">
         <Plus class="h-3.5 w-3.5" />
-        ADD EXCLUDE
+        {{ t('button_add_exclude') }}
       </Button>
 
       <Button
@@ -89,7 +90,7 @@ function handleRemove(filterId: string) {
         :disabled="filters.length === 0"
       >
         <Trash2 class="h-3.5 w-3.5" />
-        CLEAR
+        {{ t('button_clear') }}
       </Button>
     </div>
   </div>

@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical, Trash2 } from 'lucide-vue-next'
+import { t } from '@/i18n'
 
 const props = defineProps<{
   filter: UrlFilter
@@ -94,11 +95,11 @@ function handlePatternChange(value: string) {
       :model-value="filter.type"
       @update:model-value="handleTypeChange"
     >
-      <ToggleGroupItem value="include">
-        Include
+    <ToggleGroupItem value="include">
+        {{ t('url_filters_type_include') }}
       </ToggleGroupItem>
       <ToggleGroupItem value="exclude">
-        Exclude
+        {{ t('url_filters_type_exclude') }}
       </ToggleGroupItem>
     </ToggleGroup>
 
@@ -107,15 +108,15 @@ function handlePatternChange(value: string) {
       @update:model-value="handleMatchTypeChange"
     >
       <SelectTrigger size="sm" class="w-40 h-7 px-2">
-        <SelectValue placeholder="Match type" />
+        <SelectValue :placeholder="t('url_filters_match_type_placeholder')" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="host_equals">Host equals</SelectItem>
-        <SelectItem value="host_ends_with">Host ends with</SelectItem>
-        <SelectItem value="url_starts_with">URL starts with</SelectItem>
-        <SelectItem value="url_contains">URL contains</SelectItem>
-        <SelectItem value="dnr_url_filter">Advanced (glob)</SelectItem>
-        <SelectItem value="regex">Regex</SelectItem>
+        <SelectItem value="host_equals">{{ t('url_filters_match_host_equals') }}</SelectItem>
+        <SelectItem value="host_ends_with">{{ t('url_filters_match_host_ends_with') }}</SelectItem>
+        <SelectItem value="url_starts_with">{{ t('url_filters_match_url_starts_with') }}</SelectItem>
+        <SelectItem value="url_contains">{{ t('url_filters_match_url_contains') }}</SelectItem>
+        <SelectItem value="dnr_url_filter">{{ t('url_filters_match_glob') }}</SelectItem>
+        <SelectItem value="regex">{{ t('url_filters_match_regex') }}</SelectItem>
       </SelectContent>
     </Select>
 
@@ -135,7 +136,7 @@ function handlePatternChange(value: string) {
       <DropdownMenuContent align="end">
         <DropdownMenuItem class="text-destructive" @select="emit('remove', filter.id)">
           <Trash2 class="h-4 w-4 mr-2" />
-          Delete
+          {{ t('menu_delete') }}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
