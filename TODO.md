@@ -1,6 +1,6 @@
 # TODO
 ## Features
-- [ ] Add profile import from ModHeader. Look in the "__import_examples__" folder, and then in the respective sub-folder for "ModHeader". There's an example of what the exported file from that service looks like.
+- [x] Add profile import from ModHeader. Look in the "__import_examples__" folder, and then in the respective sub-folder for "ModHeader". There's an example of what the exported file from that service looks like.
 - [ ] i18n for all strings
 - [ ] Implement filter functionality, allowing for enabling or disabling a profile depending on the url you're visiting. Preferably easy methods, like "starts with", "host equals" etc.
 - [ ] Implement adding response headers, the same way we add request headers.

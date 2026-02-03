@@ -311,6 +311,105 @@ describe('useHeadersStore', () => {
       expect(result).toBe(false)
       consoleSpy.mockRestore()
     })
+
+    it('imports ModHeader format profiles', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      const modHeaderData = JSON.stringify([
+        {
+          title: 'ModHeader Profile',
+          shortTitle: '1',
+          headers: [
+            {
+              enabled: true,
+              name: 'X-Custom-Header',
+              value: 'custom-value',
+            },
+            {
+              enabled: false,
+              name: 'X-Append-Header',
+              value: 'append-value',
+              appendMode: true,
+            },
+          ],
+          hideComment: false,
+          version: 2,
+        },
+      ])
+
+      const result = store.importProfiles(modHeaderData)
+
+      expect(result).toBe(true)
+      expect(store.profiles.length).toBe(2) // Original + imported
+      const importedProfile = store.profiles[1]
+      expect(importedProfile?.name).toBe('ModHeader Profile')
+      expect(importedProfile?.headers.length).toBe(2)
+
+      // Check first header (set operation)
+      const header1 = importedProfile?.headers[0]
+      expect(header1?.name).toBe('X-Custom-Header')
+      expect(header1?.value).toBe('custom-value')
+      expect(header1?.enabled).toBe(true)
+      expect(header1?.operation).toBe('set')
+      expect(header1?.type).toBe('request')
+
+      // Check second header (append operation)
+      const header2 = importedProfile?.headers[1]
+      expect(header2?.name).toBe('X-Append-Header')
+      expect(header2?.operation).toBe('append')
+      expect(header2?.enabled).toBe(false)
+    })
+
+    it('imports ModHeader format with response headers', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      const modHeaderData = JSON.stringify([
+        {
+          title: 'Profile with Response Headers',
+          headers: [
+            { enabled: true, name: 'X-Request', value: 'req-value' },
+          ],
+          respHeaders: [
+            { enabled: true, name: 'X-Response', value: 'resp-value' },
+          ],
+        },
+      ])
+
+      const result = store.importProfiles(modHeaderData)
+
+      expect(result).toBe(true)
+      const importedProfile = store.profiles[1]
+      expect(importedProfile?.headers.length).toBe(2)
+
+      const requestHeader = importedProfile?.headers.find(h => h.type === 'request')
+      const responseHeader = importedProfile?.headers.find(h => h.type === 'response')
+
+      expect(requestHeader?.name).toBe('X-Request')
+      expect(responseHeader?.name).toBe('X-Response')
+      expect(responseHeader?.type).toBe('response')
+    })
+
+    it('imports multiple ModHeader profiles with different colors', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      const modHeaderData = JSON.stringify([
+        { title: 'Profile A', headers: [] },
+        { title: 'Profile B', headers: [] },
+        { title: 'Profile C', headers: [] },
+      ])
+
+      const result = store.importProfiles(modHeaderData)
+
+      expect(result).toBe(true)
+      expect(store.profiles.length).toBe(4) // Original + 3 imported
+
+      // Each imported profile should have a different color
+      const importedColors = store.profiles.slice(1).map(p => p.color)
+      expect(new Set(importedColors).size).toBe(3)
+    })
   })
 
   describe('dark mode', () => {

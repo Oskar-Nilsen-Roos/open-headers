@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference } from '../types'
-import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS } from '../types'
+import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
+const IMPORT_SIZE_WARNING_THRESHOLD = 100
 
 export const useHeadersStore = defineStore('headers', () => {
   // State
@@ -221,7 +222,7 @@ export const useHeadersStore = defineStore('headers', () => {
 
     const newProfile: Profile = {
       ...JSON.parse(JSON.stringify(profile)),
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: `${profile.name} (Copy)`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -281,7 +282,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const index = activeProfile.value.headers.findIndex(h => h.id === headerId)
     const newHeader: HeaderRule = {
       ...JSON.parse(JSON.stringify(header)),
-      id: crypto.randomUUID(),
+      id: generateId(),
     }
 
     // Insert after the original header
@@ -383,7 +384,7 @@ export const useHeadersStore = defineStore('headers', () => {
     if (!activeProfile.value) return
 
     const filter: UrlFilter = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       enabled: true,
       pattern: '',
       type,
@@ -430,8 +431,40 @@ export const useHeadersStore = defineStore('headers', () => {
   function importProfiles(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString)
+
+      // Check if this is ModHeader format (array of profiles with 'title' and 'headers')
+      if (isModHeaderFormat(data)) {
+        if (data.length > IMPORT_SIZE_WARNING_THRESHOLD) {
+          console.warn(`Importing ${data.length} profiles may impact performance`)
+        }
+        const startingColorIndex = profiles.value.length
+        let importedCount = 0
+        for (let i = 0; i < data.length; i++) {
+          const modProfile = data[i]
+          if (!modProfile) continue
+          try {
+            const converted = convertModHeaderProfile(modProfile, startingColorIndex + i)
+            profiles.value.push(converted)
+            importedCount++
+          } catch (error) {
+            console.warn(`Failed to convert ModHeader profile at index ${i}:`, error)
+            // Continue with other profiles
+          }
+        }
+        if (importedCount > 0) {
+          saveToHistory()
+          persistState()
+        }
+        return importedCount > 0
+      }
+
+      // OpenHeaders format
       if (!data.profiles || !Array.isArray(data.profiles)) {
         throw new Error('Invalid format')
+      }
+
+      if (data.profiles.length > IMPORT_SIZE_WARNING_THRESHOLD) {
+        console.warn(`Importing ${data.profiles.length} profiles may impact performance`)
       }
 
       // Validate and add profiles
@@ -441,14 +474,14 @@ export const useHeadersStore = defineStore('headers', () => {
         // Generate new IDs to avoid conflicts
         const newProfile: Profile = {
           ...profile,
-          id: crypto.randomUUID(),
+          id: generateId(),
           headers: profile.headers?.map((h: HeaderRule) => ({
             ...h,
-            id: crypto.randomUUID(),
+            id: generateId(),
           })) ?? [],
           urlFilters: profile.urlFilters?.map((f: UrlFilter) => ({
             ...f,
-            id: crypto.randomUUID(),
+            id: generateId(),
           })) ?? [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
