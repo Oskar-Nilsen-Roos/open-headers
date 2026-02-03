@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import type { LanguagePreference } from '@/types'
-import enMessages from './locales/en.json'
-import svMessages from './locales/sv.json'
+import enMessages from './locales/en/messages.json'
+import svMessages from './locales/sv/messages.json'
 
 type MessageEntry = { message: string }
 type MessageMap = Record<string, MessageEntry>
