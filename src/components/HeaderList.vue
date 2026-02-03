@@ -146,6 +146,11 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- Optional controls (e.g., Request/Response tabs) -->
+    <div v-if="$slots.tabs" class="px-3 py-2 bg-background border-b border-border/50">
+      <slot name="tabs" />
+    </div>
+
     <!-- Headers List -->
     <div ref="container" class="flex flex-col bg-background">
       <div
