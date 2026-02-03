@@ -181,10 +181,15 @@ interface AppState {
 
 ### Features
 
+#### Request vs. Response Tabs (Popup UI)
+- The popup UI provides **Request** and **Response** tabs to edit each header type separately.
+- Both tabs use the same header list UI and actions (ADD/CLEAR, reorder, duplicate, delete).
+
 #### 1. Header List (`HeaderList.vue`)
 - **Display**: Section with colored header showing type and count
 - **Shows**: "(active/total)" count of headers
 - **Actions Bar**: ADD and CLEAR buttons
+- **Header Type Switcher**: The popup UI uses Request/Response tabs to switch which header type is being edited
 
 #### 2. Add Header
 - **Action**:
