@@ -11,6 +11,7 @@ vi.mock('lucide-vue-next', () => ({
 // Mock swapy
 vi.mock('swapy', () => ({
   createSwapy: vi.fn(() => ({
+    onSwapStart: vi.fn(),
     onSwap: vi.fn(),
     onSwapEnd: vi.fn(),
     update: vi.fn(),

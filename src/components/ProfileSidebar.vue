@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Profile } from '@/types'
 import { createSwapy, utils } from 'swapy'
 import type { Swapy, SlotItemMapArray } from 'swapy'
+import autoAnimate, { type AnimationController } from '@formkit/auto-animate'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 const container = ref<HTMLElement | null>(null)
 const swapy = ref<Swapy | null>(null)
 const items = ref<Profile[]>([])
+const autoAnimateController = ref<AnimationController | null>(null)
 
 // Slot-item mapping for Swapy
 const slotItemMap = ref<SlotItemMapArray>([])
@@ -63,9 +65,21 @@ watch(() => props.profiles, (newProfiles) => {
 
 onMounted(() => {
   if (container.value) {
+    // Auto-animate list changes (add/remove), but skip in test envs without WAAPI.
+    if (typeof Element !== 'undefined' && typeof (Element.prototype as any).animate === 'function') {
+      autoAnimateController.value = autoAnimate(container.value, {
+        duration: 160,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+      })
+    }
+
     swapy.value = createSwapy(container.value, {
       manualSwap: true,
       animation: 'dynamic',
+    })
+
+    swapy.value.onSwapStart(() => {
+      autoAnimateController.value?.disable()
     })
 
     swapy.value.onSwap((event) => {
@@ -75,7 +89,10 @@ onMounted(() => {
     })
 
     swapy.value.onSwapEnd((event) => {
-      if (!event.hasChanged) return
+      if (!event.hasChanged) {
+        autoAnimateController.value?.enable()
+        return
+      }
 
       const newOrder = event.slotItemMap.asArray
         .map(({ item }) => item)
@@ -84,6 +101,7 @@ onMounted(() => {
 
       nextTick(() => {
         swapy.value?.update()
+        autoAnimateController.value?.enable()
       })
     })
   }
