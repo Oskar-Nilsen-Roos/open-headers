@@ -73,8 +73,9 @@ export const vDelayAutoAnimate: Directive<DelayAutoAnimateElement, DelayAutoAnim
     }
 
     if (!controller) {
-      el.__delayAutoAnimateController = autoAnimate(el, options)
-      el.__delayAutoAnimateController.disable()
+      const newController = autoAnimate(el, options)
+      el.__delayAutoAnimateController = newController
+      newController.disable()
     }
 
     el.__delayAutoAnimateController?.enable()

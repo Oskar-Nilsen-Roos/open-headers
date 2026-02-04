@@ -27,18 +27,16 @@ export function globToRegExp(glob: string): RegExp | null {
 
 export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
   const pattern = filter.pattern.trim()
-  if (!filter.enabled) return false
+  const matchType = filter.matchType ?? 'dnr_url_filter'
+
+  if (!filter.enabled || (!pattern && matchType !== 'localhost_port')) {
+    return false
+  }
 
   let url: URL
   try {
     url = new URL(tabUrl)
   } catch {
-    return false
-  }
-
-  const matchType = filter.matchType ?? 'dnr_url_filter'
-
-  if (!pattern && matchType !== 'localhost_port') {
     return false
   }
 
