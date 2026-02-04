@@ -140,7 +140,9 @@ export interface HeaderRule {
 export type UrlFilterMatchType =
   | 'host_equals'
   | 'host_ends_with'
+  | 'localhost_port'
   | 'url_starts_with'
+  | 'path_starts_with'
   | 'url_contains'
   | 'dnr_url_filter'
   | 'regex'

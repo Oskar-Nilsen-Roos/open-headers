@@ -97,7 +97,9 @@ interface UrlFilter {
 **Match types:**
 - `host_equals`: Exact hostname match (e.g., `example.com`)
 - `host_ends_with`: Hostname suffix match (e.g., `example.com` matches `api.example.com`)
+- `localhost_port`: Matches `localhost` with an optional port (pattern can be empty or a port number)
 - `url_starts_with`: Prefix match against URL string (e.g., `https://example.com/app`)
+- `path_starts_with`: Prefix match against `URL.pathname` only (e.g., `/api`)
 - `url_contains`: Substring match against URL string (e.g., `example.com/app`)
 - `regex`: JavaScript `RegExp` matched against full URL
 - `dnr_url_filter`: Glob-like match (`*` wildcard), matched against the full URL
@@ -195,12 +197,26 @@ interface AppState {
   - Pattern input
   - Drag and drop reordering
 
+**Match types:**
+- Host equals
+- Host ends with
+- Localhost (port optional)
+- URL starts with
+- Path starts with
+- URL contains
+- Advanced (glob)
+- Regex
+
 ### Filter Behavior (Top‑Level Tab URL)
 - Filters are evaluated against the **current tab URL** (top‑level site URL).
 - **Exclude filters**: if any enabled exclude filter matches, the profile is disabled for that tab.
 - **Include filters**:
   - If no enabled include filters exist, the profile applies to all tabs (except excluded ones).
   - Otherwise, the profile applies only when at least one include filter matches.
+
+**Match type notes**:
+- **Localhost (port optional)** only matches the `localhost` hostname. The pattern can be empty (match any port) or a port number like `3000`.
+- **Path starts with** matches against `URL.pathname` only (query and hash are ignored).
 
 ---
 

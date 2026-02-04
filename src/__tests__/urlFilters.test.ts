@@ -90,11 +90,45 @@ describe('urlFilters utilities', () => {
       }))).toBe(true)
     })
 
+    it('matches path_starts_with against pathname only', () => {
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'path_starts_with',
+        pattern: '/v1',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'path_starts_with',
+        pattern: 'v1',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter(url, createFilter({
+        matchType: 'path_starts_with',
+        pattern: '/v2',
+      }))).toBe(false)
+    })
+
     it('matches url_contains', () => {
       expect(matchesUrlFilter(url, createFilter({
         matchType: 'url_contains',
         pattern: 'v1/users',
       }))).toBe(true)
+    })
+
+    it('matches localhost_port with optional port', () => {
+      expect(matchesUrlFilter('http://localhost:3000/app', createFilter({
+        matchType: 'localhost_port',
+        pattern: '3000',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter('http://localhost:8080/app', createFilter({
+        matchType: 'localhost_port',
+        pattern: '',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter('http://localhost:8080/app', createFilter({
+        matchType: 'localhost_port',
+        pattern: '3000',
+      }))).toBe(false)
     })
 
     it('matches dnr_url_filter glob on url.href', () => {
@@ -169,4 +203,3 @@ describe('urlFilters utilities', () => {
     })
   })
 })
-

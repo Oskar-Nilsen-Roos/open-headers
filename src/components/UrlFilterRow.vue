@@ -37,8 +37,12 @@ const patternPlaceholder = computed(() => {
     case 'host_equals':
     case 'host_ends_with':
       return 'example.com'
+    case 'localhost_port':
+      return '3000'
     case 'url_starts_with':
       return 'https://example.com/path'
+    case 'path_starts_with':
+      return '/api'
     case 'url_contains':
       return 'api/v1'
     case 'regex':
@@ -63,7 +67,9 @@ function handleMatchTypeChange(value: unknown) {
   const allowed: UrlFilterMatchType[] = [
     'host_equals',
     'host_ends_with',
+    'localhost_port',
     'url_starts_with',
+    'path_starts_with',
     'url_contains',
     'dnr_url_filter',
     'regex',
@@ -122,7 +128,9 @@ function handlePatternChange(value: string) {
       <SelectContent>
         <SelectItem value="host_equals">{{ t('url_filters_match_host_equals') }}</SelectItem>
         <SelectItem value="host_ends_with">{{ t('url_filters_match_host_ends_with') }}</SelectItem>
+        <SelectItem value="localhost_port">{{ t('url_filters_match_localhost') }}</SelectItem>
         <SelectItem value="url_starts_with">{{ t('url_filters_match_url_starts_with') }}</SelectItem>
+        <SelectItem value="path_starts_with">{{ t('url_filters_match_path_starts_with') }}</SelectItem>
         <SelectItem value="url_contains">{{ t('url_filters_match_url_contains') }}</SelectItem>
         <SelectItem value="dnr_url_filter">{{ t('url_filters_match_glob') }}</SelectItem>
         <SelectItem value="regex">{{ t('url_filters_match_regex') }}</SelectItem>

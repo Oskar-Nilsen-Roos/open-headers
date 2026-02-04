@@ -207,9 +207,17 @@
     "message": "Host ends with",
     "description": "Match type label for host ends with"
   },
+  "url_filters_match_localhost": {
+    "message": "Localhost (port optional)",
+    "description": "Match type label for localhost with optional port"
+  },
   "url_filters_match_url_starts_with": {
     "message": "URL starts with",
     "description": "Match type label for URL starts with"
+  },
+  "url_filters_match_path_starts_with": {
+    "message": "Path starts with",
+    "description": "Match type label for path starts with"
   },
   "url_filters_match_url_contains": {
     "message": "URL contains",
