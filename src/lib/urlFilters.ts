@@ -8,6 +8,7 @@ export function normalizeHostPattern(input: string): string | null {
     const url = trimmed.includes('://') ? new URL(trimmed) : new URL(`https://${trimmed}`)
     return url.hostname.toLowerCase()
   } catch {
+    // Return null for invalid hostnames/URLs so callers can treat as non-match.
     return null
   }
 }

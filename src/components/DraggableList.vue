@@ -94,7 +94,7 @@ onMounted(() => {
   container.value.addEventListener('focusout', handleFocusOut)
 
   // Auto-animate list changes (add/remove), but skip in test envs without WAAPI.
-  if (typeof Element !== 'undefined' && typeof (Element.prototype as any).animate === 'function') {
+  if (typeof Element !== 'undefined' && 'animate' in Element.prototype) {
     autoAnimateController.value = autoAnimate(container.value, {
       duration: 160,
       easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',

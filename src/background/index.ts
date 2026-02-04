@@ -1,9 +1,14 @@
 import type { HeaderRule, AppState, Profile } from '../types'
 import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
 
+declare const process: { env?: { [key: string]: string | undefined } } | undefined
+
 const STORAGE_KEY = 'openheaders_state'
 const SESSION_RULE_ID = 1
-const DEBUG = false
+const DEBUG =
+  typeof process !== 'undefined' &&
+  !!process.env &&
+  process.env.OPENHEADERS_DEBUG === 'true'
 
 interface RuleAction {
   type: 'modifyHeaders'
@@ -131,6 +136,7 @@ function queueUpdateRules(): void {
   if (updateInFlight) return
 
   updateInFlight = (async () => {
+    // Defer to the next event loop tick so multiple rapid calls can be batched.
     await new Promise<void>(resolve => setTimeout(resolve, 0))
     try {
       while (pendingUpdate) {
