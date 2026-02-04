@@ -27,7 +27,11 @@ export function globToRegExp(glob: string): RegExp | null {
 
 export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
   const pattern = filter.pattern.trim()
-  if (!filter.enabled || !pattern) return false
+  const matchType = filter.matchType ?? 'dnr_url_filter'
+
+  if (!filter.enabled || (!pattern && matchType !== 'localhost_port')) {
+    return false
+  }
 
   let url: URL
   try {
@@ -35,8 +39,6 @@ export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
   } catch {
     return false
   }
-
-  const matchType = filter.matchType ?? 'dnr_url_filter'
 
   switch (matchType) {
     case 'host_equals': {
@@ -56,11 +58,51 @@ export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
         : `${url.host}${url.pathname}${url.search}${url.hash}`
       return haystack.startsWith(pattern)
     }
+    case 'path_starts_with': {
+      const normalized = pattern.startsWith('/') ? pattern : `/${pattern}`
+      return url.pathname.startsWith(normalized)
+    }
     case 'url_contains': {
       const haystack = pattern.includes('://')
         ? url.href
         : `${url.host}${url.pathname}${url.search}${url.hash}`
       return haystack.includes(pattern)
+    }
+    case 'localhost_port': {
+      if (url.hostname !== 'localhost') return false
+      if (!pattern || pattern.toLowerCase() === 'localhost') return true
+
+      let port: string | null = null
+      const lower = pattern.toLowerCase()
+
+      if (pattern.includes('://')) {
+        try {
+          const parsed = new URL(pattern)
+          if (parsed.hostname !== 'localhost') return false
+          port = parsed.port || null
+        } catch {
+          return false
+        }
+      } else if (lower.startsWith('localhost')) {
+        const match = lower.match(/^localhost(?::(\d+))?$/)
+        if (!match) return false
+        port = match[1] ?? null
+      } else if (/^:?\d+$/.test(lower)) {
+        port = lower.startsWith(':') ? lower.slice(1) : lower
+      } else {
+        return false
+      }
+
+      if (!port) return true
+
+      if (url.port === port) return true
+      if (url.port === '') {
+        return (
+          (url.protocol === 'http:' && port === '80') ||
+          (url.protocol === 'https:' && port === '443')
+        )
+      }
+      return false
     }
     case 'regex': {
       try {
@@ -83,7 +125,11 @@ export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
 
 export function isProfileEnabledForTabUrl(profile: Profile, tabUrl: string): boolean {
   const enabledFilters = (profile.urlFilters ?? [])
-    .filter(f => f.enabled && f.pattern.trim())
+    .filter(f => {
+      if (!f.enabled) return false
+      if (f.pattern.trim()) return true
+      return (f.matchType ?? 'dnr_url_filter') === 'localhost_port'
+    })
 
   const excludes = enabledFilters.filter(f => f.type === 'exclude')
   if (excludes.some(f => matchesUrlFilter(tabUrl, f))) {

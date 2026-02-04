@@ -2,10 +2,10 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { createSwapy, utils } from 'swapy'
 import type { SlotItemMapArray, Swapy } from 'swapy'
-import autoAnimate, { type AnimationController } from '@formkit/auto-animate'
 
 const props = defineProps<{
   items: T[]
+  autoAnimate?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -19,7 +19,18 @@ defineSlots<{
 // Swapy state
 const container = ref<HTMLElement | null>(null)
 const swapy = ref<Swapy | null>(null)
-const autoAnimateController = ref<AnimationController | null>(null)
+const autoAnimateEnabled = ref(true)
+
+const autoAnimateSupported = typeof Element !== 'undefined'
+  && typeof (Element.prototype as any).animate === 'function'
+
+const autoAnimateBinding = computed(() => ({
+  enabled: autoAnimateSupported && props.autoAnimate !== false && autoAnimateEnabled.value,
+  options: {
+    duration: 160,
+    easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+  },
+}))
 
 // Slot-item mapping for Swapy
 const slotItemMap = ref<SlotItemMapArray>([...utils.initSlotItemMap(props.items, 'id')])
@@ -93,14 +104,6 @@ onMounted(() => {
 
   container.value.addEventListener('focusout', handleFocusOut)
 
-  // Auto-animate list changes (add/remove), but skip in test envs without WAAPI.
-  if (typeof Element !== 'undefined' && 'animate' in Element.prototype) {
-    autoAnimateController.value = autoAnimate(container.value, {
-      duration: 160,
-      easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-    })
-  }
-
   swapy.value = createSwapy(container.value, {
     manualSwap: true,
     animation: 'dynamic',
@@ -108,7 +111,7 @@ onMounted(() => {
   })
 
   swapy.value.onSwapStart(() => {
-    autoAnimateController.value?.disable()
+    autoAnimateEnabled.value = false
   })
 
   // onSwap fires during drag - update slotItemMap for visual feedback
@@ -121,7 +124,7 @@ onMounted(() => {
   // onSwapEnd fires when drag ends - persist to store and update Swapy
   swapy.value.onSwapEnd(event => {
     if (!event.hasChanged) {
-      autoAnimateController.value?.enable()
+      autoAnimateEnabled.value = true
       return
     }
 
@@ -133,7 +136,7 @@ onMounted(() => {
 
     nextTick(() => {
       swapy.value?.update()
-      autoAnimateController.value?.enable()
+      autoAnimateEnabled.value = true
     })
   })
 })
@@ -147,7 +150,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="container" class="flex flex-col bg-background">
+  <div
+    ref="container"
+    v-delay-auto-animate="autoAnimateBinding"
+    class="flex flex-col bg-background"
+  >
     <div
       v-for="{ slotId, itemId, item } in slottedItems"
       :key="slotId"

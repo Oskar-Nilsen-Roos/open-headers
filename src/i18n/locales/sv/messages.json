@@ -207,9 +207,17 @@
     "message": "Värd slutar med",
     "description": "Matchtyp för värd slutar med"
   },
+  "url_filters_match_localhost": {
+    "message": "Localhost",
+    "description": "Matchtyp för localhost med valfri port"
+  },
   "url_filters_match_url_starts_with": {
     "message": "URL börjar med",
     "description": "Matchtyp för URL börjar med"
+  },
+  "url_filters_match_path_starts_with": {
+    "message": "Sökväg börjar med",
+    "description": "Matchtyp för sökväg börjar med"
   },
   "url_filters_match_url_contains": {
     "message": "URL innehåller",

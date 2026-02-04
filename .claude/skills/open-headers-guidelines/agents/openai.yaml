@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Headers Guidelines"
+  short_description: "Open Headers project rules and translation notes"
+  default_prompt: "Use $open-headers-guidelines to follow project rules and preserve networking terms in translations."

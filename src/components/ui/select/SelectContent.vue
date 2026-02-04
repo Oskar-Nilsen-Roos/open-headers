@@ -29,7 +29,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <SelectPortal disabled>
+  <SelectPortal>
     <SelectContent
       data-slot="select-content"
       v-bind="{ ...$attrs, ...forwarded }"
