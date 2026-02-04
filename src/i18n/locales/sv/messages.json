@@ -208,7 +208,7 @@
     "description": "Matchtyp för värd slutar med"
   },
   "url_filters_match_localhost": {
-    "message": "Localhost, valfri port",
+    "message": "Localhost",
     "description": "Matchtyp för localhost med valfri port"
   },
   "url_filters_match_url_starts_with": {
