@@ -238,7 +238,7 @@ function handleImport() {
                   <span>{{ t('tab_request') }}</span>
                   <span
                     v-if="requestHeaderEnabledCount > 0"
-                    class="inline-flex items-center justify-center rounded-md border border-foreground/15 bg-foreground/10 text-foreground/80 text-[10px] font-semibold h-5 min-w-5 px-1.5"
+                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
                   >
                     {{ requestHeaderEnabledCount }}
                   </span>
@@ -247,7 +247,7 @@ function handleImport() {
                   <span>{{ t('tab_response') }}</span>
                   <span
                     v-if="responseHeaderEnabledCount > 0"
-                    class="inline-flex items-center justify-center rounded-md border border-foreground/15 bg-foreground/10 text-foreground/80 text-[10px] font-semibold h-5 min-w-5 px-1.5"
+                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
                   >
                     {{ responseHeaderEnabledCount }}
                   </span>
@@ -256,7 +256,7 @@ function handleImport() {
                   <span>{{ t('tab_filters') }}</span>
                   <span
                     v-if="urlFilterEnabledCount > 0"
-                    class="inline-flex items-center justify-center rounded-md border border-foreground/15 bg-foreground/10 text-foreground/80 text-[10px] font-semibold h-5 min-w-5 px-1.5"
+                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
                   >
                     {{ urlFilterEnabledCount }}
                   </span>
