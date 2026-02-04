@@ -208,7 +208,7 @@
     "description": "Match type label for host ends with"
   },
   "url_filters_match_localhost": {
-    "message": "Localhost (port optional)",
+    "message": "Localhost, port optional",
     "description": "Match type label for localhost with optional port"
   },
   "url_filters_match_url_starts_with": {

@@ -72,16 +72,36 @@ export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
     }
     case 'localhost_port': {
       if (url.hostname !== 'localhost') return false
-      if (!pattern) return true
+      if (!pattern || pattern.toLowerCase() === 'localhost') return true
 
-      const normalized = pattern.startsWith(':') ? pattern.slice(1) : pattern
-      if (!/^\d+$/.test(normalized)) return false
+      let port: string | null = null
+      const lower = pattern.toLowerCase()
 
-      if (url.port === normalized) return true
+      if (pattern.includes('://')) {
+        try {
+          const parsed = new URL(pattern)
+          if (parsed.hostname !== 'localhost') return false
+          port = parsed.port || null
+        } catch {
+          return false
+        }
+      } else if (lower.startsWith('localhost')) {
+        const match = lower.match(/^localhost(?::(\d+))?$/)
+        if (!match) return false
+        port = match[1] ?? null
+      } else if (/^:?\d+$/.test(lower)) {
+        port = lower.startsWith(':') ? lower.slice(1) : lower
+      } else {
+        return false
+      }
+
+      if (!port) return true
+
+      if (url.port === port) return true
       if (url.port === '') {
         return (
-          (url.protocol === 'http:' && normalized === '80') ||
-          (url.protocol === 'https:' && normalized === '443')
+          (url.protocol === 'http:' && port === '80') ||
+          (url.protocol === 'https:' && port === '443')
         )
       }
       return false
@@ -107,7 +127,11 @@ export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
 
 export function isProfileEnabledForTabUrl(profile: Profile, tabUrl: string): boolean {
   const enabledFilters = (profile.urlFilters ?? [])
-    .filter(f => f.enabled && f.pattern.trim())
+    .filter(f => {
+      if (!f.enabled) return false
+      if (f.pattern.trim()) return true
+      return (f.matchType ?? 'dnr_url_filter') === 'localhost_port'
+    })
 
   const excludes = enabledFilters.filter(f => f.type === 'exclude')
   if (excludes.some(f => matchesUrlFilter(tabUrl, f))) {

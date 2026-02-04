@@ -129,6 +129,16 @@ describe('urlFilters utilities', () => {
         matchType: 'localhost_port',
         pattern: '3000',
       }))).toBe(false)
+
+      expect(matchesUrlFilter('http://localhost:5174/app', createFilter({
+        matchType: 'localhost_port',
+        pattern: 'localhost:5174',
+      }))).toBe(true)
+
+      expect(matchesUrlFilter('http://localhost:5174/app', createFilter({
+        matchType: 'localhost_port',
+        pattern: 'http://localhost:5174',
+      }))).toBe(true)
     })
 
     it('matches dnr_url_filter glob on url.href', () => {
@@ -200,6 +210,16 @@ describe('urlFilters utilities', () => {
         ],
       })
       expect(isProfileEnabledForTabUrl(profile, url)).toBe(true)
+    })
+
+    it('allows localhost_port include filters with empty pattern', () => {
+      const profile = createProfile({
+        urlFilters: [
+          createFilter({ type: 'include', matchType: 'localhost_port', pattern: '' }),
+        ],
+      })
+      expect(isProfileEnabledForTabUrl(profile, 'http://localhost:5174/')).toBe(true)
+      expect(isProfileEnabledForTabUrl(profile, 'http://example.com/')).toBe(false)
     })
   })
 })

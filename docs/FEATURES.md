@@ -200,7 +200,7 @@ interface AppState {
 **Match types:**
 - Host equals
 - Host ends with
-- Localhost (port optional)
+- Localhost, port optional
 - URL starts with
 - Path starts with
 - URL contains
@@ -215,7 +215,7 @@ interface AppState {
   - Otherwise, the profile applies only when at least one include filter matches.
 
 **Match type notes**:
-- **Localhost (port optional)** only matches the `localhost` hostname. The pattern can be empty (match any port) or a port number like `3000`.
+- **Localhost, port optional** only matches the `localhost` hostname. The pattern can be empty (match any port) or a port number like `3000`.
 - **Path starts with** matches against `URL.pathname` only (query and hash are ignored).
 
 ---
