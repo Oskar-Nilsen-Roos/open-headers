@@ -148,7 +148,15 @@ export const useHeadersStore = defineStore('headers', () => {
       }
 
       if (state && state.profiles) {
-        profiles.value = state.profiles
+        // Migrate stored profiles to ensure required fields exist
+        profiles.value = state.profiles.map((profile) => ({
+          ...profile,
+          headers: profile.headers ?? [],
+          urlFilters: (profile.urlFilters ?? []).map((filter) => ({
+            ...filter,
+            matchType: (filter as Partial<UrlFilter>).matchType ?? 'dnr_url_filter',
+          })),
+        }))
         activeProfileId.value = state.activeProfileId
         // Handle migration from old darkMode boolean to new darkModePreference
         if ('darkModePreference' in state) {
@@ -413,6 +421,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const filter: UrlFilter = {
       id: generateId(),
       enabled: true,
+      matchType: 'host_equals',
       pattern: '',
       type,
     }
@@ -441,6 +450,33 @@ export const useHeadersStore = defineStore('headers', () => {
     if (!filter) return
 
     Object.assign(filter, updates)
+    activeProfile.value.updatedAt = Date.now()
+    saveToHistory()
+    persistState()
+  }
+
+  function clearUrlFilters(): void {
+    if (!activeProfile.value) return
+
+    activeProfile.value.urlFilters = []
+    activeProfile.value.updatedAt = Date.now()
+    saveToHistory()
+    persistState()
+  }
+
+  function reorderUrlFilters(orderedIds: string[]): void {
+    if (!activeProfile.value) return
+
+    const orderedSet = new Set(orderedIds)
+    const byId = new Map(activeProfile.value.urlFilters.map(filter => [filter.id, filter] as const))
+
+    const reordered = orderedIds
+      .map(id => byId.get(id))
+      .filter((filter): filter is UrlFilter => filter !== undefined)
+
+    const remaining = activeProfile.value.urlFilters.filter(filter => !orderedSet.has(filter.id))
+
+    activeProfile.value.urlFilters = [...reordered, ...remaining]
     activeProfile.value.updatedAt = Date.now()
     saveToHistory()
     persistState()
@@ -509,6 +545,7 @@ export const useHeadersStore = defineStore('headers', () => {
           urlFilters: profile.urlFilters?.map((f: UrlFilter) => ({
             ...f,
             id: generateId(),
+            matchType: (f as Partial<UrlFilter>).matchType ?? 'dnr_url_filter',
           })) ?? [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -581,10 +618,12 @@ export const useHeadersStore = defineStore('headers', () => {
     addUrlFilter,
     removeUrlFilter,
     updateUrlFilter,
+    clearUrlFilters,
     exportProfiles,
     importProfiles,
     toggleDarkMode,
     setDarkModePreference,
     setLanguagePreference,
+    reorderUrlFilters,
   }
 })

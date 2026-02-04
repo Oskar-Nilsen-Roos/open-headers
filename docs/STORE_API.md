@@ -275,6 +275,10 @@ store.addUrlFilter('include')
 store.addUrlFilter('exclude')
 ```
 
+**Behavior:**
+- Creates a new filter with `enabled: true`
+- Defaults `matchType` to `'host_equals'`
+
 ---
 
 #### `removeUrlFilter(filterId: string): void`
@@ -291,10 +295,34 @@ Updates URL filter properties.
 
 ```typescript
 store.updateUrlFilter('filter-uuid', {
-  pattern: '*.example.com/*',
+  matchType: 'host_ends_with',
+  pattern: 'example.com',
   enabled: true
 })
 ```
+
+---
+
+#### `clearUrlFilters(): void`
+Removes all URL filters from the active profile.
+
+```typescript
+store.clearUrlFilters()
+```
+
+---
+
+#### `reorderUrlFilters(orderedIds: string[]): void`
+Reorders URL filters in the active profile.
+
+```typescript
+store.reorderUrlFilters(['id3', 'id1', 'id2'])
+```
+
+**Behavior:**
+- Rebuilds the filter list in the new order
+- Keeps any missing IDs at the end (safety)
+- Saves to history and persists
 
 ---
 

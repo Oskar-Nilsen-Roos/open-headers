@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'bun run dev -- --port 5181',
     url: 'http://localhost:5181',
     reuseExistingServer: true,
   },

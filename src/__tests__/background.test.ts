@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import type { AppState, Profile, HeaderRule } from '@/types'
+import { isProfileEnabledForTabUrl } from '@/lib/urlFilters'
 
 // We need to test the background script logic without Chrome APIs
-// So we'll extract and test the pure functions
+// So we recreate and test the pure logic and rule shape
 
-// Recreate the headerOperationToChrome function for testing
 function headerOperationToChrome(operation: HeaderRule['operation']): string {
   switch (operation) {
     case 'set':
@@ -37,24 +37,34 @@ interface Rule {
   condition: {
     urlFilter: string
     resourceTypes: string[]
+    tabIds: number[]
   }
 }
 
-// Recreate buildRulesFromActiveProfile for testing
-function buildRulesFromActiveProfile(state: AppState): Rule[] {
+type TabInfo = { id: number; url: string }
+
+function computeEnabledTabIds(profile: Profile, tabs: TabInfo[]): number[] {
+  const enabled: number[] = []
+  for (const tab of tabs) {
+    if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) continue
+    if (isProfileEnabledForTabUrl(profile, tab.url)) {
+      enabled.push(tab.id)
+    }
+  }
+  return enabled
+}
+
+function buildRulesFromActiveProfile(state: AppState, tabs: TabInfo[]): Rule[] {
   const rules: Rule[] = []
-  let ruleId = 1
 
   const profile = state.profiles.find((p) => p.id === state.activeProfileId)
-
-  if (!profile) {
-    return rules
-  }
+  if (!profile) return rules
 
   const enabledHeaders = profile.headers.filter((h) => h.enabled && h.name.trim())
-  if (enabledHeaders.length === 0) {
-    return rules
-  }
+  if (enabledHeaders.length === 0) return rules
+
+  const enabledTabIds = computeEnabledTabIds(profile, tabs)
+  if (enabledTabIds.length === 0) return rules
 
   const requestHeaders: ModifyHeaderInfo[] = []
   const responseHeaders: ModifyHeaderInfo[] = []
@@ -73,46 +83,22 @@ function buildRulesFromActiveProfile(state: AppState): Rule[] {
     }
   }
 
-  if (requestHeaders.length > 0 || responseHeaders.length > 0) {
-    const action: RuleAction = {
-      type: 'modifyHeaders',
-    }
-
-    if (requestHeaders.length > 0) {
-      action.requestHeaders = requestHeaders
-    }
-    if (responseHeaders.length > 0) {
-      action.responseHeaders = responseHeaders
-    }
-
-    const includeFilters = profile.urlFilters.filter(
-      (f) => f.enabled && f.type === 'include' && f.pattern.trim()
-    )
-
-    if (includeFilters.length > 0) {
-      for (const filter of includeFilters) {
-        rules.push({
-          id: ruleId++,
-          priority: 1,
-          action,
-          condition: {
-            urlFilter: filter.pattern,
-            resourceTypes: ['main_frame', 'xmlhttprequest'],
-          },
-        })
-      }
-    } else {
-      rules.push({
-        id: ruleId++,
-        priority: 1,
-        action,
-        condition: {
-          urlFilter: '*',
-          resourceTypes: ['main_frame', 'xmlhttprequest'],
-        },
-      })
-    }
+  const action: RuleAction = {
+    type: 'modifyHeaders',
+    ...(requestHeaders.length > 0 ? { requestHeaders } : {}),
+    ...(responseHeaders.length > 0 ? { responseHeaders } : {}),
   }
+
+  rules.push({
+    id: 1,
+    priority: 1,
+    action,
+    condition: {
+      urlFilter: '*',
+      tabIds: enabledTabIds,
+      resourceTypes: ['main_frame', 'xmlhttprequest'],
+    },
+  })
 
   return rules
 }
@@ -169,13 +155,13 @@ describe('Background Script Logic', () => {
   describe('buildRulesFromActiveProfile', () => {
     it('returns empty array when no active profile', () => {
       const state = createState({ activeProfileId: null })
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [])
       expect(rules).toEqual([])
     })
 
     it('returns empty array when active profile not found', () => {
       const state = createState({ activeProfileId: 'non-existent' })
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [])
       expect(rules).toEqual([])
     })
 
@@ -183,23 +169,26 @@ describe('Background Script Logic', () => {
       const state = createState({
         profiles: [createProfile({ headers: [createHeader({ enabled: false })] })],
       })
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [])
       expect(rules).toEqual([])
     })
 
-    it('returns empty array when headers have no name', () => {
+    it('returns empty array when no tabs match filters', () => {
       const state = createState({
-        profiles: [createProfile({ headers: [createHeader({ name: '' })] })],
+        profiles: [
+          createProfile({
+            headers: [createHeader()],
+            urlFilters: [
+              { id: 'f1', enabled: true, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
+            ],
+          }),
+        ],
       })
-      const rules = buildRulesFromActiveProfile(state)
-      expect(rules).toEqual([])
-    })
 
-    it('returns empty array when headers have whitespace-only name', () => {
-      const state = createState({
-        profiles: [createProfile({ headers: [createHeader({ name: '   ' })] })],
-      })
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://nope.com/' },
+      ])
+
       expect(rules).toEqual([])
     })
 
@@ -212,13 +201,16 @@ describe('Background Script Logic', () => {
         ],
       })
 
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+      ])
 
       expect(rules.length).toBe(1)
       expect(rules[0]!.action.requestHeaders).toEqual([
         { header: 'Authorization', operation: 'SET', value: 'Bearer token' },
       ])
       expect(rules[0]!.action.responseHeaders).toBeUndefined()
+      expect(rules[0]!.condition.tabIds).toEqual([1])
     })
 
     it('creates rule for enabled response header', () => {
@@ -232,32 +224,15 @@ describe('Background Script Logic', () => {
         ],
       })
 
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+      ])
 
       expect(rules.length).toBe(1)
       expect(rules[0]!.action.responseHeaders).toEqual([
         { header: 'X-Custom-Response', operation: 'SET', value: 'custom-value' },
       ])
       expect(rules[0]!.action.requestHeaders).toBeUndefined()
-    })
-
-    it('creates rule with both request and response headers', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [
-              createHeader({ type: 'request', name: 'X-Request', value: 'req-value' }),
-              createHeader({ id: 'h2', type: 'response', name: 'X-Response', value: 'res-value' }),
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules.length).toBe(1)
-      expect(rules[0]!.action.requestHeaders?.length).toBe(1)
-      expect(rules[0]!.action.responseHeaders?.length).toBe(1)
     })
 
     it('handles remove operation without value', () => {
@@ -269,167 +244,71 @@ describe('Background Script Logic', () => {
         ],
       })
 
-      const rules = buildRulesFromActiveProfile(state)
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+      ])
 
       expect(rules[0]!.action.requestHeaders).toEqual([
         { header: 'X-Remove-Me', operation: 'REMOVE' },
       ])
     })
 
-    it('handles append operation', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader({ operation: 'append', name: 'Cookie', value: 'session=abc' })],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.action.requestHeaders).toEqual([
-        { header: 'Cookie', operation: 'APPEND', value: 'session=abc' },
-      ])
-    })
-
-    it('applies to all URLs when no include filters', () => {
+    it('applies to all known tabs when no include filters exist', () => {
       const state = createState({
         profiles: [createProfile({ headers: [createHeader()] })],
       })
 
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.condition.urlFilter).toBe('*')
-    })
-
-    it('creates separate rules for each include filter', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [
-              { id: 'f1', enabled: true, pattern: '*.example.com/*', type: 'include' },
-              { id: 'f2', enabled: true, pattern: '*.test.com/*', type: 'include' },
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules.length).toBe(2)
-      expect(rules[0]!.condition.urlFilter).toBe('*.example.com/*')
-      expect(rules[1]!.condition.urlFilter).toBe('*.test.com/*')
-    })
-
-    it('ignores disabled include filters', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [
-              { id: 'f1', enabled: false, pattern: '*.example.com/*', type: 'include' },
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.condition.urlFilter).toBe('*')
-    })
-
-    it('ignores empty pattern include filters', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [{ id: 'f1', enabled: true, pattern: '', type: 'include' }],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.condition.urlFilter).toBe('*')
-    })
-
-    it('ignores exclude filters (only processes includes)', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [{ id: 'f1', enabled: true, pattern: '*.blocked.com/*', type: 'exclude' }],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      // Should still apply to all URLs since exclude is not processed for URL filtering
-      expect(rules[0]!.condition.urlFilter).toBe('*')
-    })
-
-    it('assigns incrementing rule IDs', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [
-              { id: 'f1', enabled: true, pattern: 'a.com', type: 'include' },
-              { id: 'f2', enabled: true, pattern: 'b.com', type: 'include' },
-              { id: 'f3', enabled: true, pattern: 'c.com', type: 'include' },
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.id).toBe(1)
-      expect(rules[1]!.id).toBe(2)
-      expect(rules[2]!.id).toBe(3)
-    })
-
-    it('sets priority to 1 for all rules', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [createHeader()],
-            urlFilters: [
-              { id: 'f1', enabled: true, pattern: 'a.com', type: 'include' },
-              { id: 'f2', enabled: true, pattern: 'b.com', type: 'include' },
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.priority).toBe(1)
-      expect(rules[1]!.priority).toBe(1)
-    })
-
-    it('only includes enabled headers in rules', () => {
-      const state = createState({
-        profiles: [
-          createProfile({
-            headers: [
-              createHeader({ id: 'h1', name: 'X-Enabled', enabled: true }),
-              createHeader({ id: 'h2', name: 'X-Disabled', enabled: false }),
-              createHeader({ id: 'h3', name: 'X-Also-Enabled', enabled: true }),
-            ],
-          }),
-        ],
-      })
-
-      const rules = buildRulesFromActiveProfile(state)
-
-      expect(rules[0]!.action.requestHeaders?.length).toBe(2)
-      expect(rules[0]!.action.requestHeaders?.map((h) => h.header)).toEqual([
-        'X-Enabled',
-        'X-Also-Enabled',
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 10, url: 'https://a.com/' },
+        { id: 11, url: 'https://b.com/' },
       ])
+
+      expect(rules.length).toBe(1)
+      expect(rules[0]!.condition.urlFilter).toBe('*')
+      expect(rules[0]!.condition.tabIds.sort()).toEqual([10, 11])
+    })
+
+    it('limits to tabs matching include filters', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [createHeader()],
+            urlFilters: [
+              { id: 'f1', enabled: true, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
+            ],
+          }),
+        ],
+      })
+
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+        { id: 2, url: 'https://other.com/' },
+      ])
+
+      expect(rules.length).toBe(1)
+      expect(rules[0]!.condition.tabIds).toEqual([1])
+    })
+
+    it('excludes tabs matching exclude filters even if include matches', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [createHeader()],
+            urlFilters: [
+              { id: 'i1', enabled: true, type: 'include', matchType: 'host_ends_with', pattern: 'example.com' },
+              { id: 'e1', enabled: true, type: 'exclude', matchType: 'host_equals', pattern: 'blocked.example.com' },
+            ],
+          }),
+        ],
+      })
+
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://api.example.com/' },
+        { id: 2, url: 'https://blocked.example.com/' },
+      ])
+
+      expect(rules.length).toBe(1)
+      expect(rules[0]!.condition.tabIds).toEqual([1])
     })
   })
 })

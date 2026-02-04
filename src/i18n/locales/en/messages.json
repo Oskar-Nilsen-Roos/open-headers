@@ -20,12 +20,16 @@
     "description": "Title for the response headers list"
   },
   "tab_request": {
-    "message": "Request",
+    "message": "Request Headers",
     "description": "Tab label for request headers"
   },
   "tab_response": {
-    "message": "Response",
+    "message": "Response Headers",
     "description": "Tab label for response headers"
+  },
+  "tab_filters": {
+    "message": "URL filters",
+    "description": "Tab label for URL filters"
   },
   "headers_empty_state": {
     "message": "No headers. Click + ADD to add one.",
@@ -143,8 +147,80 @@
     "message": "Add profile",
     "description": "Tooltip for add profile button"
   },
+  "tooltip_more_actions": {
+    "message": "More actions",
+    "description": "Tooltip for more actions button"
+  },
+  "tooltip_add_filter": {
+    "message": "Add filter",
+    "description": "Tooltip for add filter button"
+  },
+  "tooltip_clear_headers": {
+    "message": "Clear headers",
+    "description": "Tooltip for clear headers button"
+  },
+  "tooltip_clear_filters": {
+    "message": "Clear filters",
+    "description": "Tooltip for clear filters button"
+  },
   "export_file_name": {
     "message": "openheaders-profiles.json",
     "description": "Default filename for profile export"
+  },
+  "url_filters_title": {
+    "message": "URL filters",
+    "description": "Title for URL filters section"
+  },
+  "url_filters_help_text": {
+    "message": "Matched against current tab URL (top-level site). Multiple filters are OR'ed (any match), not AND; excludes override includes.",
+    "description": "Helper text explaining what URL filters are matched against"
+  },
+  "url_filters_empty_state": {
+    "message": "No URL filters. Add an include/exclude filter to control where this profile applies.",
+    "description": "Empty state text when no URL filters exist"
+  },
+  "button_add_include": {
+    "message": "ADD INCLUDE",
+    "description": "Label for add include filter button"
+  },
+  "button_add_exclude": {
+    "message": "ADD EXCLUDE",
+    "description": "Label for add exclude filter button"
+  },
+  "url_filters_type_include": {
+    "message": "Include",
+    "description": "Label for include filter type"
+  },
+  "url_filters_type_exclude": {
+    "message": "Exclude",
+    "description": "Label for exclude filter type"
+  },
+  "url_filters_match_type_placeholder": {
+    "message": "Match type",
+    "description": "Placeholder for URL filter match type select"
+  },
+  "url_filters_match_host_equals": {
+    "message": "Host equals",
+    "description": "Match type label for host equals"
+  },
+  "url_filters_match_host_ends_with": {
+    "message": "Host ends with",
+    "description": "Match type label for host ends with"
+  },
+  "url_filters_match_url_starts_with": {
+    "message": "URL starts with",
+    "description": "Match type label for URL starts with"
+  },
+  "url_filters_match_url_contains": {
+    "message": "URL contains",
+    "description": "Match type label for URL contains"
+  },
+  "url_filters_match_glob": {
+    "message": "Advanced (glob)",
+    "description": "Match type label for advanced glob matching"
+  },
+  "url_filters_match_regex": {
+    "message": "Regex",
+    "description": "Match type label for regular expression matching"
   }
 }

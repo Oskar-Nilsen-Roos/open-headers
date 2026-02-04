@@ -526,6 +526,7 @@ describe('useHeadersStore', () => {
 
       expect(store.activeProfile?.urlFilters.length).toBe(1)
       expect(store.activeProfile?.urlFilters[0]?.type).toBe('include')
+      expect(store.activeProfile?.urlFilters[0]?.matchType).toBe('host_equals')
     })
 
     it('adds an exclude filter', async () => {
@@ -535,6 +536,7 @@ describe('useHeadersStore', () => {
       store.addUrlFilter('exclude')
 
       expect(store.activeProfile?.urlFilters[0]?.type).toBe('exclude')
+      expect(store.activeProfile?.urlFilters[0]?.matchType).toBe('host_equals')
     })
 
     it('removes a url filter', async () => {
@@ -562,6 +564,35 @@ describe('useHeadersStore', () => {
 
       expect(store.activeProfile?.urlFilters[0]?.pattern).toBe('*.example.com/*')
       expect(store.activeProfile?.urlFilters[0]?.enabled).toBe(false)
+    })
+
+    it('clears all url filters', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addUrlFilter('include')
+      store.addUrlFilter('exclude')
+      expect(store.activeProfile?.urlFilters.length).toBe(2)
+
+      store.clearUrlFilters()
+      expect(store.activeProfile?.urlFilters.length).toBe(0)
+    })
+
+    it('reorders url filters', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addUrlFilter('include')
+      store.addUrlFilter('exclude')
+      store.addUrlFilter('include')
+
+      const ids = store.activeProfile?.urlFilters.map(f => f.id) ?? []
+      expect(ids.length).toBe(3)
+
+      const reversed = [...ids].reverse()
+      store.reorderUrlFilters(reversed)
+
+      expect(store.activeProfile?.urlFilters.map(f => f.id)).toEqual(reversed)
     })
   })
 

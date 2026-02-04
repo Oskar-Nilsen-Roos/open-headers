@@ -1,0 +1,99 @@
+import type { Profile, UrlFilter } from '@/types'
+
+export function normalizeHostPattern(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+
+  try {
+    const url = trimmed.includes('://') ? new URL(trimmed) : new URL(`https://${trimmed}`)
+    return url.hostname.toLowerCase()
+  } catch {
+    // Return null for invalid hostnames/URLs so callers can treat as non-match.
+    return null
+  }
+}
+
+export function globToRegExp(glob: string): RegExp | null {
+  const trimmed = glob.trim()
+  if (!trimmed) return null
+
+  // Treat '*' as the only special character (matches any chars).
+  const escaped = trimmed
+    .replace(/[-/\\^$+?.()|[\]{}]/g, '\\$&')
+    .replace(/\*/g, '.*')
+
+  return new RegExp(`^${escaped}$`)
+}
+
+export function matchesUrlFilter(tabUrl: string, filter: UrlFilter): boolean {
+  const pattern = filter.pattern.trim()
+  if (!filter.enabled || !pattern) return false
+
+  let url: URL
+  try {
+    url = new URL(tabUrl)
+  } catch {
+    return false
+  }
+
+  const matchType = filter.matchType ?? 'dnr_url_filter'
+
+  switch (matchType) {
+    case 'host_equals': {
+      const host = normalizeHostPattern(pattern)
+      if (!host) return false
+      return url.hostname.toLowerCase() === host
+    }
+    case 'host_ends_with': {
+      const domain = normalizeHostPattern(pattern)
+      if (!domain) return false
+      const hostname = url.hostname.toLowerCase()
+      return hostname === domain || hostname.endsWith(`.${domain}`)
+    }
+    case 'url_starts_with': {
+      const haystack = pattern.includes('://')
+        ? url.href
+        : `${url.host}${url.pathname}${url.search}${url.hash}`
+      return haystack.startsWith(pattern)
+    }
+    case 'url_contains': {
+      const haystack = pattern.includes('://')
+        ? url.href
+        : `${url.host}${url.pathname}${url.search}${url.hash}`
+      return haystack.includes(pattern)
+    }
+    case 'regex': {
+      try {
+        const re = new RegExp(pattern)
+        return re.test(url.href)
+      } catch {
+        return false
+      }
+    }
+    case 'dnr_url_filter': {
+      const re = globToRegExp(pattern)
+      return re ? re.test(url.href) : false
+    }
+    default: {
+      const re = globToRegExp(pattern)
+      return re ? re.test(url.href) : false
+    }
+  }
+}
+
+export function isProfileEnabledForTabUrl(profile: Profile, tabUrl: string): boolean {
+  const enabledFilters = (profile.urlFilters ?? [])
+    .filter(f => f.enabled && f.pattern.trim())
+
+  const excludes = enabledFilters.filter(f => f.type === 'exclude')
+  if (excludes.some(f => matchesUrlFilter(tabUrl, f))) {
+    return false
+  }
+
+  const includes = enabledFilters.filter(f => f.type === 'include')
+  if (includes.length === 0) {
+    return true
+  }
+
+  return includes.some(f => matchesUrlFilter(tabUrl, f))
+}

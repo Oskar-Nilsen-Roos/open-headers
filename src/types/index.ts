@@ -137,9 +137,18 @@ export interface HeaderRule {
   operation: HeaderOperation
 }
 
+export type UrlFilterMatchType =
+  | 'host_equals'
+  | 'host_ends_with'
+  | 'url_starts_with'
+  | 'url_contains'
+  | 'dnr_url_filter'
+  | 'regex'
+
 export interface UrlFilter {
   id: string
   enabled: boolean
+  matchType: UrlFilterMatchType
   pattern: string
   type: 'include' | 'exclude'
 }

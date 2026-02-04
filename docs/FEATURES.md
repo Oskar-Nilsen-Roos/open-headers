@@ -83,10 +83,19 @@ Represents a URL pattern filter for selective header application.
 interface UrlFilter {
   id: string                    // Unique identifier
   enabled: boolean              // Whether this filter is active
+  matchType: UrlFilterMatchType // How to match the URL
   pattern: string               // URL pattern to match
   type: 'include' | 'exclude'   // Include or exclude matching URLs
 }
 ```
+
+**Match types:**
+- `host_equals`: Exact hostname match (e.g., `example.com`)
+- `host_ends_with`: Hostname suffix match (e.g., `example.com` matches `api.example.com`)
+- `url_starts_with`: Prefix match against URL string (e.g., `https://example.com/app`)
+- `url_contains`: Substring match against URL string (e.g., `example.com/app`)
+- `regex`: JavaScript `RegExp` matched against full URL
+- `dnr_url_filter`: Legacy “advanced” glob matching (supports `*`)
 
 ### Profile
 A collection of header rules and URL filters.
@@ -182,19 +191,18 @@ interface AppState {
 ### Features
 
 #### Request vs. Response Tabs (Popup UI)
-- The popup UI provides **Request** and **Response** tabs to edit each header type separately.
-- Both tabs use the same header list UI and actions (ADD/CLEAR, reorder, duplicate, delete).
+- The popup UI provides **Request** and **Response** tabs to edit each header type separately (with per-tab counts).
+- The popup also provides a **Filters** tab for URL filters.
+- Header list actions (ADD/CLEAR) are shown in a sticky footer.
 
 #### 1. Header List (`HeaderList.vue`)
-- **Display**: Section with colored header showing type and count
-- **Shows**: "(active/total)" count of headers
-- **Actions Bar**: ADD and CLEAR buttons
+- **Display**: Scrollable list of header rows (drag & drop reorder)
 - **Header Type Switcher**: The popup UI uses Request/Response tabs to switch which header type is being edited
 
 #### 2. Add Header
 - **Action**:
   - "+" button in profile header
-  - "ADD" button in header list
+  - "ADD" button in the sticky footer
 - **Behavior**:
   - Creates new empty header with `enabled: true`
   - Type defaults to 'request'
@@ -230,7 +238,7 @@ interface AppState {
 - **Behavior**: Removes header from profile
 
 #### 8. Clear All Headers
-- **Action**: "CLEAR" button in header list
+- **Action**: "CLEAR" button in the sticky footer
 - **Behavior**: Removes all headers of that type
 
 #### 9. Reorder Headers
@@ -245,23 +253,44 @@ interface AppState {
 
 ## URL Filters
 
-### Features (Store-level, UI not yet implemented)
+### Features
 
-#### 1. Add URL Filter
-- **Store Method**: `addUrlFilter(type: 'include' | 'exclude')`
-- **Creates**: New filter with empty pattern
+#### 1. Manage URL Filters (UI)
+- **Component**: `UrlFilterList.vue` + `UrlFilterRow.vue`
+- **Location**: Shown in a dedicated “Filters” tab in the main content area
+- **Controls**:
+  - Add/Clear actions are shown in a sticky footer
+  - Info tooltip on the “URL filters” tab explains matching is against the current tab URL
+  - Enable/disable each filter
+  - Drag and drop to reorder filters
+  - Choose include/exclude
+  - Choose match type:
+    - Host equals
+    - Host ends with
+    - URL starts with
+    - URL contains
+    - Advanced (glob)
+    - Regex
+  - Edit the pattern
+  - Delete filters
 
-#### 2. Update URL Filter
-- **Store Method**: `updateUrlFilter(filterId, updates)`
-- **Updates**: Pattern, enabled state, or type
+#### 2. Store API
+- `addUrlFilter(type: 'include' | 'exclude')`
+- `updateUrlFilter(filterId, updates)`
+- `removeUrlFilter(filterId)`
+- `clearUrlFilters()`
+- `reorderUrlFilters(orderedIds: string[])`
 
-#### 3. Remove URL Filter
-- **Store Method**: `removeUrlFilter(filterId)`
+### Filter Behavior (Top-level site / tab URL)
+- Filters are evaluated against the **current tab URL** (the top-level site you’re visiting).
+- **Exclude filters**: If any enabled exclude filter matches the tab URL, the profile is disabled for that tab.
+- **Include filters**:
+  - If no enabled include filters exist, the profile is enabled for all tabs (except excludes).
+  - Otherwise, the profile is enabled only for tabs where at least one enabled include filter matches.
 
-### Filter Behavior
-- **Include filters**: Headers only applied to matching URLs
-- **No include filters**: Headers applied to all URLs
-- **Exclude filters**: (Implementation in background script handles includes only currently)
+### Chrome extension integration
+- The background service worker applies the active profile using **declarativeNetRequest session rules** gated by `condition.tabIds`.
+- Tab URLs are tracked via `chrome.tabs` events so the session rule is kept up to date as you navigate.
 
 ---
 
@@ -280,6 +309,11 @@ Uses the Swapy library for smooth drag and drop functionality.
 #### HeaderList
 - Grip icon (`GripVertical`) is the drag handle
 - Reorders headers within the list
+- Emits `reorder` event with new ID order
+
+#### UrlFilterList
+- Grip icon (`GripVertical`) is the drag handle
+- Reorders URL filters within the list
 - Emits `reorder` event with new ID order
 
 ### Technical Details

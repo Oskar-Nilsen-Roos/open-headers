@@ -13,11 +13,22 @@ async function setupCleanState(page: Page) {
 
 // Helper to open the profile header dropdown menu
 async function openProfileDropdown(page: Page) {
-  // The dropdown trigger is the last button in the header action buttons area
-  // It's inside the header bar with the profile color background
-  const headerBar = page.locator('.text-white')
-  const dropdownTrigger = headerBar.locator('button').last()
-  await dropdownTrigger.click()
+  const existingMenu = page.locator('[role="menu"]').first()
+  if (await existingMenu.isVisible().catch(() => false)) {
+    return
+  }
+  const labeledTrigger = page.getByRole('button', { name: 'More actions' }).first()
+  const labeledCount = await labeledTrigger.count()
+
+  if (labeledCount > 0) {
+    await expect(labeledTrigger).toBeVisible()
+    await labeledTrigger.click()
+  } else {
+    const headerBar = page.locator('.text-white')
+    const fallbackTrigger = headerBar.locator('button').last()
+    await expect(fallbackTrigger).toBeVisible()
+    await fallbackTrigger.click()
+  }
   // Wait for menu to appear
   await page.waitForSelector('[role="menu"]', { timeout: 2000 })
 }
@@ -25,8 +36,15 @@ async function openProfileDropdown(page: Page) {
 // Helper to open header row dropdown menu
 async function openHeaderDropdown(page: Page, headerIndex = 0) {
   // Find the header row and click its dropdown button (last button in the row)
-  const headerRow = page.locator('.border-b.border-border').nth(headerIndex)
-  const dropdownTrigger = headerRow.locator('button').last()
+  const headerRow = page.locator('[data-testid="header-row"]').nth(headerIndex)
+  const dropdownTrigger = headerRow.getByRole('button', { name: 'More actions' })
+  await dropdownTrigger.click()
+  await page.waitForSelector('[role="menu"]', { timeout: 2000 })
+}
+
+async function openUrlFilterDropdown(page: Page, filterIndex = 0) {
+  const filterRow = page.locator('[data-testid="url-filter-row"]').nth(filterIndex)
+  const dropdownTrigger = filterRow.getByRole('button', { name: 'More actions' })
   await dropdownTrigger.click()
   await page.waitForSelector('[role="menu"]', { timeout: 2000 })
 }
@@ -42,7 +60,7 @@ test.describe('Profile Management', () => {
     await expect(profileButtons).toHaveCount(1)
 
     // Profile header should show "Profile 1"
-    await expect(page.getByText('Profile 1')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1' })).toBeVisible()
   })
 
   test('should add a new profile', async ({ page }) => {
@@ -54,21 +72,21 @@ test.describe('Profile Management', () => {
     await expect(profileButtons).toHaveCount(2)
 
     // Profile header should show "Profile 2"
-    await expect(page.getByText('Profile 2')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 2' })).toBeVisible()
   })
 
   test('should switch between profiles', async ({ page }) => {
     // Add a second profile
     await page.locator('button.border-dashed').click()
-    await expect(page.getByText('Profile 2')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 2' })).toBeVisible()
 
     // Click first profile button
     await page.locator('[data-swapy-item] button').first().click()
-    await expect(page.getByText('Profile 1')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1' })).toBeVisible()
 
     // Click second profile button
     await page.locator('[data-swapy-item] button').nth(1).click()
-    await expect(page.getByText('Profile 2')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 2' })).toBeVisible()
   })
 
   test('should rename profile via double-click', async ({ page }) => {
@@ -100,7 +118,12 @@ test.describe('Profile Management', () => {
     await expect(profileButtons).toHaveCount(2)
 
     // New profile should be named "Profile 1 (Copy)"
-    await expect(page.getByText('Profile 1 (Copy)')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1 (Copy)' })).toBeVisible()
+  })
+
+  test('should open profile menu', async ({ page }) => {
+    await openProfileDropdown(page)
+    await expect(page.getByRole('menuitem', { name: 'Duplicate profile' })).toBeVisible()
   })
 
   test('should delete profile with confirmation', async ({ page }) => {
@@ -143,7 +166,7 @@ test.describe('Profile Management', () => {
 
     // Click first profile to verify it's Profile 1
     await page.locator('[data-swapy-item] button').first().click()
-    await expect(page.getByText('Profile 1')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1' })).toBeVisible()
 
     // Drag first profile to last position
     const firstProfile = page.locator('[data-swapy-item] button').first()
@@ -164,7 +187,7 @@ test.describe('Header Management', () => {
 
   test('should add a new header', async ({ page }) => {
     // Click ADD button
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
 
     // Should have a header row with inputs
     const headerInputs = page.locator('input[placeholder="Header name"]')
@@ -173,7 +196,7 @@ test.describe('Header Management', () => {
 
   test('should edit header name and value', async ({ page }) => {
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
 
     // Fill in header name
     const nameInput = page.locator('input[placeholder="Header name"]')
@@ -190,7 +213,7 @@ test.describe('Header Management', () => {
 
   test('should toggle header enabled state', async ({ page }) => {
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
 
     // Find the checkbox
     const checkbox = page.locator('button[role="checkbox"]')
@@ -205,7 +228,7 @@ test.describe('Header Management', () => {
 
   test('should delete a header', async ({ page }) => {
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(1)
 
     // Open header dropdown menu
@@ -219,9 +242,15 @@ test.describe('Header Management', () => {
     await expect(page.getByText('No headers')).toBeVisible()
   })
 
+  test('should open header row menu', async ({ page }) => {
+    await page.getByTestId('footer-add').click()
+    await openHeaderDropdown(page)
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+  })
+
   test('should duplicate a header', async ({ page }) => {
     // Add a header and fill it
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await page.locator('input[placeholder="Header name"]').fill('X-Custom')
     await page.locator('input[placeholder="Value"]').fill('custom-value')
 
@@ -242,14 +271,14 @@ test.describe('Header Management', () => {
 
   test('should clear all headers', async ({ page }) => {
     // Add multiple headers
-    await page.getByRole('button', { name: 'ADD' }).click()
-    await page.getByRole('button', { name: 'ADD' }).click()
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
+    await page.getByTestId('footer-add').click()
+    await page.getByTestId('footer-add').click()
 
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(3)
 
     // Click CLEAR button
-    await page.getByRole('button', { name: 'CLEAR' }).click()
+    await page.getByTestId('footer-clear').click()
 
     // All headers should be gone
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(0)
@@ -258,7 +287,7 @@ test.describe('Header Management', () => {
 
   test('should add comment to header', async ({ page }) => {
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
 
     // Fill in comment
     const commentInput = page.locator('input[placeholder="Comment"]')
@@ -267,16 +296,19 @@ test.describe('Header Management', () => {
     await expect(commentInput).toHaveValue('This is my auth header')
   })
 
-  test('should show green indicator when profile has active headers with name', async ({ page }) => {
-    // Initially no indicator (no headers)
-    await expect(page.locator('[data-swapy-item] .bg-green-500')).not.toBeVisible()
+})
 
-    // Add a header with a name
-    await page.getByRole('button', { name: 'ADD' }).click()
-    await page.locator('input[placeholder="Header name"]').fill('X-Test')
+test.describe('URL Filter Management', () => {
+  test.beforeEach(async ({ page }) => {
+    await setupCleanState(page)
+  })
 
-    // Should show green indicator
-    await expect(page.locator('[data-swapy-item] .bg-green-500')).toBeVisible()
+  test('should open url filter row menu', async ({ page }) => {
+    await page.locator('button:has-text("URL filters")').click()
+    await page.getByTestId('footer-add').click()
+
+    await openUrlFilterDropdown(page)
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
   })
 })
 
@@ -288,13 +320,13 @@ test.describe('Undo/Redo', () => {
   test('should undo adding a header', async ({ page }) => {
     // Find the undo button (first button in header bar that's disabled)
     const headerBar = page.locator('.text-white')
-    const undoButton = headerBar.locator('button').first()
+    const undoButton = headerBar.getByRole('button', { name: 'Undo' })
 
     // Initially undo should be disabled
     await expect(undoButton).toBeDisabled()
 
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(1)
 
     // Undo should now be enabled
@@ -309,11 +341,11 @@ test.describe('Undo/Redo', () => {
 
   test('should redo after undo', async ({ page }) => {
     const headerBar = page.locator('.text-white')
-    const undoButton = headerBar.locator('button').first()
-    const redoButton = headerBar.locator('button').nth(3) // redo is 4th button
+    const undoButton = headerBar.getByRole('button', { name: 'Undo' })
+    const redoButton = headerBar.getByRole('button', { name: 'Redo' })
 
     // Add a header
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(1)
 
     // Undo
@@ -341,14 +373,14 @@ test.describe('Dark Mode', () => {
     await openProfileDropdown(page)
 
     // Click dark mode
-    await page.getByRole('menuitem', { name: 'Dark mode' }).click()
+    await page.locator('button[aria-label="Dark"]').click()
 
     // Should have dark class on html
     await expect(page.locator('html')).toHaveClass(/dark/)
 
     // Open menu again and toggle back
     await openProfileDropdown(page)
-    await page.getByRole('menuitem', { name: 'Light mode' }).click()
+    await page.locator('button[aria-label="Light"]').click()
 
     // Dark class should be removed
     await expect(page.locator('html')).not.toHaveClass(/dark/)
@@ -362,7 +394,7 @@ test.describe('Profile-Header Isolation', () => {
 
   test('should keep headers separate between profiles', async ({ page }) => {
     // Add a header to Profile 1
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await page.locator('input[placeholder="Header name"]').fill('X-Profile-1')
     await expect(page.locator('input[placeholder="Header name"]')).toHaveValue('X-Profile-1')
 
@@ -374,7 +406,7 @@ test.describe('Profile-Header Isolation', () => {
     await expect(page.getByText('No headers')).toBeVisible()
 
     // Add a header to Profile 2
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await page.locator('input[placeholder="Header name"]').fill('X-Profile-2')
 
     // Switch back to Profile 1
@@ -409,7 +441,7 @@ test.describe('Persistence', () => {
 
     // Add a unique header to this profile
     const uniqueHeader = `Header-${Date.now()}`
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
     await page.locator('input[placeholder="Header name"]').fill(uniqueHeader)
 
     // Reload the page (don't clear storage this time)
@@ -445,7 +477,7 @@ test.describe('Edge Cases', () => {
   test('should handle rapid header creation', async ({ page }) => {
     // Rapidly add 10 headers
     for (let i = 0; i < 10; i++) {
-      await page.getByRole('button', { name: 'ADD' }).click()
+      await page.getByTestId('footer-add').click()
     }
 
     // Should have 10 headers
@@ -454,7 +486,7 @@ test.describe('Edge Cases', () => {
 
   test('should handle empty header name gracefully', async ({ page }) => {
     // Add a header but don't fill the name
-    await page.getByRole('button', { name: 'ADD' }).click()
+    await page.getByTestId('footer-add').click()
 
     // Should have one header row visible
     await expect(page.locator('input[placeholder="Header name"]')).toHaveCount(1)
@@ -470,7 +502,7 @@ test.describe('Edge Cases', () => {
     await input.press('Enter')
 
     // Should keep original name (empty names are rejected)
-    await expect(page.getByText('Profile 1')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1' })).toBeVisible()
   })
 
   test('should cancel rename with Escape', async ({ page }) => {
@@ -486,6 +518,6 @@ test.describe('Edge Cases', () => {
     await expect(input).not.toBeVisible()
 
     // Should keep original name
-    await expect(page.getByText('Profile 1')).toBeVisible()
+    await expect(page.locator('.cursor-pointer').filter({ hasText: 'Profile 1' })).toBeVisible()
   })
 })

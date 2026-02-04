@@ -132,7 +132,7 @@ function cancelEditing() {
       <Input
         v-else
         v-model="editName"
-        class="flex-1 h-7 bg-white/20 border-white/30 text-white placeholder:text-white/50"
+        class="flex-1 h-8 bg-white/20 border-white/30 text-white placeholder:text-white/50"
         @blur="finishEditing"
         @keyup.enter="finishEditing"
         @keyup.escape="cancelEditing"
@@ -140,7 +140,7 @@ function cancelEditing() {
       />
 
       <!-- Action Buttons -->
-      <div class="flex items-center gap-0.5">
+      <div class="flex items-center gap-1">
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
@@ -148,6 +148,7 @@ function cancelEditing() {
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
               :disabled="!canUndo"
+              :aria-label="t('tooltip_undo')"
               @click="emit('undo')"
             >
               <Undo2 class="h-4 w-4" />
@@ -162,6 +163,7 @@ function cancelEditing() {
               variant="ghost"
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_add_header')"
               @click="emit('addHeader')"
             >
               <Plus class="h-4 w-4" />
@@ -177,6 +179,7 @@ function cancelEditing() {
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
               :disabled="!canRedo"
+              :aria-label="t('tooltip_redo')"
               @click="emit('redo')"
             >
               <Redo2 class="h-4 w-4" />
@@ -191,6 +194,7 @@ function cancelEditing() {
               variant="ghost"
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_export_profiles')"
               @click="emit('export')"
             >
               <Download class="h-4 w-4" />
@@ -205,6 +209,8 @@ function cancelEditing() {
               variant="ghost"
               size="icon-sm"
               class="text-white/80 hover:text-white hover:bg-white/10"
+              :aria-label="t('tooltip_more_actions')"
+              :title="t('tooltip_more_actions')"
             >
               <MoreVertical class="h-4 w-4" />
             </Button>
@@ -222,10 +228,11 @@ function cancelEditing() {
             <div class="px-2 py-2">
               <div class="flex gap-2 justify-center">
                 <!-- System -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'system'"
+                    :aria-label="t('theme_system')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'system'
                       ? 'bg-accent text-accent-foreground'
@@ -237,10 +244,11 @@ function cancelEditing() {
                   <span class="text-xs text-muted-foreground">{{ t('theme_system') }}</span>
                 </div>
                 <!-- Light -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'light'"
+                    :aria-label="t('theme_light')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'light'
                       ? 'bg-accent text-accent-foreground'
@@ -252,10 +260,11 @@ function cancelEditing() {
                   <span class="text-xs text-muted-foreground">{{ t('theme_light') }}</span>
                 </div>
                 <!-- Dark -->
-                <div class="flex flex-col items-center gap-1.5">
+                <div class="flex flex-col items-center gap-2">
                   <button
                     type="button"
                     :aria-pressed="darkModePreference === 'dark'"
+                    :aria-label="t('theme_dark')"
                     class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
                     :class="darkModePreference === 'dark'
                       ? 'bg-accent text-accent-foreground'

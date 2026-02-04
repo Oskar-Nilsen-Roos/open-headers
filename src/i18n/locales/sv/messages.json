@@ -20,12 +20,16 @@
     "description": "Rubrik för listan med svarsrubriker"
   },
   "tab_request": {
-    "message": "Request",
+    "message": "Begäransrubriker",
     "description": "Fliketikett för begäransrubriker"
   },
   "tab_response": {
-    "message": "Response",
+    "message": "Svarsrubriker",
     "description": "Fliketikett för svarsrubriker"
+  },
+  "tab_filters": {
+    "message": "URL-filter",
+    "description": "Fliketikett för URL-filter"
   },
   "headers_empty_state": {
     "message": "Inga rubriker. Klicka på + för att lägga till en.",
@@ -143,8 +147,80 @@
     "message": "Lägg till profil",
     "description": "Tooltip för lägg till profil-knapp"
   },
+  "tooltip_more_actions": {
+    "message": "Fler åtgärder",
+    "description": "Tooltip för fler åtgärder-knapp"
+  },
+  "tooltip_add_filter": {
+    "message": "Lägg till filter",
+    "description": "Tooltip för lägg till filter-knapp"
+  },
+  "tooltip_clear_headers": {
+    "message": "Rensa rubriker",
+    "description": "Tooltip för rensa rubriker-knapp"
+  },
+  "tooltip_clear_filters": {
+    "message": "Rensa filter",
+    "description": "Tooltip för rensa filter-knapp"
+  },
   "export_file_name": {
     "message": "openheaders-profiles.json",
     "description": "Standardfilnamn för profilexport"
+  },
+  "url_filters_title": {
+    "message": "URL-filter",
+    "description": "Titel för URL-filtersektionen"
+  },
+  "url_filters_help_text": {
+    "message": "Matchas mot den aktuella flikens URL (topnivåwebbplats). Flera filter är ELLER (någon match), inte OCH; exkludera går före inkludera.",
+    "description": "Hjälptext som förklarar vad URL-filter matchas mot"
+  },
+  "url_filters_empty_state": {
+    "message": "Inga URL-filter. Lägg till ett inkluderings- eller exkluderingsfilter för att styra var den här profilen används.",
+    "description": "Tomtillstånd när inga URL-filter finns"
+  },
+  "button_add_include": {
+    "message": "LÄGG TILL INKLUDERA",
+    "description": "Etikett för knapp som lägger till inkluderingsfilter"
+  },
+  "button_add_exclude": {
+    "message": "LÄGG TILL EXKLUDERA",
+    "description": "Etikett för knapp som lägger till exkluderingsfilter"
+  },
+  "url_filters_type_include": {
+    "message": "Inkludera",
+    "description": "Etikett för inkluderingsfiltertyp"
+  },
+  "url_filters_type_exclude": {
+    "message": "Exkludera",
+    "description": "Etikett för exkluderingsfiltertyp"
+  },
+  "url_filters_match_type_placeholder": {
+    "message": "Matchtyp",
+    "description": "Platshållare för val av matchtyp för URL-filter"
+  },
+  "url_filters_match_host_equals": {
+    "message": "Värd är",
+    "description": "Matchtyp för värd är exakt"
+  },
+  "url_filters_match_host_ends_with": {
+    "message": "Värd slutar med",
+    "description": "Matchtyp för värd slutar med"
+  },
+  "url_filters_match_url_starts_with": {
+    "message": "URL börjar med",
+    "description": "Matchtyp för URL börjar med"
+  },
+  "url_filters_match_url_contains": {
+    "message": "URL innehåller",
+    "description": "Matchtyp för URL innehåller"
+  },
+  "url_filters_match_glob": {
+    "message": "Avancerat (glob)",
+    "description": "Matchtyp för avancerad glob-matchning"
+  },
+  "url_filters_match_regex": {
+    "message": "Regex",
+    "description": "Matchtyp för reguljära uttryck"
   }
 }
