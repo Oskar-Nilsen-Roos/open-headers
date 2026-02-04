@@ -1,0 +1,64 @@
+import type { Directive } from 'vue'
+import autoAnimate, {
+  type AutoAnimateOptions,
+  type AutoAnimationPlugin,
+  type AnimationController,
+} from '@formkit/auto-animate'
+
+type DelayAutoAnimateOptions = {
+  delay?: number
+  options?: Partial<AutoAnimateOptions> | AutoAnimationPlugin
+}
+
+type DelayAutoAnimateValue =
+  | Partial<AutoAnimateOptions>
+  | AutoAnimationPlugin
+  | DelayAutoAnimateOptions
+  | undefined
+
+type DelayAutoAnimateElement = HTMLElement & {
+  __delayAutoAnimateController?: AnimationController
+  __delayAutoAnimateTimer?: number
+}
+
+function resolveConfig(value: DelayAutoAnimateValue): { delay: number; options?: Partial<AutoAnimateOptions> | AutoAnimationPlugin } {
+  if (value && typeof value === 'object' && ('options' in value || 'delay' in value)) {
+    const config = value as DelayAutoAnimateOptions
+    return {
+      delay: typeof config.delay === 'number' ? config.delay : 0,
+      options: config.options,
+    }
+  }
+
+  return {
+    delay: 0,
+    options: value as Partial<AutoAnimateOptions> | AutoAnimationPlugin | undefined,
+  }
+}
+
+export const vDelayAutoAnimate: Directive<DelayAutoAnimateElement, DelayAutoAnimateValue> = {
+  mounted(el, binding) {
+    const { delay, options } = resolveConfig(binding.value)
+    const controller = autoAnimate(el, options)
+    el.__delayAutoAnimateController = controller
+
+    controller.disable()
+
+    if (typeof window === 'undefined') return
+
+    if (delay > 0) {
+      el.__delayAutoAnimateTimer = window.setTimeout(() => controller.enable(), delay)
+      return
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => controller.enable())
+    })
+  },
+  unmounted(el) {
+    if (el.__delayAutoAnimateTimer) {
+      window.clearTimeout(el.__delayAutoAnimateTimer)
+    }
+    el.__delayAutoAnimateController?.destroy()
+  },
+}
