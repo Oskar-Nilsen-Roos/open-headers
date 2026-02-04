@@ -6,6 +6,7 @@ import autoAnimate, {
 } from '@formkit/auto-animate'
 
 type DelayAutoAnimateOptions = {
+  enabled?: boolean
   delay?: number
   options?: Partial<AutoAnimateOptions> | AutoAnimationPlugin
 }
@@ -21,27 +22,34 @@ type DelayAutoAnimateElement = HTMLElement & {
   __delayAutoAnimateTimer?: number
 }
 
-function resolveConfig(value: DelayAutoAnimateValue): { delay: number; options?: Partial<AutoAnimateOptions> | AutoAnimationPlugin } {
+function resolveConfig(value: DelayAutoAnimateValue): {
+  delay: number
+  options?: Partial<AutoAnimateOptions> | AutoAnimationPlugin
+  enabled: boolean
+} {
   if (value && typeof value === 'object' && ('options' in value || 'delay' in value)) {
     const config = value as DelayAutoAnimateOptions
     return {
       delay: typeof config.delay === 'number' ? config.delay : 0,
       options: config.options,
+      enabled: config.enabled !== false,
     }
   }
 
   return {
     delay: 0,
     options: value as Partial<AutoAnimateOptions> | AutoAnimationPlugin | undefined,
+    enabled: true,
   }
 }
 
 export const vDelayAutoAnimate: Directive<DelayAutoAnimateElement, DelayAutoAnimateValue> = {
   mounted(el, binding) {
-    const { delay, options } = resolveConfig(binding.value)
+    const { delay, options, enabled } = resolveConfig(binding.value)
+    if (!enabled) return
+
     const controller = autoAnimate(el, options)
     el.__delayAutoAnimateController = controller
-
     controller.disable()
 
     if (typeof window === 'undefined') return
@@ -54,6 +62,22 @@ export const vDelayAutoAnimate: Directive<DelayAutoAnimateElement, DelayAutoAnim
     requestAnimationFrame(() => {
       requestAnimationFrame(() => controller.enable())
     })
+  },
+  updated(el, binding) {
+    const { options, enabled } = resolveConfig(binding.value)
+    const controller = el.__delayAutoAnimateController
+
+    if (!enabled) {
+      controller?.disable()
+      return
+    }
+
+    if (!controller) {
+      el.__delayAutoAnimateController = autoAnimate(el, options)
+      el.__delayAutoAnimateController.disable()
+    }
+
+    el.__delayAutoAnimateController?.enable()
   },
   unmounted(el) {
     if (el.__delayAutoAnimateTimer) {
