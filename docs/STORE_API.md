@@ -15,18 +15,19 @@ import { useHeadersStore } from '@/stores/headers'
 | Property | Type | Description |
 |----------|------|-------------|
 | `profiles` | `Ref<Profile[]>` | All user profiles |
-| `activeProfileId` | `Ref<string \| null>` | Currently selected profile ID |
-| `darkModePreference` | `Ref<DarkModePreference>` | Dark mode preference ('system' \| 'light' \| 'dark') |
-| `isInitialized` | `Ref<boolean>` | Whether store has loaded from storage |
+| `activeProfileId` | `Ref<string | null>` | Currently selected profile ID |
+| `darkModePreference` | `Ref<DarkModePreference>` | Theme preference (`'system' | 'light' | 'dark'`) |
+| `languagePreference` | `Ref<LanguagePreference>` | Language preference (`'auto' | 'en' | 'sv'`) |
+| `isInitialized` | `Ref<boolean>` | Whether the store has finished loading from storage |
 
 ### Computed Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `activeProfile` | `ComputedRef<Profile \| null>` | The currently active profile object |
+| `activeProfile` | `ComputedRef<Profile | null>` | The currently active profile object |
 | `requestHeaders` | `ComputedRef<HeaderRule[]>` | Request headers from active profile |
 | `responseHeaders` | `ComputedRef<HeaderRule[]>` | Response headers from active profile |
-| `isDarkMode` | `ComputedRef<boolean>` | Actual dark mode state (respects system preference) |
+| `isDarkMode` | `ComputedRef<boolean>` | Effective dark mode state (respects system preference) |
 | `canUndo` | `ComputedRef<boolean>` | Whether undo is available |
 | `canRedo` | `ComputedRef<boolean>` | Whether redo is available |
 
@@ -37,7 +38,7 @@ import { useHeadersStore } from '@/stores/headers'
 ### Initialization
 
 #### `loadState(): Promise<void>`
-Loads state from storage (chrome.storage or localStorage).
+Loads state from storage (`chrome.storage.local` or `localStorage`).
 
 ```typescript
 const store = useHeadersStore()
@@ -45,13 +46,16 @@ await store.loadState()
 ```
 
 **Behavior:**
-- Loads profiles, activeProfileId, and darkModePreference from storage
-- Handles migration from old `darkMode` boolean format
+- Loads `profiles`, `activeProfileId`, `darkModePreference`, and `languagePreference`
+- Migrates old state formats:
+  - Old `darkMode` boolean → `darkModePreference`
+  - Missing `matchType` in URL filters defaults to `'dnr_url_filter'`
+- Validates `languagePreference` to `auto | en | sv`
 - Initializes system dark mode detection
-- Creates default profile if none exist
-- Sets activeProfileId to first profile if not set
-- Initializes history
-- Sets isInitialized to true
+- Creates a default profile if none exist
+- Sets `activeProfileId` to the first profile if missing
+- Initializes undo history with the loaded state
+- Sets `isInitialized` to true
 
 ---
 
@@ -65,8 +69,8 @@ store.addProfile()
 ```
 
 **Behavior:**
-- Creates profile named "Profile N"
-- Assigns color from `DEFAULT_PROFILE_COLORS` (cycling)
+- Creates profile named `Profile N`
+- Assigns next color from `DEFAULT_PROFILE_COLORS`
 - Sets as active profile
 - Saves to history and persists
 
@@ -82,7 +86,7 @@ store.removeProfile('profile-uuid')
 **Behavior:**
 - Removes profile from array
 - If removed profile was active, switches to first profile
-- If no profiles remain, creates a default profile
+- Ensures at least one profile always exists
 - Saves to history and persists
 
 ---
@@ -97,7 +101,7 @@ store.duplicateProfile('profile-uuid')
 **Behavior:**
 - Deep clones the profile
 - Generates new ID
-- Appends " (Copy)" to name
+- Appends localized “(Copy)” suffix
 - Sets as active profile
 - Saves to history and persists
 
@@ -112,8 +116,8 @@ store.setActiveProfile('profile-uuid')
 
 **Behavior:**
 - Validates profile exists
-- Updates activeProfileId
-- Persists (but does NOT save to history - navigation only)
+- Updates `activeProfileId`
+- Persists (does NOT save to history)
 
 ---
 
@@ -121,10 +125,7 @@ store.setActiveProfile('profile-uuid')
 Updates profile properties.
 
 ```typescript
-store.updateProfile('profile-uuid', {
-  name: 'New Name',
-  color: '#ff0000'
-})
+store.updateProfile(profile.id, { name: 'New Name', color: '#ff0000' })
 ```
 
 **Behavior:**
@@ -142,7 +143,7 @@ store.reorderProfiles(['id3', 'id1', 'id2'])
 ```
 
 **Behavior:**
-- Rebuilds profiles array in new order
+- Rebuilds profile list in new order
 - Saves to history and persists
 
 ---
@@ -154,12 +155,11 @@ Adds a new header to the active profile.
 
 ```typescript
 store.addHeader('request')
-store.addHeader('response')
 ```
 
 **Behavior:**
-- Creates new HeaderRule with defaults
-- Adds to active profile's headers array
+- Creates new `HeaderRule` with defaults (`operation: 'set'`)
+- Adds to active profile headers
 - Saves to history and persists
 
 ---
@@ -171,10 +171,6 @@ Removes a header by ID.
 store.removeHeader('header-uuid')
 ```
 
-**Behavior:**
-- Removes from active profile's headers
-- Saves to history and persists
-
 ---
 
 #### `duplicateHeader(headerId: string): void`
@@ -185,7 +181,7 @@ store.duplicateHeader('header-uuid')
 ```
 
 **Behavior:**
-- Deep clones the header
+- Deep clones header
 - Generates new ID
 - Inserts after the original
 - Saves to history and persists
@@ -196,16 +192,8 @@ store.duplicateHeader('header-uuid')
 Updates header properties.
 
 ```typescript
-store.updateHeader('header-uuid', {
-  name: 'Authorization',
-  value: 'Bearer token123'
-})
+store.updateHeader(header.id, { name: 'Authorization', value: 'Bearer token123' })
 ```
-
-**Behavior:**
-- Merges updates into header
-- Updates profile's `updatedAt` timestamp
-- Saves to history and persists
 
 ---
 
@@ -216,24 +204,15 @@ Toggles header enabled/disabled state.
 store.toggleHeader('header-uuid')
 ```
 
-**Behavior:**
-- Inverts `enabled` boolean
-- Saves to history and persists
-
 ---
 
 #### `clearHeaders(type?: HeaderType): void`
 Removes all headers, optionally filtered by type.
 
 ```typescript
-store.clearHeaders('request')  // Clear only request headers
-store.clearHeaders('response') // Clear only response headers
-store.clearHeaders()           // Clear all headers
+store.clearHeaders('request')
+store.clearHeaders('response')
 ```
-
-**Behavior:**
-- Removes matching headers from active profile
-- Saves to history and persists
 
 ---
 
@@ -244,11 +223,6 @@ Sorts headers alphabetically by a field.
 store.sortHeaders('name', 'request')
 ```
 
-**Behavior:**
-- Sorts case-insensitively
-- Only affects specified type (if provided)
-- Saves to history and persists
-
 ---
 
 #### `reorderHeaders(orderedIds: string[], type: HeaderType): void`
@@ -257,11 +231,6 @@ Reorders headers based on new ID order.
 ```typescript
 store.reorderHeaders(['id3', 'id1', 'id2'], 'request')
 ```
-
-**Behavior:**
-- Rebuilds headers of specified type in new order
-- Preserves other header types' order
-- Saves to history and persists
 
 ---
 
@@ -272,12 +241,7 @@ Adds a new URL filter to the active profile.
 
 ```typescript
 store.addUrlFilter('include')
-store.addUrlFilter('exclude')
 ```
-
-**Behavior:**
-- Creates a new filter with `enabled: true`
-- Defaults `matchType` to `'host_equals'`
 
 ---
 
@@ -294,11 +258,7 @@ store.removeUrlFilter('filter-uuid')
 Updates URL filter properties.
 
 ```typescript
-store.updateUrlFilter('filter-uuid', {
-  matchType: 'host_ends_with',
-  pattern: 'example.com',
-  enabled: true
-})
+store.updateUrlFilter('filter-uuid', { matchType: 'host_ends_with', pattern: 'example.com' })
 ```
 
 ---
@@ -337,13 +297,6 @@ if (store.canUndo) {
 }
 ```
 
-**Behavior:**
-- Decrements history index
-- Restores that state
-- Persists the restored state
-
----
-
 #### `redo(): void`
 Advances to the next state.
 
@@ -353,24 +306,18 @@ if (store.canRedo) {
 }
 ```
 
-**Behavior:**
-- Increments history index
-- Restores that state
-- Persists the restored state
-
 ---
 
 ### Import/Export Actions
 
 #### `exportProfiles(): string`
-Exports all profiles as JSON string.
+Exports all profiles as a JSON string.
 
 ```typescript
 const json = store.exportProfiles()
-// Download as file, etc.
 ```
 
-**Returns:** JSON string with format:
+Returns:
 ```json
 {
   "version": 1,
@@ -386,85 +333,53 @@ Imports profiles from JSON string.
 
 ```typescript
 const success = store.importProfiles(jsonContent)
-if (!success) {
-  console.error('Import failed')
-}
 ```
 
 **Behavior:**
-- Parses JSON
-- Validates structure
+- Supports **OpenHeaders** export format and **ModHeader** export format
 - Generates new IDs for all profiles/headers/filters
 - Appends to existing profiles
-- Returns true on success, false on failure
+- Warns when importing large profile counts
+- Returns `true` on success, `false` on failure
 
 ---
 
 ### Settings Actions
 
 #### `setDarkModePreference(preference: DarkModePreference): void`
-Sets dark mode preference directly.
+Sets the theme preference.
 
 ```typescript
 store.setDarkModePreference('dark')
-store.setDarkModePreference('light')
-store.setDarkModePreference('system')
 ```
-
-**Behavior:**
-- Updates `darkModePreference`
-- Persists (does NOT save to history)
 
 ---
 
 #### `toggleDarkMode(): void`
-Cycles through dark mode preferences: system → dark → light → system.
+Cycles theme preference: system → dark → light → system.
 
 ```typescript
 store.toggleDarkMode()
 ```
 
-**Behavior:**
-- Cycles through preference options
-- Persists (does NOT save to history)
-
 ---
 
-## Usage Example
+#### `setLanguagePreference(preference: LanguagePreference): void`
+Sets the UI language preference.
 
 ```typescript
-import { useHeadersStore } from '@/stores/headers'
-
-const store = useHeadersStore()
-
-// Initialize
-await store.loadState()
-
-// Create a new profile
-store.addProfile()
-
-// Add a header
-store.addHeader('request')
-const header = store.requestHeaders[0]
-if (header) {
-  store.updateHeader(header.id, {
-    name: 'X-Custom-Header',
-    value: 'my-value'
-  })
-}
-
-// Set dark mode
-store.setDarkModePreference('dark')
-
-// Export
-const backup = store.exportProfiles()
+store.setLanguagePreference('sv')
 ```
 
 ---
 
-## Internal Methods (Not Exported)
+## Persistence
 
-These methods are used internally:
+- **Chrome extension**: `chrome.storage.local`
+- **Development fallback**: `localStorage`
+- **Storage key**: `openheaders_state`
+
+## Internal Methods (Not Exported)
 
 | Method | Description |
 |--------|-------------|
