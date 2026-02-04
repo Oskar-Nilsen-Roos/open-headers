@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tooltip'
 import { t } from '@/i18n'
 import type { HeaderType, UrlFilter } from '@/types'
-import { Plus, Trash2, Info } from 'lucide-vue-next'
+import { Plus, Trash2 } from 'lucide-vue-next'
 
 const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
@@ -235,41 +235,37 @@ function handleImport() {
             <Tabs v-model="activeMainTab" class="w-full">
               <TabsList class="w-full">
                 <TabsTrigger value="request">
-                  <span>{{ t('tab_request') }}</span>
-                  <span
-                    v-if="requestHeaderEnabledCount > 0"
-                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
-                  >
-                    {{ requestHeaderEnabledCount }}
+                  <span class="inline-flex items-center gap-1">
+                    <span>{{ t('tab_request') }}</span>
+                    <span
+                      v-if="requestHeaderEnabledCount > 0"
+                      class="inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
+                    >
+                      {{ requestHeaderEnabledCount }}
+                    </span>
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="response">
-                  <span>{{ t('tab_response') }}</span>
-                  <span
-                    v-if="responseHeaderEnabledCount > 0"
-                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
-                  >
-                    {{ responseHeaderEnabledCount }}
+                  <span class="inline-flex items-center gap-1">
+                    <span>{{ t('tab_response') }}</span>
+                    <span
+                      v-if="responseHeaderEnabledCount > 0"
+                      class="inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
+                    >
+                      {{ responseHeaderEnabledCount }}
+                    </span>
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="filters">
-                  <span>{{ t('tab_filters') }}</span>
-                  <span
-                    v-if="urlFilterEnabledCount > 0"
-                    class="ml-2 inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
-                  >
-                    {{ urlFilterEnabledCount }}
+                  <span class="inline-flex items-center gap-1">
+                    <span>{{ t('tab_filters') }}</span>
+                    <span
+                      v-if="urlFilterEnabledCount > 0"
+                      class="inline-flex items-center justify-center rounded-md border border-foreground/10 bg-foreground/5 text-foreground/70 text-[9px] font-semibold h-4 min-w-4 px-1"
+                    >
+                      {{ urlFilterEnabledCount }}
+                    </span>
                   </span>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <span
-                        class="inline-flex items-center"
-                        :aria-label="t('url_filters_help_text')">
-                        <Info class="h-3.5 w-3.5 opacity-70" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>{{ t('url_filters_help_text') }}</TooltipContent>
-                  </Tooltip>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
