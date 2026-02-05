@@ -84,6 +84,6 @@ export const vDelayAutoAnimate: Directive<DelayAutoAnimateElement, DelayAutoAnim
     if (el.__delayAutoAnimateTimer) {
       window.clearTimeout(el.__delayAutoAnimateTimer)
     }
-    el.__delayAutoAnimateController?.destroy()
+    el.__delayAutoAnimateController?.destroy?.()
   },
 }
