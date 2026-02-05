@@ -172,50 +172,50 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
 
 <template>
   <TooltipProvider>
-    <div class="flex h-full flex-col gap-2 p-2 bg-muted/50 border-r border-border">
-      <!-- Profile Tabs -->
-      <div
-        ref="container"
-        v-delay-auto-animate="autoAnimateBinding"
-        class="flex flex-col gap-2 flex-1"
-      >
+    <div class="flex h-full flex-col gap-2 p-2 pb-3 bg-muted/50 border-r border-border">
+      <div class="flex-1 flex flex-col gap-2">
+        <!-- Profile Tabs -->
         <div
-          v-for="{ slotId, itemId, item } in slottedItems"
-          :key="slotId"
-          :data-swapy-slot="slotId"
+          ref="container"
+          v-delay-auto-animate="autoAnimateBinding"
+          class="flex flex-col gap-2"
         >
           <div
-            v-if="item"
-            :key="itemId"
-            :data-swapy-item="itemId"
-            class="relative"
+            v-for="{ slotId, itemId, item } in slottedItems"
+            :key="slotId"
+            :data-swapy-slot="slotId"
           >
-            <Tooltip>
-              <TooltipTrigger as-child>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  :class="getButtonClass(item, activeProfileId)"
-                  @click="emit('select', item.id)"
-                  data-swapy-handle
-                >
-                  <div
-                    class="grid place-items-center size-6 rounded-full text-[11px] font-semibold leading-none tabular-nums text-white"
-                    :style="{ backgroundColor: item.color }"
+            <div
+              v-if="item"
+              :key="itemId"
+              :data-swapy-item="itemId"
+              class="relative"
+            >
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    :class="getButtonClass(item, activeProfileId)"
+                    @click="emit('select', item.id)"
+                    data-swapy-handle
                   >
-                    {{ slottedItems.findIndex(s => s.itemId === itemId) + 1 }}
-                  </div>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {{ item.name }}
-              </TooltipContent>
-            </Tooltip>
+                    <div
+                      class="grid place-items-center size-6 rounded-full text-[11px] font-semibold leading-none tabular-nums text-white"
+                      :style="{ backgroundColor: item.color }"
+                    >
+                      {{ slottedItems.findIndex(s => s.itemId === itemId) + 1 }}
+                    </div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {{ item.name }}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="mt-auto flex flex-col gap-2">
         <!-- Add Profile Button -->
         <Tooltip>
           <TooltipTrigger as-child>
@@ -230,112 +230,112 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
           </TooltipTrigger>
           <TooltipContent side="right">{{ t('tooltip_add_profile') }}</TooltipContent>
         </Tooltip>
+      </div>
 
-        <!-- More Actions Menu -->
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon"
-              class="border border-border/60"
-              :aria-label="t('tooltip_more_actions')"
-              :title="t('tooltip_more_actions')"
-            >
-              <MoreVertical class="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="right">
-            <DropdownMenuItem @select="emit('exportAll')">
-              <Download class="h-4 w-4 mr-2" />
-              {{ t('menu_export_all_profiles') }}
-            </DropdownMenuItem>
-            <DropdownMenuItem @select="emit('import')">
-              <Upload class="h-4 w-4 mr-2" />
-              {{ t('menu_import_profiles') }}
-            </DropdownMenuItem>
-            <DropdownMenuItem :disabled="!activeProfileId" @select="emit('duplicate')">
-              <Copy class="h-4 w-4 mr-2" />
-              {{ t('menu_duplicate_profile') }}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <div class="px-2 py-2">
-              <div class="flex gap-2 justify-center">
-                <!-- System -->
-                <div class="flex flex-col items-center gap-2">
-                  <button
-                    type="button"
-                    :aria-pressed="darkModePreference === 'system'"
-                    :aria-label="t('theme_system')"
-                    class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
-                    :class="darkModePreference === 'system'
-                      ? 'bg-accent text-accent-foreground'
-                      : 'border border-border hover:bg-accent/50'"
-                    @click="handleThemeChange('system')"
-                  >
-                    <Contrast class="h-5 w-5" />
-                  </button>
-                  <span class="text-xs text-muted-foreground">{{ t('theme_system') }}</span>
-                </div>
-                <!-- Light -->
-                <div class="flex flex-col items-center gap-2">
-                  <button
-                    type="button"
-                    :aria-pressed="darkModePreference === 'light'"
-                    :aria-label="t('theme_light')"
-                    class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
-                    :class="darkModePreference === 'light'
-                      ? 'bg-accent text-accent-foreground'
-                      : 'border border-border hover:bg-accent/50'"
-                    @click="handleThemeChange('light')"
-                  >
-                    <Sun class="h-5 w-5" />
-                  </button>
-                  <span class="text-xs text-muted-foreground">{{ t('theme_light') }}</span>
-                </div>
-                <!-- Dark -->
-                <div class="flex flex-col items-center gap-2">
-                  <button
-                    type="button"
-                    :aria-pressed="darkModePreference === 'dark'"
-                    :aria-label="t('theme_dark')"
-                    class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
-                    :class="darkModePreference === 'dark'
-                      ? 'bg-accent text-accent-foreground'
-                      : 'border border-border hover:bg-accent/50'"
-                    @click="handleThemeChange('dark')"
-                  >
-                    <Moon class="h-5 w-5" />
-                  </button>
-                  <span class="text-xs text-muted-foreground">{{ t('theme_dark') }}</span>
-                </div>
+      <!-- More Actions Menu -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="border border-border/60 mb-1"
+            :aria-label="t('tooltip_more_actions')"
+            :title="t('tooltip_more_actions')"
+          >
+            <MoreVertical class="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="right" side-offset="8">
+          <DropdownMenuItem @select="emit('exportAll')">
+            <Download class="h-4 w-4 mr-2" />
+            {{ t('menu_export_all_profiles') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem @select="emit('import')">
+            <Upload class="h-4 w-4 mr-2" />
+            {{ t('menu_import_profiles') }}
+          </DropdownMenuItem>
+          <DropdownMenuItem :disabled="!activeProfileId" @select="emit('duplicate')">
+            <Copy class="h-4 w-4 mr-2" />
+            {{ t('menu_duplicate_profile') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div class="px-2 py-2">
+            <div class="flex gap-2 justify-center">
+              <!-- System -->
+              <div class="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  :aria-pressed="darkModePreference === 'system'"
+                  :aria-label="t('theme_system')"
+                  class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
+                  :class="darkModePreference === 'system'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'border border-border hover:bg-accent/50'"
+                  @click="handleThemeChange('system')"
+                >
+                  <Contrast class="h-5 w-5" />
+                </button>
+                <span class="text-xs text-muted-foreground">{{ t('theme_system') }}</span>
+              </div>
+              <!-- Light -->
+              <div class="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  :aria-pressed="darkModePreference === 'light'"
+                  :aria-label="t('theme_light')"
+                  class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
+                  :class="darkModePreference === 'light'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'border border-border hover:bg-accent/50'"
+                  @click="handleThemeChange('light')"
+                >
+                  <Sun class="h-5 w-5" />
+                </button>
+                <span class="text-xs text-muted-foreground">{{ t('theme_light') }}</span>
+              </div>
+              <!-- Dark -->
+              <div class="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  :aria-pressed="darkModePreference === 'dark'"
+                  :aria-label="t('theme_dark')"
+                  class="flex items-center justify-center w-16 h-12 rounded-xl transition-colors"
+                  :class="darkModePreference === 'dark'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'border border-border hover:bg-accent/50'"
+                  @click="handleThemeChange('dark')"
+                >
+                  <Moon class="h-5 w-5" />
+                </button>
+                <span class="text-xs text-muted-foreground">{{ t('theme_dark') }}</span>
               </div>
             </div>
-            <DropdownMenuSeparator />
-            <div class="px-2 py-2 space-y-2">
-              <div class="text-xs text-muted-foreground">{{ t('language_label') }}</div>
-              <Select v-model="languageValue">
-                <SelectTrigger size="sm" class="w-full">
-                  <SelectValue :placeholder="t('language_option_auto')" />
-                </SelectTrigger>
-                <SelectContent align="start">
-                  <SelectItem value="auto">{{ t('language_option_auto') }}</SelectItem>
-                  <SelectItem value="en">{{ t('language_option_en') }}</SelectItem>
-                  <SelectItem value="sv">{{ t('language_option_sv') }}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              class="text-destructive"
-              :disabled="!activeProfileId"
-              @select="showDeleteDialog = true"
-            >
-              <Trash2 class="h-4 w-4 mr-2" />
-              {{ t('menu_delete_profile') }}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          </div>
+          <DropdownMenuSeparator />
+          <div class="px-2 py-2 space-y-2">
+            <div class="text-xs text-muted-foreground">{{ t('language_label') }}</div>
+            <Select v-model="languageValue">
+              <SelectTrigger size="sm" class="w-full">
+                <SelectValue :placeholder="t('language_option_auto')" />
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectItem value="auto">{{ t('language_option_auto') }}</SelectItem>
+                <SelectItem value="en">{{ t('language_option_en') }}</SelectItem>
+                <SelectItem value="sv">{{ t('language_option_sv') }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            class="text-destructive"
+            :disabled="!activeProfileId"
+            @select="showDeleteDialog = true"
+          >
+            <Trash2 class="h-4 w-4 mr-2" />
+            {{ t('menu_delete_profile') }}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
 
     <!-- Delete Confirmation Dialog -->
