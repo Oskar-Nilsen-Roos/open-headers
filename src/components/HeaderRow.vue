@@ -164,6 +164,7 @@ function applyValueSuggestion(suggestion: string) {
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
+        @open-auto-focus="event => event.preventDefault()"
       >
         <Command>
           <CommandList>
@@ -172,12 +173,13 @@ function applyValueSuggestion(suggestion: string) {
                 v-for="suggestion in filteredNameSuggestions"
                 :key="suggestion"
                 :value="suggestion"
+                class="group"
                 @select="() => applyNameSuggestion(suggestion)"
               >
                 <span class="flex-1 truncate">{{ suggestion }}</span>
                 <button
                   type="button"
-                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground hover:bg-muted/70"
                   @click.stop="emit('removeNameSuggestion', suggestion)"
                   @mousedown.stop
                   :aria-label="t('menu_delete')"
@@ -209,6 +211,7 @@ function applyValueSuggestion(suggestion: string) {
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
+        @open-auto-focus="event => event.preventDefault()"
       >
         <Command>
           <CommandList>
@@ -217,12 +220,13 @@ function applyValueSuggestion(suggestion: string) {
                 v-for="suggestion in filteredValueSuggestions"
                 :key="suggestion"
                 :value="suggestion"
+                class="group"
                 @select="() => applyValueSuggestion(suggestion)"
               >
                 <span class="flex-1 truncate">{{ suggestion }}</span>
                 <button
                   type="button"
-                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground hover:bg-muted/70"
                   @click.stop="emit('removeValueSuggestion', header.name, suggestion)"
                   @mousedown.stop
                   :aria-label="t('menu_delete')"
