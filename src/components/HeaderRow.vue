@@ -12,9 +12,14 @@ import {
 import { MoreVertical, GripVertical, Copy, Trash2 } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   header: HeaderRule
-}>()
+  nameSuggestions?: string[]
+  valueSuggestions?: string[]
+}>(), {
+  nameSuggestions: () => [],
+  valueSuggestions: () => [],
+})
 
 const emit = defineEmits<{
   update: [updates: Partial<HeaderRule>]
@@ -61,7 +66,16 @@ function handleCommentChange(value: string) {
       @update:model-value="handleNameChange"
       :placeholder="t('placeholder_header_name')"
       class="flex-1 min-w-0 h-8 text-sm"
+      :list="`header-name-options-${header.id}`"
+      autocomplete="off"
     />
+    <datalist :id="`header-name-options-${header.id}`">
+      <option
+        v-for="suggestion in props.nameSuggestions"
+        :key="suggestion"
+        :value="suggestion"
+      />
+    </datalist>
 
     <Input
       :model-value="header.value"
@@ -69,7 +83,16 @@ function handleCommentChange(value: string) {
       :placeholder="t('placeholder_value')"
       class="flex-1 min-w-0 h-8 text-sm"
       :disabled="header.operation === 'remove'"
+      :list="`header-value-options-${header.id}`"
+      autocomplete="off"
     />
+    <datalist :id="`header-value-options-${header.id}`">
+      <option
+        v-for="suggestion in props.valueSuggestions"
+        :key="suggestion"
+        :value="suggestion"
+      />
+    </datalist>
 
     <Input
       :model-value="header.comment"

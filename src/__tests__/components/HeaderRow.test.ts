@@ -23,9 +23,12 @@ describe('HeaderRow', () => {
     ...overrides,
   })
 
-  const mountComponent = (header: HeaderRule) => {
+  const mountComponent = (
+    header: HeaderRule,
+    props: Partial<{ nameSuggestions: string[]; valueSuggestions: string[] }> = {}
+  ) => {
     return mount(HeaderRow, {
-      props: { header },
+      props: { header, ...props },
       global: {
         stubs: {
           Checkbox: {
@@ -77,6 +80,19 @@ describe('HeaderRow', () => {
       const inputs = wrapper.findAll('input')
       const commentInput = inputs[3] // Fourth input is comment
       expect(commentInput?.element.value).toBe('Auth token')
+    })
+
+    it('renders datalist suggestions for name and value', () => {
+      const header = createHeader()
+      const wrapper = mountComponent(header, {
+        nameSuggestions: ['Accept', 'Authorization'],
+        valueSuggestions: ['application/json'],
+      })
+
+      const datalists = wrapper.findAll('datalist')
+      expect(datalists.length).toBe(2)
+      expect(datalists[0]?.html()).toContain('Accept')
+      expect(datalists[1]?.html()).toContain('application/json')
     })
 
     it('renders checkbox with correct state when enabled', () => {

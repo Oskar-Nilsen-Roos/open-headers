@@ -62,6 +62,14 @@ const activeHeaders = computed(() => {
     : store.responseHeaders
 })
 
+const headerNameSuggestions = computed(() => {
+  return store.getHeaderNameSuggestions(activeHeaderType.value)
+})
+
+const getHeaderValueSuggestions = (name: string) => {
+  return store.getHeaderValueSuggestions(name)
+}
+
 const canClearFooter = computed(() => {
   if (activeMainTab.value === 'filters') {
     return (store.activeProfile?.urlFilters.length ?? 0) > 0
@@ -273,6 +281,8 @@ function handleImport() {
             <HeaderList
               v-if="activeMainTab !== 'filters'"
               :headers="activeHeaders"
+              :name-suggestions="headerNameSuggestions"
+              :get-value-suggestions="getHeaderValueSuggestions"
               @remove="handleRemoveHeader"
               @update="handleUpdateHeader"
               @toggle="handleToggleHeader"
