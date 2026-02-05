@@ -125,6 +125,20 @@ function applyValueSuggestion(suggestion: string) {
   commitValue(suggestion)
   valueOpen.value = false
 }
+
+function focusNameInput(event: PointerEvent) {
+  const target = event.currentTarget
+  if (target instanceof HTMLInputElement) {
+    target.focus()
+  }
+}
+
+function focusValueInput(event: PointerEvent) {
+  const target = event.currentTarget
+  if (target instanceof HTMLInputElement) {
+    target.focus()
+  }
+}
 </script>
 
 <template>
@@ -150,8 +164,7 @@ function applyValueSuggestion(suggestion: string) {
     <Popover v-model:open="nameOpen">
       <PopoverAnchor as-child>
         <Input
-          :model-value="nameDraft"
-          @update:model-value="value => nameDraft = value"
+          v-model="nameDraft"
           :placeholder="t('placeholder_header_name')"
           class="flex-1 min-w-0 h-8 text-sm"
           autocomplete="off"
@@ -159,6 +172,7 @@ function applyValueSuggestion(suggestion: string) {
           :aria-expanded="nameOpen"
           @focus="nameOpen = true"
           @blur="handleNameBlur"
+          @pointerdown="focusNameInput"
         />
       </PopoverAnchor>
       <PopoverContent
@@ -196,8 +210,7 @@ function applyValueSuggestion(suggestion: string) {
     <Popover v-model:open="valueOpen">
       <PopoverAnchor as-child>
         <Input
-          :model-value="valueDraft"
-          @update:model-value="value => valueDraft = value"
+          v-model="valueDraft"
           :placeholder="t('placeholder_value')"
           class="flex-1 min-w-0 h-8 text-sm"
           :disabled="header.operation === 'remove'"
@@ -206,6 +219,7 @@ function applyValueSuggestion(suggestion: string) {
           :aria-expanded="valueOpen"
           @focus="valueOpen = true"
           @blur="handleValueBlur"
+          @pointerdown="focusValueInput"
         />
       </PopoverAnchor>
       <PopoverContent
@@ -241,8 +255,7 @@ function applyValueSuggestion(suggestion: string) {
     </Popover>
 
     <Input
-      :model-value="commentDraft"
-      @update:model-value="value => commentDraft = value"
+      v-model="commentDraft"
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"
       @blur="handleCommentBlur"
