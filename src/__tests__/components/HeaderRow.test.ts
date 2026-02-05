@@ -51,6 +51,7 @@ describe('HeaderRow', () => {
             template: '<div @click="$emit(\'select\')"><slot /></div>',
           },
           Popover: { template: '<div><slot /></div>' },
+          PopoverAnchor: { template: '<div><slot /></div>' },
           PopoverTrigger: { template: '<div><slot /></div>' },
           PopoverContent: { template: '<div><slot /></div>' },
           Command: { template: '<div><slot /></div>' },
@@ -95,7 +96,7 @@ describe('HeaderRow', () => {
     })
 
     it('renders suggestion items for name and value', () => {
-      const header = createHeader({ name: '' })
+      const header = createHeader({ name: '', value: '' })
       const wrapper = mountComponent(header, {
         nameSuggestions: ['Accept', 'Authorization'],
         valueSuggestions: ['application/json'],
@@ -141,6 +142,7 @@ describe('HeaderRow', () => {
       const inputs = wrapper.findAll('input')
       const nameInput = inputs[1]!
       await nameInput.setValue('New-Header-Name')
+      expect(wrapper.emitted('update')).toBeFalsy()
       await nameInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()

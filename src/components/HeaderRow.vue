@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/command'
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
-  PopoverTrigger,
 } from '@/components/ui/popover'
 import {
   DropdownMenu,
@@ -51,8 +51,6 @@ const lastCommittedValue = ref(props.header.value)
 const lastCommittedComment = ref(props.header.comment)
 const nameOpen = ref(false)
 const valueOpen = ref(false)
-const namePointerDown = ref(false)
-const valuePointerDown = ref(false)
 
 watch(() => props.header.name, (value) => {
   nameDraft.value = value
@@ -106,22 +104,18 @@ function commitComment(value: string) {
 }
 
 function handleNameFocus() {
-  if (namePointerDown.value) return
   nameOpen.value = true
 }
 
 function handleNameBlur() {
-  namePointerDown.value = false
   commitName(nameDraft.value)
 }
 
 function handleValueFocus() {
-  if (valuePointerDown.value) return
   valueOpen.value = true
 }
 
 function handleValueBlur() {
-  valuePointerDown.value = false
   commitValue(valueDraft.value)
 }
 
@@ -141,28 +135,12 @@ function applyValueSuggestion(suggestion: string) {
   valueOpen.value = false
 }
 
-function focusNameInput(event?: Event) {
-  const target = event?.currentTarget
-  if (target instanceof HTMLInputElement) {
-    target.focus()
-  }
+function handleNameInput() {
+  nameOpen.value = true
 }
 
-function focusValueInput(event?: Event) {
-  const target = event?.currentTarget
-  if (target instanceof HTMLInputElement) {
-    target.focus()
-  }
-}
-
-function handleNameMouseDown(event: MouseEvent) {
-  namePointerDown.value = true
-  focusNameInput(event)
-}
-
-function handleValueMouseDown(event: MouseEvent) {
-  valuePointerDown.value = true
-  focusValueInput(event)
+function handleValueInput() {
+  valueOpen.value = true
 }
 </script>
 
@@ -188,21 +166,24 @@ function handleValueMouseDown(event: MouseEvent) {
 
     <Command unstyled class="flex-1 min-w-0">
       <Popover v-model:open="nameOpen">
-        <PopoverTrigger as-child>
+        <PopoverAnchor as-child>
           <CommandInput
             v-model="nameDraft"
             unstyled
             :placeholder="t('placeholder_header_name')"
             class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             autocomplete="off"
+            type="text"
             role="combobox"
             :aria-expanded="nameOpen"
             @focus="handleNameFocus"
             @blur="handleNameBlur"
-            @click="namePointerDown = false"
-            @mousedown="handleNameMouseDown"
+            @click="nameOpen = true"
+            @input="handleNameInput"
+            @keydown.down="nameOpen = true"
+            @keydown.up="nameOpen = true"
           />
-        </PopoverTrigger>
+        </PopoverAnchor>
         <PopoverContent
           align="start"
           class="w-[--reka-popover-trigger-width] p-0"
@@ -236,7 +217,7 @@ function handleValueMouseDown(event: MouseEvent) {
 
     <Command unstyled class="flex-1 min-w-0">
       <Popover v-model:open="valueOpen">
-        <PopoverTrigger as-child>
+        <PopoverAnchor as-child>
           <CommandInput
             v-model="valueDraft"
             unstyled
@@ -244,14 +225,17 @@ function handleValueMouseDown(event: MouseEvent) {
             class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="header.operation === 'remove'"
             autocomplete="off"
+            type="text"
             role="combobox"
             :aria-expanded="valueOpen"
             @focus="handleValueFocus"
             @blur="handleValueBlur"
-            @click="valuePointerDown = false"
-            @mousedown="handleValueMouseDown"
+            @click="valueOpen = true"
+            @input="handleValueInput"
+            @keydown.down="valueOpen = true"
+            @keydown.up="valueOpen = true"
           />
-        </PopoverTrigger>
+        </PopoverAnchor>
         <PopoverContent
           align="start"
           class="w-[--reka-popover-trigger-width] p-0"
