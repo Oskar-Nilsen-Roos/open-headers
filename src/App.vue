@@ -129,6 +129,14 @@ function handleReorderHeaders(orderedIds: string[]) {
   store.reorderHeaders(orderedIds, activeHeaderType.value)
 }
 
+function handleRemoveHeaderNameSuggestion(name: string) {
+  store.removeHeaderNameSuggestion(name)
+}
+
+function handleRemoveHeaderValueSuggestion(name: string, value: string) {
+  store.removeHeaderValueSuggestion(name, value)
+}
+
 function handleUpdateUrlFilter(filterId: string, updates: Partial<UrlFilter>) {
   store.updateUrlFilter(filterId, updates)
 }
@@ -287,7 +295,9 @@ function handleImport() {
               @update="handleUpdateHeader"
               @toggle="handleToggleHeader"
               @duplicate="handleDuplicateHeader"
-              @reorder="handleReorderHeaders" />
+              @reorder="handleReorderHeaders"
+              @remove-name-suggestion="handleRemoveHeaderNameSuggestion"
+              @remove-value-suggestion="handleRemoveHeaderValueSuggestion" />
 
             <UrlFilterList
               v-else

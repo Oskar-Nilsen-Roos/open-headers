@@ -23,6 +23,7 @@ export const useHeadersStore = defineStore('headers', () => {
   const isInitialized = ref(false)
   const headerNameHistory = ref<string[]>([])
   const headerValueHistory = ref<Record<string, string[]>>({})
+  const hiddenHeaderNameSuggestions = ref<string[]>([])
 
   // System dark mode detection
   let mediaQuery: MediaQueryList | null = null
@@ -141,6 +142,7 @@ export const useHeadersStore = defineStore('headers', () => {
   function hydrateHeaderSuggestions(state: AppState | null): void {
     headerNameHistory.value = []
     headerValueHistory.value = {}
+    hiddenHeaderNameSuggestions.value = []
 
     if (state?.headerSuggestions) {
       const suggestions = state.headerSuggestions
@@ -153,6 +155,11 @@ export const useHeadersStore = defineStore('headers', () => {
           addHeaderValueToHistory(name, value)
         }
       }
+      if (Array.isArray(suggestions.hiddenNames)) {
+        hiddenHeaderNameSuggestions.value = suggestions.hiddenNames
+          .map(entry => normalizeHeaderKey(entry))
+          .filter(Boolean)
+      }
       return
     }
 
@@ -163,7 +170,10 @@ export const useHeadersStore = defineStore('headers', () => {
     const suggestions = type === 'request'
       ? [...COMMON_REQUEST_HEADER_NAMES, ...headerNameHistory.value]
       : [...headerNameHistory.value]
-    return mergeUniqueHeaderNames(suggestions)
+    const hiddenSet = new Set(hiddenHeaderNameSuggestions.value)
+    return mergeUniqueHeaderNames(suggestions).filter(
+      name => !hiddenSet.has(normalizeHeaderKey(name))
+    )
   }
 
   function getHeaderValueSuggestions(name: string): string[] {
@@ -177,6 +187,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const headerSuggestions: HeaderSuggestionsState = {
       names: [...headerNameHistory.value],
       valuesByName: JSON.parse(JSON.stringify(headerValueHistory.value)),
+      hiddenNames: [...hiddenHeaderNameSuggestions.value],
     }
 
     return {
@@ -479,6 +490,40 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
+  function removeHeaderNameSuggestion(name: string): void {
+    const normalized = normalizeHeaderKey(name)
+    if (!normalized) return
+
+    headerNameHistory.value = headerNameHistory.value.filter(
+      entry => normalizeHeaderKey(entry) !== normalized
+    )
+
+    if (!hiddenHeaderNameSuggestions.value.includes(normalized)) {
+      hiddenHeaderNameSuggestions.value.push(normalized)
+    }
+
+    saveToHistory()
+    persistState()
+  }
+
+  function removeHeaderValueSuggestion(name: string, value: string): void {
+    const normalized = normalizeHeaderKey(name)
+    if (!normalized) return
+
+    const values = headerValueHistory.value[normalized]
+    if (!values) return
+
+    const nextValues = values.filter(entry => entry !== value)
+    if (nextValues.length === 0) {
+      delete headerValueHistory.value[normalized]
+    } else {
+      headerValueHistory.value[normalized] = nextValues
+    }
+
+    saveToHistory()
+    persistState()
+  }
+
   function toggleHeader(headerId: string): void {
     if (!activeProfile.value) return
 
@@ -746,6 +791,8 @@ export const useHeadersStore = defineStore('headers', () => {
     canRedo,
     getHeaderNameSuggestions,
     getHeaderValueSuggestions,
+    removeHeaderNameSuggestion,
+    removeHeaderValueSuggestion,
 
     // Actions
     loadState,

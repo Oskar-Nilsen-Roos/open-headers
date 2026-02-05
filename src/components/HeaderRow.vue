@@ -1,15 +1,27 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import type { HeaderRule } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreVertical, GripVertical, Copy, Trash2 } from 'lucide-vue-next'
+import { MoreVertical, GripVertical, Copy, Trash2, X } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
 const props = withDefaults(defineProps<{
@@ -26,18 +38,92 @@ const emit = defineEmits<{
   remove: []
   toggle: []
   duplicate: []
+  removeNameSuggestion: [name: string]
+  removeValueSuggestion: [name: string, value: string]
 }>()
 
-function handleNameChange(value: string) {
+const nameDraft = ref(props.header.name)
+const valueDraft = ref(props.header.value)
+const commentDraft = ref(props.header.comment)
+const lastCommittedName = ref(props.header.name)
+const lastCommittedValue = ref(props.header.value)
+const lastCommittedComment = ref(props.header.comment)
+const nameOpen = ref(false)
+const valueOpen = ref(false)
+
+watch(() => props.header.name, (value) => {
+  nameDraft.value = value
+  lastCommittedName.value = value
+})
+
+watch(() => props.header.value, (value) => {
+  valueDraft.value = value
+  lastCommittedValue.value = value
+})
+
+watch(() => props.header.comment, (value) => {
+  commentDraft.value = value
+  lastCommittedComment.value = value
+})
+
+const filteredNameSuggestions = computed(() => {
+  const search = nameDraft.value.trim().toLowerCase()
+  const suggestions = props.nameSuggestions ?? []
+  const matches = search
+    ? suggestions.filter(suggestion => suggestion.toLowerCase().includes(search))
+    : suggestions
+  return matches.slice(0, 5)
+})
+
+const filteredValueSuggestions = computed(() => {
+  const search = valueDraft.value.trim().toLowerCase()
+  const suggestions = props.valueSuggestions ?? []
+  const matches = search
+    ? suggestions.filter(suggestion => suggestion.toLowerCase().includes(search))
+    : suggestions
+  return matches.slice(0, 5)
+})
+
+function commitName(value: string) {
+  if (value === lastCommittedName.value) return
+  lastCommittedName.value = value
   emit('update', { name: value })
 }
 
-function handleValueChange(value: string) {
+function commitValue(value: string) {
+  if (value === lastCommittedValue.value) return
+  lastCommittedValue.value = value
   emit('update', { value: value })
 }
 
-function handleCommentChange(value: string) {
+function commitComment(value: string) {
+  if (value === lastCommittedComment.value) return
+  lastCommittedComment.value = value
   emit('update', { comment: value })
+}
+
+function handleNameBlur() {
+  commitName(nameDraft.value)
+}
+
+function handleValueBlur() {
+  commitValue(valueDraft.value)
+}
+
+function handleCommentBlur() {
+  commitComment(commentDraft.value)
+}
+
+function applyNameSuggestion(suggestion: string) {
+  nameDraft.value = suggestion
+  commitName(suggestion)
+  nameOpen.value = false
+}
+
+function applyValueSuggestion(suggestion: string) {
+  valueDraft.value = suggestion
+  commitValue(suggestion)
+  valueOpen.value = false
 }
 </script>
 
@@ -61,44 +147,101 @@ function handleCommentChange(value: string) {
       />
     </div>
 
-    <Input
-      :model-value="header.name"
-      @update:model-value="handleNameChange"
-      :placeholder="t('placeholder_header_name')"
-      class="flex-1 min-w-0 h-8 text-sm"
-      :list="`header-name-options-${header.id}`"
-      autocomplete="off"
-    />
-    <datalist :id="`header-name-options-${header.id}`">
-      <option
-        v-for="suggestion in props.nameSuggestions"
-        :key="suggestion"
-        :value="suggestion"
-      />
-    </datalist>
+    <Popover v-model:open="nameOpen">
+      <PopoverTrigger as-child>
+        <Input
+          :model-value="nameDraft"
+          @update:model-value="value => nameDraft = value"
+          :placeholder="t('placeholder_header_name')"
+          class="flex-1 min-w-0 h-8 text-sm"
+          autocomplete="off"
+          role="combobox"
+          :aria-expanded="nameOpen"
+          @focus="nameOpen = true"
+          @blur="handleNameBlur"
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        class="w-[--reka-popover-trigger-width] p-0"
+      >
+        <Command>
+          <CommandList>
+            <CommandGroup v-if="filteredNameSuggestions.length > 0">
+              <CommandItem
+                v-for="suggestion in filteredNameSuggestions"
+                :key="suggestion"
+                :value="suggestion"
+                @select="() => applyNameSuggestion(suggestion)"
+              >
+                <span class="flex-1 truncate">{{ suggestion }}</span>
+                <button
+                  type="button"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  @click.stop="emit('removeNameSuggestion', suggestion)"
+                  @mousedown.stop
+                  :aria-label="t('menu_delete')"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+
+    <Popover v-model:open="valueOpen">
+      <PopoverTrigger as-child>
+        <Input
+          :model-value="valueDraft"
+          @update:model-value="value => valueDraft = value"
+          :placeholder="t('placeholder_value')"
+          class="flex-1 min-w-0 h-8 text-sm"
+          :disabled="header.operation === 'remove'"
+          autocomplete="off"
+          role="combobox"
+          :aria-expanded="valueOpen"
+          @focus="valueOpen = true"
+          @blur="handleValueBlur"
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        class="w-[--reka-popover-trigger-width] p-0"
+      >
+        <Command>
+          <CommandList>
+            <CommandGroup v-if="filteredValueSuggestions.length > 0">
+              <CommandItem
+                v-for="suggestion in filteredValueSuggestions"
+                :key="suggestion"
+                :value="suggestion"
+                @select="() => applyValueSuggestion(suggestion)"
+              >
+                <span class="flex-1 truncate">{{ suggestion }}</span>
+                <button
+                  type="button"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                  @click.stop="emit('removeValueSuggestion', header.name, suggestion)"
+                  @mousedown.stop
+                  :aria-label="t('menu_delete')"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
 
     <Input
-      :model-value="header.value"
-      @update:model-value="handleValueChange"
-      :placeholder="t('placeholder_value')"
-      class="flex-1 min-w-0 h-8 text-sm"
-      :disabled="header.operation === 'remove'"
-      :list="`header-value-options-${header.id}`"
-      autocomplete="off"
-    />
-    <datalist :id="`header-value-options-${header.id}`">
-      <option
-        v-for="suggestion in props.valueSuggestions"
-        :key="suggestion"
-        :value="suggestion"
-      />
-    </datalist>
-
-    <Input
-      :model-value="header.comment"
-      @update:model-value="handleCommentChange"
+      :model-value="commentDraft"
+      @update:model-value="value => commentDraft = value"
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"
+      @blur="handleCommentBlur"
     />
 
     <DropdownMenu>

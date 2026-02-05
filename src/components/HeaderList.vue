@@ -22,6 +22,8 @@ const emit = defineEmits<{
   toggle: [headerId: string]
   duplicate: [headerId: string]
   reorder: [orderedIds: string[]]
+  removeNameSuggestion: [name: string]
+  removeValueSuggestion: [name: string, value: string]
 }>()
 </script>
 
@@ -37,7 +39,9 @@ const emit = defineEmits<{
           @update="updates => emit('update', item.id, updates)"
           @remove="emit('remove', item.id)"
           @toggle="emit('toggle', item.id)"
-          @duplicate="emit('duplicate', item.id)" />
+          @duplicate="emit('duplicate', item.id)"
+          @remove-name-suggestion="name => emit('removeNameSuggestion', name)"
+          @remove-value-suggestion="(name, value) => emit('removeValueSuggestion', name, value)" />
       </template>
     </DraggableList>
 

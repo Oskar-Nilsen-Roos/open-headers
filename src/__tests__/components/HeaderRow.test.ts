@@ -9,6 +9,7 @@ vi.mock('lucide-vue-next', () => ({
   GripVertical: { template: '<span>GripVertical</span>' },
   Copy: { template: '<span>Copy</span>' },
   Trash2: { template: '<span>Trash2</span>' },
+  X: { template: '<span>X</span>' },
 }))
 
 describe('HeaderRow', () => {
@@ -36,7 +37,7 @@ describe('HeaderRow', () => {
             props: ['modelValue'],
           },
           Input: {
-            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" @focus="$emit(\'focus\')" />',
             props: ['modelValue', 'placeholder', 'disabled'],
           },
           Button: { template: '<button><slot /></button>' },
@@ -49,6 +50,13 @@ describe('HeaderRow', () => {
           DropdownMenuItem: {
             template: '<div @click="$emit(\'select\')"><slot /></div>',
           },
+          Popover: { template: '<div><slot /></div>' },
+          PopoverTrigger: { template: '<div><slot /></div>' },
+          PopoverContent: { template: '<div><slot /></div>' },
+          Command: { template: '<div><slot /></div>' },
+          CommandList: { template: '<div><slot /></div>' },
+          CommandGroup: { template: '<div><slot /></div>' },
+          CommandItem: { template: '<div><slot /></div>' },
         },
       },
     })
@@ -82,17 +90,15 @@ describe('HeaderRow', () => {
       expect(commentInput?.element.value).toBe('Auth token')
     })
 
-    it('renders datalist suggestions for name and value', () => {
-      const header = createHeader()
+    it('renders suggestion items for name and value', () => {
+      const header = createHeader({ name: '' })
       const wrapper = mountComponent(header, {
         nameSuggestions: ['Accept', 'Authorization'],
         valueSuggestions: ['application/json'],
       })
 
-      const datalists = wrapper.findAll('datalist')
-      expect(datalists.length).toBe(2)
-      expect(datalists[0]?.html()).toContain('Accept')
-      expect(datalists[1]?.html()).toContain('application/json')
+      expect(wrapper.html()).toContain('Accept')
+      expect(wrapper.html()).toContain('application/json')
     })
 
     it('renders checkbox with correct state when enabled', () => {
@@ -124,37 +130,40 @@ describe('HeaderRow', () => {
       expect(wrapper.emitted('toggle')?.length).toBe(1)
     })
 
-    it('emits update with name when name input changes', async () => {
+    it('emits update with name when name input blurs', async () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
       const inputs = wrapper.findAll('input')
       const nameInput = inputs[1]!
       await nameInput.setValue('New-Header-Name')
+      await nameInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'New-Header-Name' }])
     })
 
-    it('emits update with value when value input changes', async () => {
+    it('emits update with value when value input blurs', async () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
       const inputs = wrapper.findAll('input')
       const valueInput = inputs[2]!
       await valueInput.setValue('new-value')
+      await valueInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-value' }])
     })
 
-    it('emits update with comment when comment input changes', async () => {
+    it('emits update with comment when comment input blurs', async () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
       const inputs = wrapper.findAll('input')
       const commentInput = inputs[3]!
       await commentInput.setValue('new comment')
+      await commentInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'new comment' }])

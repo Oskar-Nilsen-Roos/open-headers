@@ -176,6 +176,7 @@ export interface AppState {
 export interface HeaderSuggestionsState {
   names: string[]
   valuesByName: Record<string, string[]>
+  hiddenNames?: string[]
 }
 
 export interface HistoryEntry {
