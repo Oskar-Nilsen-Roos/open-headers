@@ -7,13 +7,14 @@ import { reactive, ref, watch } from "vue"
 import { cn } from "@/lib/utils"
 import { provideCommandContext } from "."
 
-const props = withDefaults(defineProps<ListboxRootProps & { class?: HTMLAttributes["class"] }>(), {
+const props = withDefaults(defineProps<ListboxRootProps & { class?: HTMLAttributes["class"]; unstyled?: boolean }>(), {
   modelValue: "",
+  unstyled: false,
 })
 
 const emits = defineEmits<ListboxRootEmits>()
 
-const delegatedProps = reactiveOmit(props, "class")
+const delegatedProps = reactiveOmit(props, "class", "unstyled")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 
@@ -80,7 +81,7 @@ provideCommandContext({
   <ListboxRoot
     data-slot="command"
     v-bind="forwarded"
-    :class="cn('bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md', props.class)"
+    :class="cn(props.unstyled ? '' : 'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md', props.class)"
   >
     <slot />
   </ListboxRoot>

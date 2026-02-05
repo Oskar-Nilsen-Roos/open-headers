@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import {
   Command,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
@@ -185,27 +186,28 @@ function handleValueMouseDown(event: MouseEvent) {
       />
     </div>
 
-    <Popover v-model:open="nameOpen">
-      <PopoverTrigger as-child>
-        <Input
-          v-model="nameDraft"
-          :placeholder="t('placeholder_header_name')"
-          class="flex-1 min-w-0 h-8 text-sm"
-          autocomplete="off"
-          role="combobox"
-          :aria-expanded="nameOpen"
-          @focus="handleNameFocus"
-          @blur="handleNameBlur"
-          @click="namePointerDown = false"
-          @mousedown="handleNameMouseDown"
-        />
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        class="w-[--reka-popover-trigger-width] p-0"
-        @open-auto-focus="event => event.preventDefault()"
-      >
-        <Command>
+    <Command unstyled class="flex-1 min-w-0">
+      <Popover v-model:open="nameOpen">
+        <PopoverTrigger as-child>
+          <CommandInput
+            v-model="nameDraft"
+            unstyled
+            :placeholder="t('placeholder_header_name')"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            autocomplete="off"
+            role="combobox"
+            :aria-expanded="nameOpen"
+            @focus="handleNameFocus"
+            @blur="handleNameBlur"
+            @click="namePointerDown = false"
+            @mousedown="handleNameMouseDown"
+          />
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          class="w-[--reka-popover-trigger-width] p-0"
+          @open-auto-focus="event => event.preventDefault()"
+        >
           <CommandList>
             <CommandGroup v-if="filteredNameSuggestions.length > 0">
               <CommandItem
@@ -228,32 +230,33 @@ function handleValueMouseDown(event: MouseEvent) {
               </CommandItem>
             </CommandGroup>
           </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </Command>
 
-    <Popover v-model:open="valueOpen">
-      <PopoverTrigger as-child>
-        <Input
-          v-model="valueDraft"
-          :placeholder="t('placeholder_value')"
-          class="flex-1 min-w-0 h-8 text-sm"
-          :disabled="header.operation === 'remove'"
-          autocomplete="off"
-          role="combobox"
-          :aria-expanded="valueOpen"
-          @focus="handleValueFocus"
-          @blur="handleValueBlur"
-          @click="valuePointerDown = false"
-          @mousedown="handleValueMouseDown"
-        />
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        class="w-[--reka-popover-trigger-width] p-0"
-        @open-auto-focus="event => event.preventDefault()"
-      >
-        <Command>
+    <Command unstyled class="flex-1 min-w-0">
+      <Popover v-model:open="valueOpen">
+        <PopoverTrigger as-child>
+          <CommandInput
+            v-model="valueDraft"
+            unstyled
+            :placeholder="t('placeholder_value')"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="header.operation === 'remove'"
+            autocomplete="off"
+            role="combobox"
+            :aria-expanded="valueOpen"
+            @focus="handleValueFocus"
+            @blur="handleValueBlur"
+            @click="valuePointerDown = false"
+            @mousedown="handleValueMouseDown"
+          />
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          class="w-[--reka-popover-trigger-width] p-0"
+          @open-auto-focus="event => event.preventDefault()"
+        >
           <CommandList>
             <CommandGroup v-if="filteredValueSuggestions.length > 0">
               <CommandItem
@@ -276,9 +279,9 @@ function handleValueMouseDown(event: MouseEvent) {
               </CommandItem>
             </CommandGroup>
           </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+    </Command>
 
     <Input
       v-model="commentDraft"

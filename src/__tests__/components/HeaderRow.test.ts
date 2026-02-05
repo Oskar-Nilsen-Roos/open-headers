@@ -57,6 +57,10 @@ describe('HeaderRow', () => {
           CommandList: { template: '<div><slot /></div>' },
           CommandGroup: { template: '<div><slot /></div>' },
           CommandItem: { template: '<div><slot /></div>' },
+          CommandInput: {
+            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" @focus="$emit(\'focus\')" />',
+            props: ['modelValue', 'placeholder', 'disabled'],
+          },
         },
       },
     })
