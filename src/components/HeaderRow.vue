@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/command'
 import {
   Popover,
-  PopoverAnchor,
   PopoverContent,
+  PopoverTrigger,
 } from '@/components/ui/popover'
 import {
   DropdownMenu,
@@ -50,6 +50,8 @@ const lastCommittedValue = ref(props.header.value)
 const lastCommittedComment = ref(props.header.comment)
 const nameOpen = ref(false)
 const valueOpen = ref(false)
+const nameIgnoreClose = ref(false)
+const valueIgnoreClose = ref(false)
 
 watch(() => props.header.name, (value) => {
   nameDraft.value = value
@@ -102,8 +104,16 @@ function commitComment(value: string) {
   emit('update', { comment: value })
 }
 
+function handleNameFocus() {
+  nameOpen.value = true
+}
+
 function handleNameBlur() {
   commitName(nameDraft.value)
+}
+
+function handleValueFocus() {
+  valueOpen.value = true
 }
 
 function handleValueBlur() {
@@ -126,18 +136,50 @@ function applyValueSuggestion(suggestion: string) {
   valueOpen.value = false
 }
 
-function focusNameInput(event: PointerEvent) {
-  const target = event.currentTarget
+function focusNameInput(event?: Event) {
+  const target = event?.currentTarget
   if (target instanceof HTMLInputElement) {
     target.focus()
   }
 }
 
-function focusValueInput(event: PointerEvent) {
-  const target = event.currentTarget
+function focusValueInput(event?: Event) {
+  const target = event?.currentTarget
   if (target instanceof HTMLInputElement) {
     target.focus()
   }
+}
+
+function handleNameMouseDown(event: MouseEvent) {
+  if (nameOpen.value) {
+    nameIgnoreClose.value = true
+  }
+  nameOpen.value = true
+  focusNameInput(event)
+}
+
+function handleValueMouseDown(event: MouseEvent) {
+  if (valueOpen.value) {
+    valueIgnoreClose.value = true
+  }
+  valueOpen.value = true
+  focusValueInput(event)
+}
+
+function handleNameOpenChange(value: boolean) {
+  if (!value && nameIgnoreClose.value) {
+    nameIgnoreClose.value = false
+    return
+  }
+  nameOpen.value = value
+}
+
+function handleValueOpenChange(value: boolean) {
+  if (!value && valueIgnoreClose.value) {
+    valueIgnoreClose.value = false
+    return
+  }
+  valueOpen.value = value
 }
 </script>
 
@@ -161,8 +203,8 @@ function focusValueInput(event: PointerEvent) {
       />
     </div>
 
-    <Popover v-model:open="nameOpen">
-      <PopoverAnchor as-child>
+    <Popover :open="nameOpen" @update:open="handleNameOpenChange">
+      <PopoverTrigger as-child>
         <Input
           v-model="nameDraft"
           :placeholder="t('placeholder_header_name')"
@@ -170,11 +212,11 @@ function focusValueInput(event: PointerEvent) {
           autocomplete="off"
           role="combobox"
           :aria-expanded="nameOpen"
-          @focus="nameOpen = true"
+          @focus="handleNameFocus"
           @blur="handleNameBlur"
-          @pointerdown="focusNameInput"
+          @mousedown="handleNameMouseDown"
         />
-      </PopoverAnchor>
+      </PopoverTrigger>
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
@@ -207,8 +249,8 @@ function focusValueInput(event: PointerEvent) {
       </PopoverContent>
     </Popover>
 
-    <Popover v-model:open="valueOpen">
-      <PopoverAnchor as-child>
+    <Popover :open="valueOpen" @update:open="handleValueOpenChange">
+      <PopoverTrigger as-child>
         <Input
           v-model="valueDraft"
           :placeholder="t('placeholder_value')"
@@ -217,11 +259,11 @@ function focusValueInput(event: PointerEvent) {
           autocomplete="off"
           role="combobox"
           :aria-expanded="valueOpen"
-          @focus="valueOpen = true"
+          @focus="handleValueFocus"
           @blur="handleValueBlur"
-          @pointerdown="focusValueInput"
+          @mousedown="handleValueMouseDown"
         />
-      </PopoverAnchor>
+      </PopoverTrigger>
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
