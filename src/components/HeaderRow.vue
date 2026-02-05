@@ -50,8 +50,8 @@ const lastCommittedValue = ref(props.header.value)
 const lastCommittedComment = ref(props.header.comment)
 const nameOpen = ref(false)
 const valueOpen = ref(false)
-const nameIgnoreClose = ref(false)
-const valueIgnoreClose = ref(false)
+const namePointerDown = ref(false)
+const valuePointerDown = ref(false)
 
 watch(() => props.header.name, (value) => {
   nameDraft.value = value
@@ -105,18 +105,22 @@ function commitComment(value: string) {
 }
 
 function handleNameFocus() {
+  if (namePointerDown.value) return
   nameOpen.value = true
 }
 
 function handleNameBlur() {
+  namePointerDown.value = false
   commitName(nameDraft.value)
 }
 
 function handleValueFocus() {
+  if (valuePointerDown.value) return
   valueOpen.value = true
 }
 
 function handleValueBlur() {
+  valuePointerDown.value = false
   commitValue(valueDraft.value)
 }
 
@@ -151,35 +155,13 @@ function focusValueInput(event?: Event) {
 }
 
 function handleNameMouseDown(event: MouseEvent) {
-  if (nameOpen.value) {
-    nameIgnoreClose.value = true
-  }
-  nameOpen.value = true
+  namePointerDown.value = true
   focusNameInput(event)
 }
 
 function handleValueMouseDown(event: MouseEvent) {
-  if (valueOpen.value) {
-    valueIgnoreClose.value = true
-  }
-  valueOpen.value = true
+  valuePointerDown.value = true
   focusValueInput(event)
-}
-
-function handleNameOpenChange(value: boolean) {
-  if (!value && nameIgnoreClose.value) {
-    nameIgnoreClose.value = false
-    return
-  }
-  nameOpen.value = value
-}
-
-function handleValueOpenChange(value: boolean) {
-  if (!value && valueIgnoreClose.value) {
-    valueIgnoreClose.value = false
-    return
-  }
-  valueOpen.value = value
 }
 </script>
 
@@ -203,7 +185,7 @@ function handleValueOpenChange(value: boolean) {
       />
     </div>
 
-    <Popover :open="nameOpen" @update:open="handleNameOpenChange">
+    <Popover v-model:open="nameOpen">
       <PopoverTrigger as-child>
         <Input
           v-model="nameDraft"
@@ -214,6 +196,7 @@ function handleValueOpenChange(value: boolean) {
           :aria-expanded="nameOpen"
           @focus="handleNameFocus"
           @blur="handleNameBlur"
+          @click="namePointerDown = false"
           @mousedown="handleNameMouseDown"
         />
       </PopoverTrigger>
@@ -249,7 +232,7 @@ function handleValueOpenChange(value: boolean) {
       </PopoverContent>
     </Popover>
 
-    <Popover :open="valueOpen" @update:open="handleValueOpenChange">
+    <Popover v-model:open="valueOpen">
       <PopoverTrigger as-child>
         <Input
           v-model="valueDraft"
@@ -261,6 +244,7 @@ function handleValueOpenChange(value: boolean) {
           :aria-expanded="valueOpen"
           @focus="handleValueFocus"
           @blur="handleValueBlur"
+          @click="valuePointerDown = false"
           @mousedown="handleValueMouseDown"
         />
       </PopoverTrigger>
