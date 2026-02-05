@@ -167,15 +167,25 @@ function handleDuplicateProfile() {
 }
 
 // Import/Export
-function handleExport() {
-  const data = store.exportProfiles()
+function downloadExport(data: string, filename: string) {
   const blob = new Blob([data], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = t('export_file_name')
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function handleExportProfile() {
+  if (!store.activeProfileId) return
+  const data = store.exportProfile(store.activeProfileId)
+  downloadExport(data, t('export_profile_file_name'))
+}
+
+function handleExportAllProfiles() {
+  const data = store.exportProfiles()
+  downloadExport(data, t('export_profiles_file_name'))
 }
 
 function handleImport() {
@@ -203,9 +213,18 @@ function handleImport() {
     <ProfileSidebar
       :profiles="store.profiles"
       :active-profile-id="store.activeProfileId"
+      :active-profile="store.activeProfile"
+      :dark-mode-preference="store.darkModePreference"
+      :language-preference="store.languagePreference"
       @select="store.setActiveProfile"
       @add="store.addProfile"
-      @reorder="store.reorderProfiles" />
+      @reorder="store.reorderProfiles"
+      @import="handleImport"
+      @duplicate="handleDuplicateProfile"
+      @delete="handleDeleteProfile"
+      @export-all="handleExportAllProfiles"
+      @set-dark-mode="store.setDarkModePreference"
+      @set-language="store.setLanguagePreference" />
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -215,18 +234,11 @@ function handleImport() {
         :profile-index="activeProfileIndex"
         :can-undo="store.canUndo"
         :can-redo="store.canRedo"
-        :dark-mode-preference="store.darkModePreference"
-        :language-preference="store.languagePreference"
         @undo="store.undo"
         @redo="store.redo"
-        @add-header="handleAddHeader"
-        @export="handleExport"
-        @import="handleImport"
-        @duplicate="handleDuplicateProfile"
-        @delete="handleDeleteProfile"
+        @export="handleExportProfile"
         @rename="handleRenameProfile"
-        @set-dark-mode="store.setDarkModePreference"
-        @set-language="store.setLanguagePreference" />
+      />
 
       <div class="flex-1 flex flex-col min-h-0">
         <TooltipProvider>

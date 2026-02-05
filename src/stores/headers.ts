@@ -483,6 +483,15 @@ export const useHeadersStore = defineStore('headers', () => {
   }
 
   // Import/Export
+  function exportProfile(profileId: string): string {
+    const profile = profiles.value.find(p => p.id === profileId)
+    return JSON.stringify({
+      version: 1,
+      profiles: profile ? [profile] : [],
+      exportedAt: Date.now(),
+    }, null, 2)
+  }
+
   function exportProfiles(): string {
     return JSON.stringify({
       version: 1,
@@ -619,6 +628,7 @@ export const useHeadersStore = defineStore('headers', () => {
     removeUrlFilter,
     updateUrlFilter,
     clearUrlFilters,
+    exportProfile,
     exportProfiles,
     importProfiles,
     toggleDarkMode,
