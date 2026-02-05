@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/command'
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
-  PopoverTrigger,
 } from '@/components/ui/popover'
 import {
   DropdownMenu,
@@ -148,7 +148,7 @@ function applyValueSuggestion(suggestion: string) {
     </div>
 
     <Popover v-model:open="nameOpen">
-      <PopoverTrigger as-child>
+      <PopoverAnchor as-child>
         <Input
           :model-value="nameDraft"
           @update:model-value="value => nameDraft = value"
@@ -160,7 +160,7 @@ function applyValueSuggestion(suggestion: string) {
           @focus="nameOpen = true"
           @blur="handleNameBlur"
         />
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
@@ -192,7 +192,7 @@ function applyValueSuggestion(suggestion: string) {
     </Popover>
 
     <Popover v-model:open="valueOpen">
-      <PopoverTrigger as-child>
+      <PopoverAnchor as-child>
         <Input
           :model-value="valueDraft"
           @update:model-value="value => valueDraft = value"
@@ -205,7 +205,7 @@ function applyValueSuggestion(suggestion: string) {
           @focus="valueOpen = true"
           @blur="handleValueBlur"
         />
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent
         align="start"
         class="w-[--reka-popover-trigger-width] p-0"
