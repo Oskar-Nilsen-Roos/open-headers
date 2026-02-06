@@ -451,12 +451,6 @@ chrome.tabs.onActivated.addListener(() => {
   queueUpdateActionAppearance()
 })
 
-chrome.windows.onFocusChanged.addListener((windowId) => {
-  if (windowId !== chrome.windows.WINDOW_ID_NONE) {
-    queueUpdateActionAppearance()
-  }
-})
-
 // Initialize on startup
 async function initialize(): Promise<void> {
   const result = await chrome.storage.local.get(STORAGE_KEY)
