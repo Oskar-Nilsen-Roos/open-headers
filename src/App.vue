@@ -289,6 +289,7 @@ function handleImport() {
               @update="handleUpdateHeader"
               @toggle="handleToggleHeader"
               @duplicate="handleDuplicateHeader"
+              @add="handleAddHeader"
               @reorder="handleReorderHeaders" />
 
             <UrlFilterList
@@ -296,6 +297,8 @@ function handleImport() {
               :filters="store.activeProfile?.urlFilters ?? []"
               @update="handleUpdateUrlFilter"
               @remove="handleRemoveUrlFilter"
+              @duplicate="store.duplicateUrlFilter"
+              @add="store.addUrlFilter('include')"
               @reorder="store.reorderUrlFilters" />
           </div>
 

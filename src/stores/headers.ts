@@ -420,12 +420,28 @@ export const useHeadersStore = defineStore('headers', () => {
 
     const filter: UrlFilter = {
       id: generateId(),
-      enabled: true,
+      enabled: false,
       matchType: 'host_equals',
       pattern: '',
       type,
     }
     activeProfile.value.urlFilters.push(filter)
+    activeProfile.value.updatedAt = Date.now()
+    saveToHistory()
+    persistState()
+  }
+
+  function duplicateUrlFilter(filterId: string): void {
+    if (!activeProfile.value) return
+
+    const index = activeProfile.value.urlFilters.findIndex(f => f.id === filterId)
+    if (index === -1) return
+
+    const source = activeProfile.value.urlFilters[index]
+    if (!source) return
+
+    const copy: UrlFilter = { ...source, id: generateId() }
+    activeProfile.value.urlFilters.splice(index + 1, 0, copy)
     activeProfile.value.updatedAt = Date.now()
     saveToHistory()
     persistState()
@@ -625,6 +641,7 @@ export const useHeadersStore = defineStore('headers', () => {
     reorderHeaders,
     reorderProfiles,
     addUrlFilter,
+    duplicateUrlFilter,
     removeUrlFilter,
     updateUrlFilter,
     clearUrlFilters,

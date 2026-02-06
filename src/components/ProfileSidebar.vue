@@ -172,7 +172,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
 
 <template>
   <TooltipProvider>
-    <div class="flex h-full flex-col gap-2 p-2 pb-3 bg-muted/50 border-r border-border">
+    <div class="flex h-full flex-col gap-2 p-2 pb-2 bg-muted/50 border-r border-border">
       <div class="flex-1 flex flex-col gap-2">
         <!-- Profile Tabs -->
         <div
@@ -238,7 +238,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
           <Button
             variant="ghost"
             size="icon"
-            class="border border-border/60 mb-1"
+            class="border border-border/60"
             :aria-label="t('tooltip_more_actions')"
             :title="t('tooltip_more_actions')"
           >
