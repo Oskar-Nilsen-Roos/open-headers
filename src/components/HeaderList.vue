@@ -3,8 +3,9 @@ import type { HeaderRule } from '@/types'
 import HeaderRow from './HeaderRow.vue'
 import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
+import { Plus } from 'lucide-vue-next'
 
-const props = defineProps<{
+defineProps<{
   headers: HeaderRule[]
 }>()
 
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   toggle: [headerId: string]
   duplicate: [headerId: string]
   reorder: [orderedIds: string[]]
+  add: []
 }>()
 </script>
 
@@ -31,11 +33,16 @@ const emit = defineEmits<{
       </template>
     </DraggableList>
 
-    <!-- Empty state -->
-    <div
-      v-if="headers.length === 0"
-      class="flex items-center justify-center py-6 text-sm text-muted-foreground bg-background">
-      {{ t('headers_empty_state') }}
-    </div>
+    <!-- Add row -->
+    <button
+      type="button"
+      class="w-full flex items-center gap-2 px-2 py-1.5 border-b border-dashed border-border/50 hover:border-border hover:bg-muted/20 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+      :aria-label="t('tooltip_add_header')"
+      @click="emit('add')">
+      <div class="shrink-0 flex items-center justify-center size-8">
+        <Plus class="h-3.5 w-3.5" />
+      </div>
+      <span class="text-xs">{{ t('button_add') }}</span>
+    </button>
   </div>
 </template>

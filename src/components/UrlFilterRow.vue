@@ -12,13 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { MoreVertical, Trash2, GripVertical } from 'lucide-vue-next'
+import { Copy, Trash2, GripVertical } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
 const props = defineProps<{
@@ -28,6 +22,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [filterId: string, updates: Partial<UrlFilter>]
   remove: [filterId: string]
+  duplicate: [filterId: string]
 }>()
 
 const matchType = computed<UrlFilterMatchType>(() => props.filter.matchType ?? 'dnr_url_filter')
@@ -144,24 +139,28 @@ function handlePatternChange(value: string) {
       class="flex-1 min-w-0 h-8 text-sm"
     />
 
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="text-muted-foreground hover:text-foreground"
-          :aria-label="t('tooltip_more_actions')"
-          :title="t('tooltip_more_actions')"
-        >
-          <MoreVertical class="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem class="text-destructive" @select="emit('remove', filter.id)">
-          <Trash2 class="h-4 w-4 mr-2" />
-          {{ t('menu_delete') }}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div class="flex items-center -space-x-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="text-muted-foreground hover:text-foreground"
+        :aria-label="t('menu_duplicate')"
+        :title="t('menu_duplicate')"
+        @click="emit('duplicate', filter.id)"
+      >
+        <Copy class="h-3.5 w-3.5" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="text-muted-foreground hover:text-destructive"
+        :aria-label="t('menu_delete')"
+        :title="t('menu_delete')"
+        @click="emit('remove', filter.id)"
+      >
+        <Trash2 class="h-3.5 w-3.5" />
+      </Button>
+    </div>
   </div>
 </template>
