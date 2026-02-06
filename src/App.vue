@@ -166,6 +166,12 @@ function handleDuplicateProfile() {
   }
 }
 
+function handleUpdateProfileColor(color: string) {
+  if (store.activeProfileId) {
+    store.updateProfile(store.activeProfileId, { color })
+  }
+}
+
 // Import/Export
 function downloadExport(data: string, filename: string) {
   const blob = new Blob([data], { type: 'application/json' })
@@ -238,6 +244,7 @@ function handleImport() {
         @redo="store.redo"
         @export="handleExportProfile"
         @rename="handleRenameProfile"
+        @update-color="handleUpdateProfileColor"
       />
 
       <div class="flex-1 flex flex-col min-h-0">

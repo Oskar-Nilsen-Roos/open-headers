@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, MoreVertical, Upload, Copy, Trash2, Moon, Sun, Contrast, Download } from 'lucide-vue-next'
+import { getReadableTextColor } from '@/lib/color'
 import { cn } from '@/lib/utils'
 import { t } from '@/i18n'
 
@@ -168,6 +169,13 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
     profile.id === activeProfileId && 'bg-accent'
   )
 }
+
+function getProfileBadgeStyle(color: string): Record<string, string> {
+  return {
+    backgroundColor: color,
+    color: getReadableTextColor(color),
+  }
+}
 </script>
 
 <template>
@@ -201,8 +209,8 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
                     data-swapy-handle
                   >
                     <div
-                      class="grid place-items-center size-6 rounded-full text-[11px] font-semibold leading-none tabular-nums text-white"
-                      :style="{ backgroundColor: item.color }"
+                      class="grid place-items-center size-6 rounded-full text-[11px] font-semibold leading-none tabular-nums"
+                      :style="getProfileBadgeStyle(item.color)"
                     >
                       {{ slottedItems.findIndex(s => s.itemId === itemId) + 1 }}
                     </div>
