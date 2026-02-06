@@ -148,10 +148,59 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
-function getFontScale(labelLength: number): number {
-  if (labelLength >= 3) return 0.34
-  if (labelLength === 2) return 0.43
-  return 0.55
+interface NormalizedTextMetrics {
+  ascent: number
+  descent: number
+  left: number
+  right: number
+}
+
+function normalizeTextMetrics(metrics: TextMetrics, fontSize: number): NormalizedTextMetrics {
+  const hasBoxMetrics = typeof metrics.actualBoundingBoxAscent === 'number'
+    && typeof metrics.actualBoundingBoxDescent === 'number'
+    && typeof metrics.actualBoundingBoxLeft === 'number'
+    && typeof metrics.actualBoundingBoxRight === 'number'
+
+  if (hasBoxMetrics) {
+    return {
+      ascent: metrics.actualBoundingBoxAscent,
+      descent: metrics.actualBoundingBoxDescent,
+      left: metrics.actualBoundingBoxLeft,
+      right: metrics.actualBoundingBoxRight,
+    }
+  }
+
+  return {
+    ascent: fontSize * 0.75,
+    descent: fontSize * 0.25,
+    left: 0,
+    right: metrics.width,
+  }
+}
+
+function resolveProfileLabelFontSize(
+  context: OffscreenCanvasRenderingContext2D,
+  label: string,
+  size: number,
+  radius: number
+): number {
+  const minFontSize = Math.max(6, Math.floor(size * 0.32))
+  const maxFontSize = Math.max(minFontSize, Math.floor(size * 0.8))
+  const maxLabelWidth = radius * 1.48
+  const maxLabelHeight = radius * 1.42
+
+  for (let fontSize = maxFontSize; fontSize >= minFontSize; fontSize--) {
+    context.font = `700 ${fontSize}px ${PROFILE_ICON_FONT_FAMILY}`
+    const metrics = normalizeTextMetrics(context.measureText(label), fontSize)
+    const labelWidth = metrics.left + metrics.right
+    const labelHeight = metrics.ascent + metrics.descent
+
+    if (labelWidth <= maxLabelWidth && labelHeight <= maxLabelHeight) {
+      return fontSize
+    }
+  }
+
+  return minFontSize
 }
 
 function drawRoundedRect(
@@ -243,14 +292,15 @@ function renderProfileIcon(
   context.arc(center, center, radius, 0, Math.PI * 2)
   context.fill()
 
-  const fontScale = getFontScale(label.length)
-  const fontSize = Math.max(6, Math.floor(size * fontScale))
-
-  context.fillStyle = textColor
+  const fontSize = resolveProfileLabelFontSize(context, label, size, radius)
   context.font = `700 ${fontSize}px ${PROFILE_ICON_FONT_FAMILY}`
-  context.textAlign = 'center'
-  context.textBaseline = 'middle'
-  context.fillText(label, center, center + size * 0.02)
+  const metrics = normalizeTextMetrics(context.measureText(label), fontSize)
+  const textX = center + (metrics.left - metrics.right) / 2
+  const textY = center + (metrics.ascent - metrics.descent) / 2
+  context.fillStyle = textColor
+  context.textAlign = 'left'
+  context.textBaseline = 'alphabetic'
+  context.fillText(label, textX, textY)
 
   drawProfileCountTag(context, size, badgeText)
 
