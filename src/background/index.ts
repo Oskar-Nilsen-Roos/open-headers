@@ -1,10 +1,18 @@
 import type { HeaderRule, AppState, Profile } from '../types'
 import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
+import {
+  DEFAULT_ACTION_ICON_PATHS,
+  createBadgeState,
+  getActiveProfileDescriptor,
+  getProfileActionColors,
+  getProfileActionLabel,
+} from './actionAppearance'
 
 declare const process: { env?: { [key: string]: string | undefined } } | undefined
 
 const STORAGE_KEY = 'openheaders_state'
 const SESSION_RULE_ID = 1
+const ACTION_ICON_SIZES = [16, 32, 48, 128] as const
 const DEBUG =
   typeof process !== 'undefined' &&
   !!process.env &&
@@ -102,6 +110,12 @@ let latestState: AppState | null = null
 let hasClearedDynamicRules = false
 let pendingUpdate = false
 let updateInFlight: Promise<void> | null = null
+let lastActionIconSignature: string | null = null
+let lastBadgeSignature: string | null = null
+
+function hasTabId(tab: chrome.tabs.Tab): tab is chrome.tabs.Tab & { id: number } {
+  return typeof tab.id === 'number'
+}
 
 async function clearDynamicRulesOnce(): Promise<void> {
   if (hasClearedDynamicRules) return
@@ -131,6 +145,135 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
+function renderProfileIcon(
+  size: number,
+  label: string,
+  backgroundColor: string,
+  textColor: string
+): ImageData | null {
+  if (typeof OffscreenCanvas === 'undefined') return null
+
+  const canvas = new OffscreenCanvas(size, size)
+  const context = canvas.getContext('2d')
+  if (!context) return null
+
+  context.clearRect(0, 0, size, size)
+
+  const center = size / 2
+  const radius = size * 0.42
+
+  context.fillStyle = backgroundColor
+  context.beginPath()
+  context.arc(center, center, radius, 0, Math.PI * 2)
+  context.fill()
+
+  const fontScale = label.length >= 3
+    ? 0.4
+    : label.length === 2
+      ? 0.52
+      : 0.68
+  const fontSize = Math.max(7, Math.floor(size * fontScale))
+
+  context.fillStyle = textColor
+  context.font = `700 ${fontSize}px sans-serif`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(label, center, center + size * 0.02)
+
+  return context.getImageData(0, 0, size, size)
+}
+
+function buildProfileActionIcon(
+  profileIndex: number,
+  backgroundColor: string,
+  textColor: string
+): Record<number, ImageData> | null {
+  const label = getProfileActionLabel(profileIndex)
+  const iconBySize: Partial<Record<number, ImageData>> = {}
+
+  for (const size of ACTION_ICON_SIZES) {
+    const imageData = renderProfileIcon(size, label, backgroundColor, textColor)
+    if (!imageData) return null
+    iconBySize[size] = imageData
+  }
+
+  return iconBySize as Record<number, ImageData>
+}
+
+async function updateActionIcon(profile: Profile | null, profileIndex: number): Promise<void> {
+  const iconSignature = profile
+    ? `${profile.id}:${profileIndex}:${profile.color}`
+    : 'default'
+
+  if (iconSignature === lastActionIconSignature) return
+
+  if (!profile) {
+    await chrome.action.setIcon({ path: DEFAULT_ACTION_ICON_PATHS })
+    lastActionIconSignature = iconSignature
+    return
+  }
+
+  const palette = getProfileActionColors(profile)
+  const imageData = buildProfileActionIcon(profileIndex, palette.backgroundColor, palette.textColor)
+
+  if (!imageData) {
+    await chrome.action.setIcon({ path: DEFAULT_ACTION_ICON_PATHS })
+    lastActionIconSignature = `${iconSignature}:fallback`
+    return
+  }
+
+  await chrome.action.setIcon({ imageData })
+  lastActionIconSignature = iconSignature
+}
+
+async function getActiveTabUrl(): Promise<string | undefined> {
+  const [fromFocusedWindow] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+  const activeTab = fromFocusedWindow ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0]
+
+  if (!activeTab || !hasTabId(activeTab)) return undefined
+
+  if (activeTab.url) {
+    tabUrls.set(activeTab.id, activeTab.url)
+    return activeTab.url
+  }
+
+  return tabUrls.get(activeTab.id)
+}
+
+async function updateActionBadge(profile: Profile | null): Promise<void> {
+  const activeTabUrl = await getActiveTabUrl()
+  const badgeState = createBadgeState(profile, activeTabUrl)
+  const badgeSignature = `${badgeState.text}:${badgeState.backgroundColor}:${badgeState.textColor}`
+
+  if (badgeSignature === lastBadgeSignature) return
+
+  await chrome.action.setBadgeBackgroundColor({ color: badgeState.backgroundColor })
+
+  const actionWithBadgeTextColor = chrome.action as typeof chrome.action & {
+    setBadgeTextColor?: (details: { color: string }) => Promise<void>
+  }
+  if (typeof actionWithBadgeTextColor.setBadgeTextColor === 'function') {
+    await actionWithBadgeTextColor.setBadgeTextColor({ color: badgeState.textColor })
+  }
+
+  await chrome.action.setBadgeText({ text: badgeState.text })
+  lastBadgeSignature = badgeSignature
+}
+
+async function syncActionAppearance(profile: Profile | null, profileIndex: number): Promise<void> {
+  try {
+    await updateActionIcon(profile, profileIndex)
+  } catch (error) {
+    console.error('Failed to update action icon:', error)
+  }
+
+  try {
+    await updateActionBadge(profile)
+  } catch (error) {
+    console.error('Failed to update action badge:', error)
+  }
+}
+
 function queueUpdateRules(): void {
   pendingUpdate = true
   if (updateInFlight) return
@@ -151,51 +294,46 @@ function queueUpdateRules(): void {
 }
 
 async function updateRulesOnce(): Promise<void> {
+  const { profile, profileIndex } = getActiveProfileDescriptor(latestState)
+
   try {
     await clearDynamicRulesOnce()
 
-    if (!latestState) {
-      await chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: [SESSION_RULE_ID],
-      })
-      return
-    }
-
-    const profile = latestState.profiles.find(p => p.id === latestState?.activeProfileId) ?? null
     if (!profile) {
       await chrome.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [SESSION_RULE_ID],
       })
-      return
-    }
+    } else {
+      const enabledTabIds = computeEnabledTabIds(profile)
+      const rule = buildSessionRuleFromProfile(profile, enabledTabIds)
 
-    const enabledTabIds = computeEnabledTabIds(profile)
-    const rule = buildSessionRuleFromProfile(profile, enabledTabIds)
+      await chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [SESSION_RULE_ID],
+        addRules: rule ? [rule] : [],
+      })
 
-    await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [SESSION_RULE_ID],
-      addRules: rule ? [rule] : [],
-    })
-
-    if (DEBUG) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Session rules updated:',
-        rule ? 1 : 0,
-        'active;',
-        enabledTabIds.length,
-        'tab(s) matched'
-      )
+      if (DEBUG) {
+        // eslint-disable-next-line no-console
+        console.log(
+          'Session rules updated:',
+          rule ? 1 : 0,
+          'active;',
+          enabledTabIds.length,
+          'tab(s) matched'
+        )
+      }
     }
   } catch (error) {
     console.error('Failed to update rules:', error)
   }
+
+  await syncActionAppearance(profile, profileIndex)
 }
 
 // Listen for storage changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes[STORAGE_KEY]) {
-    latestState = changes[STORAGE_KEY].newValue as AppState
+    latestState = (changes[STORAGE_KEY].newValue as AppState | undefined) ?? null
     queueUpdateRules()
   }
 })
@@ -219,9 +357,25 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 })
 
 chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.id && tab.url) {
+  if (hasTabId(tab) && tab.url) {
     updateTabUrl(tab.id, tab.url)
+    return
   }
+
+  queueUpdateRules()
+})
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId)
+    if (tab.url) {
+      tabUrls.set(tabId, tab.url)
+    }
+  } catch (error) {
+    console.warn('Failed to read activated tab URL:', error)
+  }
+
+  queueUpdateRules()
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -238,7 +392,7 @@ async function initialize(): Promise<void> {
   try {
     const tabs = await chrome.tabs.query({})
     for (const tab of tabs) {
-      if (tab.id && tab.url) {
+      if (hasTabId(tab) && tab.url) {
         tabUrls.set(tab.id, tab.url)
       }
     }
