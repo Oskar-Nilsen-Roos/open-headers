@@ -245,7 +245,7 @@ function getButtonClass(profile: Profile, activeProfileId: string | null): strin
             <MoreVertical class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="right" side-offset="8">
+        <DropdownMenuContent align="end" side="right" :side-offset="5" :align-offset="4">
           <DropdownMenuItem @select="emit('exportAll')">
             <Download class="h-4 w-4 mr-2" />
             {{ t('menu_export_all_profiles') }}
