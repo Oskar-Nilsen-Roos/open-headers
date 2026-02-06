@@ -13,7 +13,7 @@ const DEFAULT_ICON_PATHS: { [size: number]: string } = {
 }
 const PROFILE_ICON_SIZES = [16, 32, 48, 128]
 const BADGE_BACKGROUND_COLOR = '#111827'
-const BADGE_TEXT_COLOR = '#facc15'
+const BADGE_TEXT_COLOR = '#ffffff'
 const CAN_RENDER_CUSTOM_ICON = typeof OffscreenCanvas !== 'undefined'
 const DEBUG =
   typeof process !== 'undefined' &&
@@ -77,64 +77,40 @@ function normalizeProfileColor(color: string | undefined): string {
   return DEFAULT_PROFILE_COLOR
 }
 
-function drawRoundedRectPath(
-  context: OffscreenCanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-): void {
-  const safeRadius = Math.max(0, Math.min(radius, width / 2, height / 2))
-  context.beginPath()
-  context.moveTo(x + safeRadius, y)
-  context.lineTo(x + width - safeRadius, y)
-  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius)
-  context.lineTo(x + width, y + height - safeRadius)
-  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height)
-  context.lineTo(x + safeRadius, y + height)
-  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius)
-  context.lineTo(x, y + safeRadius)
-  context.quadraticCurveTo(x, y, x + safeRadius, y)
-  context.closePath()
+function getActiveProfileNumber(state: AppState | null): number {
+  if (!state || !state.activeProfileId) return 1
+
+  const index = state.profiles.findIndex(p => p.id === state.activeProfileId)
+  if (index < 0) return 1
+  return index + 1
 }
 
-function createProfileIconImageData(size: number, profileColor: string): ImageData | null {
+function createProfileIconImageData(size: number, profileColor: string, profileNumber: number): ImageData | null {
   try {
     const canvas = new OffscreenCanvas(size, size)
     const context = canvas.getContext('2d')
     if (!context) return null
 
-    const radius = Math.max(2, Math.floor(size * 0.2))
-    drawRoundedRectPath(context, 0, 0, size, size, radius)
-    context.fillStyle = '#0f172a'
+    const center = size / 2
+    const radius = size * 0.42
+
+    context.clearRect(0, 0, size, size)
+    context.beginPath()
+    context.arc(center, center, radius, 0, Math.PI * 2)
+    context.fillStyle = profileColor
     context.fill()
 
-    context.save()
-    drawRoundedRectPath(context, 0, 0, size, size, radius)
-    context.clip()
-    context.fillStyle = profileColor
-    context.fillRect(0, 0, size, Math.max(2, Math.floor(size * 0.24)))
-    context.restore()
-
-    const lineWidth = Math.max(1, Math.floor(size * 0.1))
-    const lineLeft = Math.floor(size * 0.24)
-    const lineRight = Math.floor(size * 0.82)
-    const lineY1 = Math.floor(size * 0.43)
-    const lineY2 = Math.floor(size * 0.62)
-    const lineY3 = Math.floor(size * 0.79)
-
-    context.strokeStyle = 'rgba(255, 255, 255, 0.92)'
-    context.lineWidth = lineWidth
-    context.lineCap = 'round'
-    context.beginPath()
-    context.moveTo(lineLeft, lineY1)
-    context.lineTo(lineRight, lineY1)
-    context.moveTo(lineLeft, lineY2)
-    context.lineTo(lineRight, lineY2)
-    context.moveTo(lineLeft, lineY3)
-    context.lineTo(Math.floor(size * 0.68), lineY3)
+    context.lineWidth = Math.max(1, size * 0.035)
+    context.strokeStyle = 'rgba(255, 255, 255, 0.35)'
     context.stroke()
+
+    const displayedNumber = String(Math.min(Math.max(profileNumber, 1), 99))
+    const fontScale = displayedNumber.length > 1 ? 0.48 : 0.58
+    context.fillStyle = '#ffffff'
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.font = `700 ${Math.max(8, Math.floor(size * fontScale))}px "Segoe UI", sans-serif`
+    context.fillText(displayedNumber, center, center + size * 0.02)
 
     return context.getImageData(0, 0, size, size)
   } catch {
@@ -142,11 +118,11 @@ function createProfileIconImageData(size: number, profileColor: string): ImageDa
   }
 }
 
-function createProfileIconSet(profileColor: string): { [size: number]: ImageData } | null {
+function createProfileIconSet(profileColor: string, profileNumber: number): { [size: number]: ImageData } | null {
   const imageDataBySize: { [size: number]: ImageData } = {}
 
   for (const size of PROFILE_ICON_SIZES) {
-    const imageData = createProfileIconImageData(size, profileColor)
+    const imageData = createProfileIconImageData(size, profileColor, profileNumber)
     if (!imageData) return null
     imageDataBySize[size] = imageData
   }
@@ -263,7 +239,7 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
-async function setActionIcon(profile: Profile | null): Promise<void> {
+async function setActionIcon(profile: Profile | null, profileNumber: number): Promise<void> {
   if (!profile || !CAN_RENDER_CUSTOM_ICON) {
     if (lastAppliedIconKey === 'default') return
     await chrome.action.setIcon({ path: DEFAULT_ICON_PATHS })
@@ -272,10 +248,10 @@ async function setActionIcon(profile: Profile | null): Promise<void> {
   }
 
   const profileColor = normalizeProfileColor(profile.color)
-  const iconKey = `profile:${profileColor}`
+  const iconKey = `profile:${profileColor}:${profileNumber}`
   if (lastAppliedIconKey === iconKey) return
 
-  const iconSet = createProfileIconSet(profileColor)
+  const iconSet = createProfileIconSet(profileColor, profileNumber)
   if (!iconSet) {
     if (lastAppliedIconKey === 'default') return
     await chrome.action.setIcon({ path: DEFAULT_ICON_PATHS })
@@ -313,7 +289,8 @@ async function setActionBadgeText(text: string): Promise<void> {
 async function updateActionAppearanceOnce(): Promise<void> {
   try {
     const profile = getActiveProfile(latestState)
-    await setActionIcon(profile)
+    const profileNumber = getActiveProfileNumber(latestState)
+    await setActionIcon(profile, profileNumber)
 
     if (!profile) {
       await setActionBadgeText('')
