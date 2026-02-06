@@ -19,6 +19,7 @@
     "@vueuse/core": "^14.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "culori": "^4.0.2",
     "lucide-vue-next": "^0.563.0",
     "pinia": "^3.0.4",
     "reka-ui": "^2.8.0",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.1",
     "@types/chrome": "^0.1.36",
+    "@types/culori": "^4.0.1",
     "@types/node": "^24.10.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-vue": "^6.0.1",

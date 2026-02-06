@@ -79,6 +79,70 @@
     "message": "Exportera profil",
     "description": "Tooltip för exportera profil-knapp"
   },
+  "tooltip_change_profile_color": {
+    "message": "Ändra profilfärg",
+    "description": "Tooltip/aria-etikett för att öppna profilens färgväljare"
+  },
+  "profile_color_label": {
+    "message": "Profilfärg",
+    "description": "Etikett i popovern för profilfärg"
+  },
+  "profile_color_picker_label": {
+    "message": "Färgväljare",
+    "description": "Etikett för sektionen med färgkontroller"
+  },
+  "profile_color_hue_label": {
+    "message": "Nyans",
+    "description": "Etikett för nyansreglaget i profilfärgväljaren"
+  },
+  "profile_color_saturation_label": {
+    "message": "Mättnad",
+    "description": "Etikett för mättnadsreglaget i profilfärgväljaren"
+  },
+  "profile_color_brightness_label": {
+    "message": "Ljusstyrka",
+    "description": "Etikett för ljusstyrkereglaget i profilfärgväljaren"
+  },
+  "profile_color_input_label": {
+    "message": "Färginmatning",
+    "description": "Etikett för fri inmatning av profilfärg"
+  },
+  "profile_color_input_placeholder": {
+    "message": "#7c3aed eller rgb(...) eller oklch(...)",
+    "description": "Platshållare för fri inmatning av profilfärg"
+  },
+  "profile_color_input_hint": {
+    "message": "Klistra in hex, rgb() eller oklch() och tryck Enter.",
+    "description": "Hjälptext för fältet med profilfärgens fria inmatning"
+  },
+  "profile_color_input_invalid": {
+    "message": "Ogiltig färg. Använd hex, rgb() eller oklch().",
+    "description": "Feltext när profilfärgen inte kan tolkas"
+  },
+  "profile_color_eyedropper": {
+    "message": "Välj färg från skärmen",
+    "description": "Tooltip-etikett för pipettverktyget"
+  },
+  "profile_color_eyedropper_unavailable": {
+    "message": "Pipettverktyget stöds inte i den här webbläsaren",
+    "description": "Tooltip-etikett när EyeDropper API saknas"
+  },
+  "profile_color_hex_label": {
+    "message": "Hex-värde",
+    "description": "Etikett för fältet med profilfärgens hex-värde"
+  },
+  "profile_color_hex_placeholder": {
+    "message": "#7C3AED",
+    "description": "Platshållare för fältet med profilfärgens hex-värde"
+  },
+  "profile_color_presets_label": {
+    "message": "Förval",
+    "description": "Etikett för förvalda profilfärger"
+  },
+  "profile_color_preset": {
+    "message": "Förinställd färg",
+    "description": "Aria-etikettprefix för förinställda profilfärgsknappar"
+  },
   "menu_export_all_profiles": {
     "message": "Exportera alla profiler",
     "description": "Menyval för att exportera alla profiler"

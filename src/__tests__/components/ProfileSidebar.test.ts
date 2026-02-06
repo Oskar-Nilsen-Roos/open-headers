@@ -1,11 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
-import type { Profile } from '@/types'
+import type { DarkModePreference, LanguagePreference, Profile } from '@/types'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
   Plus: { template: '<span>Plus</span>' },
+  MoreVertical: { template: '<span>MoreVertical</span>' },
+  Upload: { template: '<span>Upload</span>' },
+  Copy: { template: '<span>Copy</span>' },
+  Trash2: { template: '<span>Trash2</span>' },
+  Moon: { template: '<span>Moon</span>' },
+  Sun: { template: '<span>Sun</span>' },
+  Contrast: { template: '<span>Contrast</span>' },
+  Download: { template: '<span>Download</span>' },
 }))
 
 // Mock swapy
@@ -42,19 +50,52 @@ describe('ProfileSidebar', () => {
     ...overrides,
   })
 
-  const mountComponent = (props: { profiles: Profile[]; activeProfileId: string | null }) => {
+  const mountComponent = (props: {
+    profiles: Profile[]
+    activeProfileId: string | null
+    activeProfile?: Profile | null
+    darkModePreference?: DarkModePreference
+    languagePreference?: LanguagePreference
+  }) => {
+    const activeProfile = props.activeProfile
+      ?? props.profiles.find(profile => profile.id === props.activeProfileId)
+      ?? null
+
     return mount(ProfileSidebar, {
-      props,
+      props: {
+        ...props,
+        activeProfile,
+        darkModePreference: props.darkModePreference ?? 'system',
+        languagePreference: props.languagePreference ?? 'auto',
+      },
       global: {
         stubs: {
           Button: {
-            template: '<button @click="$emit(\'click\')"><slot /></button>',
-            props: ['variant', 'size', 'class'],
+            template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
+            props: ['variant', 'size', 'class', 'disabled'],
           },
           Tooltip: { template: '<div><slot /></div>' },
           TooltipContent: { template: '<div><slot /></div>' },
           TooltipProvider: { template: '<div><slot /></div>' },
           TooltipTrigger: { template: '<div><slot /></div>' },
+          DropdownMenu: { template: '<div><slot /></div>' },
+          DropdownMenuTrigger: { template: '<div><slot /></div>' },
+          DropdownMenuContent: { template: '<div><slot /></div>' },
+          DropdownMenuItem: { template: '<div @click="$emit(\'select\')"><slot /></div>' },
+          DropdownMenuSeparator: { template: '<hr />' },
+          AlertDialog: { template: '<div><slot /></div>' },
+          AlertDialogAction: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
+          AlertDialogCancel: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
+          AlertDialogContent: { template: '<div><slot /></div>' },
+          AlertDialogDescription: { template: '<div><slot /></div>' },
+          AlertDialogFooter: { template: '<div><slot /></div>' },
+          AlertDialogHeader: { template: '<div><slot /></div>' },
+          AlertDialogTitle: { template: '<div><slot /></div>' },
+          Select: { template: '<div><slot /></div>' },
+          SelectContent: { template: '<div><slot /></div>' },
+          SelectItem: { template: '<div><slot /></div>' },
+          SelectTrigger: { template: '<div><slot /></div>' },
+          SelectValue: { template: '<div><slot /></div>' },
         },
       },
     })
@@ -171,15 +212,16 @@ describe('ProfileSidebar', () => {
   })
 
   describe('empty state', () => {
-    it('only shows add button when no profiles', () => {
+    it('shows add profile button and no profile items when no profiles', () => {
       const wrapper = mountComponent({
         profiles: [],
         activeProfileId: null,
       })
 
       const buttons = wrapper.findAll('button')
-      expect(buttons.length).toBe(1)
+      expect(buttons.length).toBeGreaterThanOrEqual(1)
       expect(wrapper.text()).toContain('Plus')
+      expect(wrapper.find('[data-swapy-item]').exists()).toBe(false)
     })
   })
 
