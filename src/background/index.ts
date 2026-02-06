@@ -218,7 +218,7 @@ async function updateActionIcon(profile: Profile | null, profileIndex: number): 
 
   if (!imageData) {
     await chrome.action.setIcon({ path: DEFAULT_ACTION_ICON_PATHS })
-    lastActionIconSignature = `${iconSignature}:fallback`
+    lastActionIconSignature = iconSignature
     return
   }
 
