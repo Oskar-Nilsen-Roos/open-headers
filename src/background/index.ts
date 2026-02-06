@@ -145,6 +145,12 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
+function getFontScale(labelLength: number): number {
+  if (labelLength >= 3) return 0.4
+  if (labelLength === 2) return 0.52
+  return 0.68
+}
+
 function renderProfileIcon(
   size: number,
   label: string,
@@ -167,11 +173,7 @@ function renderProfileIcon(
   context.arc(center, center, radius, 0, Math.PI * 2)
   context.fill()
 
-  const fontScale = label.length >= 3
-    ? 0.4
-    : label.length === 2
-      ? 0.52
-      : 0.68
+  const fontScale = getFontScale(label.length)
   const fontSize = Math.max(7, Math.floor(size * fontScale))
 
   context.fillStyle = textColor
@@ -333,7 +335,10 @@ async function updateRulesOnce(): Promise<void> {
 // Listen for storage changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes[STORAGE_KEY]) {
-    latestState = (changes[STORAGE_KEY].newValue as AppState | undefined) ?? null
+    const newState = changes[STORAGE_KEY].newValue
+    latestState = newState && typeof newState === 'object'
+      ? newState as AppState
+      : null
     queueUpdateRules()
   }
 })

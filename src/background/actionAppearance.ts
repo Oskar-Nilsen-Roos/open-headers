@@ -46,13 +46,13 @@ export function countEnabledHeaders(profile: Profile): number {
   return profile.headers.filter(header => header.enabled && header.name.trim()).length
 }
 
-function isHttpUrl(url: string | undefined): url is string {
-  return !!url && (url.startsWith('http://') || url.startsWith('https://'))
+function isHttpUrl(url: string): boolean {
+  return url.startsWith('http://') || url.startsWith('https://')
 }
 
 export function countAppliedHeadersForUrl(profile: Profile | null, url: string | undefined): number {
   if (!profile) return 0
-  if (!isHttpUrl(url)) return 0
+  if (!url || !isHttpUrl(url)) return 0
   if (!isProfileEnabledForTabUrl(profile, url)) return 0
 
   return countEnabledHeaders(profile)
@@ -82,5 +82,6 @@ export function createBadgeState(profile: Profile | null, url: string | undefine
 }
 
 export function getProfileActionLabel(profileIndex: number): string {
-  return String(Math.max(0, profileIndex) + 1)
+  if (profileIndex < 0) return '1'
+  return String(profileIndex + 1)
 }
