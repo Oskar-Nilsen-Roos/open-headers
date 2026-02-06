@@ -1,5 +1,6 @@
 import type { HeaderRule, AppState, Profile } from '../types'
 import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
+import { getReadableTextColor, parseColorInputToHex } from '../lib/color'
 
 declare const process: { env?: { [key: string]: string | undefined } } | undefined
 
@@ -62,18 +63,8 @@ function isHttpUrl(url: string): boolean {
 }
 
 function normalizeProfileColor(color: string | undefined): string {
-  if (!color) return DEFAULT_PROFILE_COLOR
-
-  const trimmed = color.trim()
-  if (/^#[\da-fA-F]{6}$/.test(trimmed)) {
-    return trimmed.toLowerCase()
-  }
-
-  if (/^#[\da-fA-F]{3}$/.test(trimmed)) {
-    const [r, g, b] = trimmed.slice(1).split('')
-    if (r && g && b) return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
-  }
-
+  const parsed = parseColorInputToHex(color ?? '')
+  if (parsed) return parsed
   return DEFAULT_PROFILE_COLOR
 }
 
@@ -85,7 +76,12 @@ function getActiveProfileNumber(state: AppState | null): number {
   return index + 1
 }
 
-function createProfileIconImageData(size: number, profileColor: string, profileNumber: number): ImageData | null {
+function createProfileIconImageData(
+  size: number,
+  profileColor: string,
+  textColor: string,
+  profileNumber: number
+): ImageData | null {
   try {
     const canvas = new OffscreenCanvas(size, size)
     const context = canvas.getContext('2d')
@@ -101,15 +97,17 @@ function createProfileIconImageData(size: number, profileColor: string, profileN
     context.fill()
 
     context.lineWidth = Math.max(1, size * 0.035)
-    context.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+    context.strokeStyle = textColor
+    context.globalAlpha = 0.26
     context.stroke()
+    context.globalAlpha = 1
 
     const displayedNumber = String(Math.min(Math.max(profileNumber, 1), 99))
     const fontScale = displayedNumber.length > 1 ? 0.48 : 0.58
-    context.fillStyle = '#ffffff'
+    context.fillStyle = textColor
     context.textAlign = 'center'
     context.textBaseline = 'middle'
-    context.font = `700 ${Math.max(8, Math.floor(size * fontScale))}px "Segoe UI", sans-serif`
+    context.font = `700 ${Math.max(8, Math.floor(size * fontScale))}px "SF Pro Rounded", "Avenir Next Rounded", "Nunito Sans", "Trebuchet MS", "Segoe UI", sans-serif`
     context.fillText(displayedNumber, center, center + size * 0.02)
 
     return context.getImageData(0, 0, size, size)
@@ -118,11 +116,15 @@ function createProfileIconImageData(size: number, profileColor: string, profileN
   }
 }
 
-function createProfileIconSet(profileColor: string, profileNumber: number): { [size: number]: ImageData } | null {
+function createProfileIconSet(
+  profileColor: string,
+  textColor: string,
+  profileNumber: number
+): { [size: number]: ImageData } | null {
   const imageDataBySize: { [size: number]: ImageData } = {}
 
   for (const size of PROFILE_ICON_SIZES) {
-    const imageData = createProfileIconImageData(size, profileColor, profileNumber)
+    const imageData = createProfileIconImageData(size, profileColor, textColor, profileNumber)
     if (!imageData) return null
     imageDataBySize[size] = imageData
   }
@@ -248,10 +250,11 @@ async function setActionIcon(profile: Profile | null, profileNumber: number): Pr
   }
 
   const profileColor = normalizeProfileColor(profile.color)
-  const iconKey = `profile:${profileColor}:${profileNumber}`
+  const textColor = getReadableTextColor(profileColor)
+  const iconKey = `profile:${profileColor}:${textColor}:${profileNumber}`
   if (lastAppliedIconKey === iconKey) return
 
-  const iconSet = createProfileIconSet(profileColor, profileNumber)
+  const iconSet = createProfileIconSet(profileColor, textColor, profileNumber)
   if (!iconSet) {
     if (lastAppliedIconKey === 'default') return
     await chrome.action.setIcon({ path: DEFAULT_ICON_PATHS })
