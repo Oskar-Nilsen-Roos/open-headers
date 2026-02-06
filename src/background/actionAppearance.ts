@@ -43,6 +43,7 @@ export function getActiveProfileDescriptor(state: AppState | null): ActiveProfil
 }
 
 export function countEnabledHeaders(profile: Profile): number {
+  // Badge count intentionally tracks enabled header rules only (never URL filters).
   return profile.headers.filter(header => header.enabled && header.name.trim()).length
 }
 

@@ -127,6 +127,37 @@ describe('action appearance helpers', () => {
 
       expect(countAppliedHeadersForUrl(profile, 'https://blocked.example.com')).toBe(0)
     })
+
+    it('does not include enabled filters in the count', () => {
+      const profile = createProfile({
+        headers: [createHeader({ enabled: true, name: 'X-One' })],
+        urlFilters: [
+          {
+            id: 'include-host',
+            enabled: true,
+            type: 'include',
+            matchType: 'host_equals',
+            pattern: 'example.com',
+          },
+          {
+            id: 'include-path',
+            enabled: true,
+            type: 'include',
+            matchType: 'path_starts_with',
+            pattern: '/api',
+          },
+          {
+            id: 'exclude-other',
+            enabled: true,
+            type: 'exclude',
+            matchType: 'host_equals',
+            pattern: 'blocked.example.com',
+          },
+        ],
+      })
+
+      expect(countAppliedHeadersForUrl(profile, 'https://example.com/api/users')).toBe(1)
+    })
   })
 
   describe('getBadgeText', () => {

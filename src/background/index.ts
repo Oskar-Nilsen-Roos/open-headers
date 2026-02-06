@@ -2,6 +2,7 @@ import type { HeaderRule, AppState, Profile } from '../types'
 import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
 import {
   DEFAULT_ACTION_ICON_PATHS,
+  type BadgeState,
   createBadgeState,
   getActiveProfileDescriptor,
   getProfileActionColors,
@@ -13,6 +14,7 @@ declare const process: { env?: { [key: string]: string | undefined } } | undefin
 const STORAGE_KEY = 'openheaders_state'
 const SESSION_RULE_ID = 1
 const ACTION_ICON_SIZES = [16, 32, 48, 128] as const
+const PROFILE_ICON_FONT_FAMILY = '"Avenir Next", "SF Pro Text", "Segoe UI", "Inter", "Helvetica Neue", sans-serif'
 const DEBUG =
   typeof process !== 'undefined' &&
   !!process.env &&
@@ -112,6 +114,7 @@ let pendingUpdate = false
 let updateInFlight: Promise<void> | null = null
 let lastActionIconSignature: string | null = null
 let lastBadgeSignature: string | null = null
+let usesNativeBadgeFallback = false
 
 function hasTabId(tab: chrome.tabs.Tab): tab is chrome.tabs.Tab & { id: number } {
   return typeof tab.id === 'number'
@@ -146,16 +149,83 @@ function computeEnabledTabIds(profile: Profile): number[] {
 }
 
 function getFontScale(labelLength: number): number {
-  if (labelLength >= 3) return 0.4
-  if (labelLength === 2) return 0.52
-  return 0.68
+  if (labelLength >= 3) return 0.34
+  if (labelLength === 2) return 0.43
+  return 0.55
+}
+
+function drawRoundedRect(
+  context: OffscreenCanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+): void {
+  const safeRadius = Math.min(radius, width / 2, height / 2)
+
+  context.beginPath()
+  context.moveTo(x + safeRadius, y)
+  context.lineTo(x + width - safeRadius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius)
+  context.lineTo(x + width, y + height - safeRadius)
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height)
+  context.lineTo(x + safeRadius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius)
+  context.lineTo(x, y + safeRadius)
+  context.quadraticCurveTo(x, y, x + safeRadius, y)
+  context.closePath()
+}
+
+function getCompactBadgeText(text: string, size: number): string {
+  if (size <= 16 && text.length > 1) return '9+'
+  if (size <= 24 && text.length > 2) return '99'
+  return text
+}
+
+function drawProfileCountTag(
+  context: OffscreenCanvasRenderingContext2D,
+  size: number,
+  text: string
+): void {
+  if (!text) return
+
+  const compactText = getCompactBadgeText(text, size)
+  const margin = Math.max(1, Math.round(size * 0.06))
+  const badgeHeight = Math.min(16, Math.max(6, Math.round(size * 0.28)))
+  const horizontalPadding = Math.max(2, Math.round(size * 0.06))
+  const fontSize = Math.max(5, Math.round(badgeHeight * 0.58))
+
+  context.font = `700 ${fontSize}px ${PROFILE_ICON_FONT_FAMILY}`
+  const textWidth = context.measureText(compactText).width
+  const maxWidth = size - margin * 2
+  const badgeWidth = Math.max(
+    badgeHeight,
+    Math.min(maxWidth, Math.ceil(textWidth + horizontalPadding * 2))
+  )
+
+  const x = size - margin - badgeWidth
+  const y = margin
+
+  drawRoundedRect(context, x, y, badgeWidth, badgeHeight, badgeHeight / 2)
+  context.fillStyle = 'rgba(15, 23, 42, 0.96)'
+  context.fill()
+  context.lineWidth = Math.max(1, size * 0.03)
+  context.strokeStyle = 'rgba(248, 250, 252, 0.34)'
+  context.stroke()
+
+  context.fillStyle = '#f8fafc'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(compactText, x + badgeWidth / 2, y + badgeHeight / 2 + size * 0.01)
 }
 
 function renderProfileIcon(
   size: number,
   label: string,
   backgroundColor: string,
-  textColor: string
+  textColor: string,
+  badgeText: string
 ): ImageData | null {
   if (typeof OffscreenCanvas === 'undefined') return null
 
@@ -174,13 +244,15 @@ function renderProfileIcon(
   context.fill()
 
   const fontScale = getFontScale(label.length)
-  const fontSize = Math.max(7, Math.floor(size * fontScale))
+  const fontSize = Math.max(6, Math.floor(size * fontScale))
 
   context.fillStyle = textColor
-  context.font = `700 ${fontSize}px sans-serif`
+  context.font = `700 ${fontSize}px ${PROFILE_ICON_FONT_FAMILY}`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillText(label, center, center + size * 0.02)
+
+  drawProfileCountTag(context, size, badgeText)
 
   return context.getImageData(0, 0, size, size)
 }
@@ -188,13 +260,14 @@ function renderProfileIcon(
 function buildProfileActionIcon(
   profileIndex: number,
   backgroundColor: string,
-  textColor: string
+  textColor: string,
+  badgeText: string
 ): Record<number, ImageData> | null {
   const label = getProfileActionLabel(profileIndex)
   const iconBySize: Partial<Record<number, ImageData>> = {}
 
   for (const size of ACTION_ICON_SIZES) {
-    const imageData = renderProfileIcon(size, label, backgroundColor, textColor)
+    const imageData = renderProfileIcon(size, label, backgroundColor, textColor, badgeText)
     if (!imageData) return null
     iconBySize[size] = imageData
   }
@@ -202,29 +275,74 @@ function buildProfileActionIcon(
   return iconBySize as Record<number, ImageData>
 }
 
-async function updateActionIcon(profile: Profile | null, profileIndex: number): Promise<void> {
+async function clearNativeBadge(): Promise<void> {
+  if (lastBadgeSignature === '') return
+  await chrome.action.setBadgeText({ text: '' })
+  lastBadgeSignature = ''
+}
+
+async function updateNativeBadge(badgeState: BadgeState): Promise<void> {
+  const badgeSignature = `${badgeState.text}:${badgeState.backgroundColor}:${badgeState.textColor}`
+  if (badgeSignature === lastBadgeSignature) return
+
+  await chrome.action.setBadgeBackgroundColor({ color: badgeState.backgroundColor })
+
+  const actionWithBadgeTextColor = chrome.action as typeof chrome.action & {
+    setBadgeTextColor?: (details: { color: string }) => Promise<void>
+  }
+  if (typeof actionWithBadgeTextColor.setBadgeTextColor === 'function') {
+    await actionWithBadgeTextColor.setBadgeTextColor({ color: badgeState.textColor })
+  }
+
+  await chrome.action.setBadgeText({ text: badgeState.text })
+  lastBadgeSignature = badgeSignature
+}
+
+async function updateActionIcon(
+  profile: Profile | null,
+  profileIndex: number,
+  badgeState: BadgeState
+): Promise<void> {
   const iconSignature = profile
-    ? `${profile.id}:${profileIndex}:${profile.color}`
+    ? `${profile.id}:${profileIndex}:${profile.color}:${badgeState.text}`
     : 'default'
 
-  if (iconSignature === lastActionIconSignature) return
+  if (iconSignature === lastActionIconSignature) {
+    if (usesNativeBadgeFallback) {
+      await updateNativeBadge(badgeState)
+    } else {
+      await clearNativeBadge()
+    }
+    return
+  }
 
   if (!profile) {
     await chrome.action.setIcon({ path: DEFAULT_ACTION_ICON_PATHS })
+    usesNativeBadgeFallback = false
+    await clearNativeBadge()
     lastActionIconSignature = iconSignature
     return
   }
 
   const palette = getProfileActionColors(profile)
-  const imageData = buildProfileActionIcon(profileIndex, palette.backgroundColor, palette.textColor)
+  const imageData = buildProfileActionIcon(
+    profileIndex,
+    palette.backgroundColor,
+    palette.textColor,
+    badgeState.text
+  )
 
   if (!imageData) {
     await chrome.action.setIcon({ path: DEFAULT_ACTION_ICON_PATHS })
+    usesNativeBadgeFallback = true
+    await updateNativeBadge(badgeState)
     lastActionIconSignature = iconSignature
     return
   }
 
   await chrome.action.setIcon({ imageData })
+  usesNativeBadgeFallback = false
+  await clearNativeBadge()
   lastActionIconSignature = iconSignature
 }
 
@@ -242,37 +360,14 @@ async function getActiveTabUrl(): Promise<string | undefined> {
   return tabUrls.get(activeTab.id)
 }
 
-async function updateActionBadge(profile: Profile | null): Promise<void> {
+async function syncActionAppearance(profile: Profile | null, profileIndex: number): Promise<void> {
   const activeTabUrl = await getActiveTabUrl()
   const badgeState = createBadgeState(profile, activeTabUrl)
-  const badgeSignature = `${badgeState.text}:${badgeState.backgroundColor}:${badgeState.textColor}`
 
-  if (badgeSignature === lastBadgeSignature) return
-
-  await chrome.action.setBadgeBackgroundColor({ color: badgeState.backgroundColor })
-
-  const actionWithBadgeTextColor = chrome.action as typeof chrome.action & {
-    setBadgeTextColor?: (details: { color: string }) => Promise<void>
-  }
-  if (typeof actionWithBadgeTextColor.setBadgeTextColor === 'function') {
-    await actionWithBadgeTextColor.setBadgeTextColor({ color: badgeState.textColor })
-  }
-
-  await chrome.action.setBadgeText({ text: badgeState.text })
-  lastBadgeSignature = badgeSignature
-}
-
-async function syncActionAppearance(profile: Profile | null, profileIndex: number): Promise<void> {
   try {
-    await updateActionIcon(profile, profileIndex)
+    await updateActionIcon(profile, profileIndex, badgeState)
   } catch (error) {
     console.error('Failed to update action icon:', error)
-  }
-
-  try {
-    await updateActionBadge(profile)
-  } catch (error) {
-    console.error('Failed to update action badge:', error)
   }
 }
 
