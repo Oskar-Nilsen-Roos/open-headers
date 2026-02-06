@@ -3,18 +3,19 @@ import type { ListboxRootEmits, ListboxRootProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
 import { ListboxRoot, useFilter, useForwardPropsEmits } from "reka-ui"
-import { reactive, ref, watch } from "vue"
+import { computed, reactive, ref, watch } from "vue"
 import { cn } from "@/lib/utils"
 import { provideCommandContext } from "."
 
-const props = withDefaults(defineProps<ListboxRootProps & { class?: HTMLAttributes["class"]; unstyled?: boolean }>(), {
+const props = withDefaults(defineProps<ListboxRootProps & { class?: HTMLAttributes["class"]; unstyled?: boolean; filterDisabled?: boolean }>(), {
   modelValue: "",
   unstyled: false,
+  filterDisabled: false,
 })
 
 const emits = defineEmits<ListboxRootEmits>()
 
-const delegatedProps = reactiveOmit(props, "class", "unstyled")
+const delegatedProps = reactiveOmit(props, "class", "unstyled", "filterDisabled")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 
@@ -35,9 +36,10 @@ const filterState = reactive({
 })
 
 function filterItems() {
-  if (!filterState.search) {
+  if (!filterState.search || props.filterDisabled) {
     filterState.filtered.count = allItems.value.size
-    // Do nothing, each item will know to show itself because search is empty
+    filterState.filtered.items = new Map()
+    filterState.filtered.groups = new Set()
     return
   }
 
@@ -70,9 +72,12 @@ watch(() => filterState.search, () => {
   filterItems()
 })
 
+const filterDisabledRef = computed(() => props.filterDisabled)
+
 provideCommandContext({
   allItems,
   allGroups,
+  filterDisabled: filterDisabledRef,
   filterState,
 })
 </script>

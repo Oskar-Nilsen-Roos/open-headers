@@ -168,7 +168,7 @@ export const useHeadersStore = defineStore('headers', () => {
 
   function getHeaderNameSuggestions(type: HeaderType): string[] {
     const suggestions = type === 'request'
-      ? [...COMMON_REQUEST_HEADER_NAMES, ...headerNameHistory.value]
+      ? [...headerNameHistory.value, ...COMMON_REQUEST_HEADER_NAMES]
       : [...headerNameHistory.value]
     const hiddenSet = new Set(hiddenHeaderNameSuggestions.value)
     return mergeUniqueHeaderNames(suggestions).filter(

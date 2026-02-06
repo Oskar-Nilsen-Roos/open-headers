@@ -49,9 +49,18 @@ const commentDraft = ref(props.header.comment)
 const lastCommittedName = ref(props.header.name)
 const lastCommittedValue = ref(props.header.value)
 const lastCommittedComment = ref(props.header.comment)
-const nameOpen = ref(false)
-const valueOpen = ref(false)
 
+// Whether the user intends the popover to be open (input focused / typing)
+const nameInputActive = ref(false)
+const valueInputActive = ref(false)
+
+// Whether the user has started typing since last focus — controls filtering.
+// On focus: false (show all suggestions like a dropdown).
+// On input: true (filter by what they're typing).
+const nameIsSearching = ref(false)
+const valueIsSearching = ref(false)
+
+// Sync drafts when props change externally (undo/redo, etc.)
 watch(() => props.header.name, (value) => {
   nameDraft.value = value
   lastCommittedName.value = value
@@ -68,21 +77,33 @@ watch(() => props.header.comment, (value) => {
 })
 
 const filteredNameSuggestions = computed(() => {
-  const search = nameDraft.value.trim().toLowerCase()
   const suggestions = props.nameSuggestions ?? []
-  const matches = search
-    ? suggestions.filter(suggestion => suggestion.toLowerCase().includes(search))
+  if (!nameIsSearching.value) return suggestions
+  const search = nameDraft.value.trim().toLowerCase()
+  return search
+    ? suggestions.filter(s => s.toLowerCase().includes(search))
     : suggestions
-  return matches.slice(0, 5)
 })
 
 const filteredValueSuggestions = computed(() => {
-  const search = valueDraft.value.trim().toLowerCase()
   const suggestions = props.valueSuggestions ?? []
-  const matches = search
-    ? suggestions.filter(suggestion => suggestion.toLowerCase().includes(search))
+  if (!valueIsSearching.value) return suggestions
+  const search = valueDraft.value.trim().toLowerCase()
+  return search
+    ? suggestions.filter(s => s.toLowerCase().includes(search))
     : suggestions
-  return matches.slice(0, 5)
+})
+
+// Popover opens only when input is active AND there are suggestions to show.
+// The setter handles Popover-initiated close (e.g. Escape key).
+const namePopoverOpen = computed({
+  get: () => nameInputActive.value && filteredNameSuggestions.value.length > 0,
+  set: (val: boolean) => { nameInputActive.value = val },
+})
+
+const valuePopoverOpen = computed({
+  get: () => valueInputActive.value && filteredValueSuggestions.value.length > 0,
+  set: (val: boolean) => { valueInputActive.value = val },
 })
 
 function commitName(value: string) {
@@ -103,19 +124,15 @@ function commitComment(value: string) {
   emit('update', { comment: value })
 }
 
-function handleNameFocus() {
-  nameOpen.value = true
-}
-
 function handleNameBlur() {
+  nameInputActive.value = false
+  nameIsSearching.value = false
   commitName(nameDraft.value)
 }
 
-function handleValueFocus() {
-  valueOpen.value = true
-}
-
 function handleValueBlur() {
+  valueInputActive.value = false
+  valueIsSearching.value = false
   commitValue(valueDraft.value)
 }
 
@@ -126,21 +143,15 @@ function handleCommentBlur() {
 function applyNameSuggestion(suggestion: string) {
   nameDraft.value = suggestion
   commitName(suggestion)
-  nameOpen.value = false
+  nameInputActive.value = false
+  nameIsSearching.value = false
 }
 
 function applyValueSuggestion(suggestion: string) {
   valueDraft.value = suggestion
   commitValue(suggestion)
-  valueOpen.value = false
-}
-
-function handleNameInput() {
-  nameOpen.value = true
-}
-
-function handleValueInput() {
-  valueOpen.value = true
+  valueInputActive.value = false
+  valueIsSearching.value = false
 }
 </script>
 
@@ -164,46 +175,48 @@ function handleValueInput() {
       />
     </div>
 
-    <Command unstyled class="flex-1 min-w-0">
-      <Popover v-model:open="nameOpen">
+    <!-- Name combobox -->
+    <Command unstyled filter-disabled class="flex-1 min-w-0">
+      <Popover v-model:open="namePopoverOpen">
         <PopoverAnchor as-child>
           <CommandInput
             v-model="nameDraft"
             unstyled
             :placeholder="t('placeholder_header_name')"
-            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             autocomplete="off"
             type="text"
-            role="combobox"
-            :aria-expanded="nameOpen"
-            @focus="handleNameFocus"
+            @focus="nameInputActive = true; nameIsSearching = false"
             @blur="handleNameBlur"
-            @click="nameOpen = true"
-            @input="handleNameInput"
-            @keydown.down="nameOpen = true"
-            @keydown.up="nameOpen = true"
+            @input="nameInputActive = true; nameIsSearching = true"
+            @keydown.down="nameInputActive = true"
+            @keydown.up="nameInputActive = true"
           />
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          class="w-[--reka-popover-trigger-width] p-0"
-          @open-auto-focus="event => event.preventDefault()"
+          class="w-[--reka-popper-anchor-width] p-0"
+          @open-auto-focus="(e: Event) => e.preventDefault()"
+          @close-auto-focus="(e: Event) => e.preventDefault()"
+          @interact-outside="(e: Event) => e.preventDefault()"
+          @mousedown.prevent
         >
           <CommandList>
-            <CommandGroup v-if="filteredNameSuggestions.length > 0">
+            <CommandGroup>
               <CommandItem
                 v-for="suggestion in filteredNameSuggestions"
                 :key="suggestion"
                 :value="suggestion"
-                class="group"
+                class="group/suggestion cursor-pointer"
                 @select="() => applyNameSuggestion(suggestion)"
               >
                 <span class="flex-1 truncate">{{ suggestion }}</span>
                 <button
                   type="button"
-                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground hover:bg-muted/70"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
                   @click.stop="emit('removeNameSuggestion', suggestion)"
-                  @mousedown.stop
+                  @mousedown.stop.prevent
+                  @pointerdown.stop
                   :aria-label="t('menu_delete')"
                 >
                   <X class="h-3 w-3" />
@@ -215,47 +228,49 @@ function handleValueInput() {
       </Popover>
     </Command>
 
-    <Command unstyled class="flex-1 min-w-0">
-      <Popover v-model:open="valueOpen">
+    <!-- Value combobox -->
+    <Command unstyled filter-disabled class="flex-1 min-w-0">
+      <Popover v-model:open="valuePopoverOpen">
         <PopoverAnchor as-child>
           <CommandInput
             v-model="valueDraft"
             unstyled
             :placeholder="t('placeholder_value')"
-            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="header.operation === 'remove'"
             autocomplete="off"
             type="text"
-            role="combobox"
-            :aria-expanded="valueOpen"
-            @focus="handleValueFocus"
+            @focus="valueInputActive = true; valueIsSearching = false"
             @blur="handleValueBlur"
-            @click="valueOpen = true"
-            @input="handleValueInput"
-            @keydown.down="valueOpen = true"
-            @keydown.up="valueOpen = true"
+            @input="valueInputActive = true; valueIsSearching = true"
+            @keydown.down="valueInputActive = true"
+            @keydown.up="valueInputActive = true"
           />
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          class="w-[--reka-popover-trigger-width] p-0"
-          @open-auto-focus="event => event.preventDefault()"
+          class="w-[--reka-popper-anchor-width] p-0"
+          @open-auto-focus="(e: Event) => e.preventDefault()"
+          @close-auto-focus="(e: Event) => e.preventDefault()"
+          @interact-outside="(e: Event) => e.preventDefault()"
+          @mousedown.prevent
         >
           <CommandList>
-            <CommandGroup v-if="filteredValueSuggestions.length > 0">
+            <CommandGroup>
               <CommandItem
                 v-for="suggestion in filteredValueSuggestions"
                 :key="suggestion"
                 :value="suggestion"
-                class="group"
+                class="group/suggestion cursor-pointer"
                 @select="() => applyValueSuggestion(suggestion)"
               >
                 <span class="flex-1 truncate">{{ suggestion }}</span>
                 <button
                   type="button"
-                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground hover:bg-muted/70"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
                   @click.stop="emit('removeValueSuggestion', header.name, suggestion)"
-                  @mousedown.stop
+                  @mousedown.stop.prevent
+                  @pointerdown.stop
                   :aria-label="t('menu_delete')"
                 >
                   <X class="h-3 w-3" />
