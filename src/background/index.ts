@@ -13,6 +13,9 @@ const DEFAULT_ICON_PATHS: { [size: number]: string } = {
   128: 'icons/icon128.png',
 }
 const PROFILE_ICON_SIZES = [16, 32, 48, 128]
+const BADGE_BACKGROUND_COLOR = '#111827'
+const BADGE_TEXT_COLOR = '#ffffff'
+const INACTIVE_ICON_OPACITY = 0.52
 const CAN_RENDER_CUSTOM_ICON = typeof OffscreenCanvas !== 'undefined'
 const DEBUG =
   typeof process !== 'undefined' &&
@@ -79,7 +82,7 @@ function createProfileIconImageData(
   profileColor: string,
   textColor: string,
   profileNumber: number,
-  appliedHeaderCountText: string
+  iconOpacity: number
 ): ImageData | null {
   try {
     const canvas = new OffscreenCanvas(size, size)
@@ -88,8 +91,10 @@ function createProfileIconImageData(
 
     const center = size / 2
     const radius = size * 0.42
+    const effectiveOpacity = Math.max(0.15, Math.min(1, iconOpacity))
 
     context.clearRect(0, 0, size, size)
+    context.globalAlpha = effectiveOpacity
     context.beginPath()
     context.arc(center, center, radius, 0, Math.PI * 2)
     context.fillStyle = profileColor
@@ -97,9 +102,9 @@ function createProfileIconImageData(
 
     context.lineWidth = Math.max(1, size * 0.035)
     context.strokeStyle = textColor
-    context.globalAlpha = 0.26
+    context.globalAlpha = effectiveOpacity * 0.26
     context.stroke()
-    context.globalAlpha = 1
+    context.globalAlpha = effectiveOpacity
 
     const displayedNumber = String(Math.min(Math.max(profileNumber, 1), 99))
     const fontScale = displayedNumber.length > 1 ? 0.48 : 0.58
@@ -108,23 +113,7 @@ function createProfileIconImageData(
     context.textBaseline = 'middle'
     context.font = `700 ${Math.max(8, Math.floor(size * fontScale))}px "SF Pro Rounded", "Avenir Next Rounded", "Nunito Sans", "Trebuchet MS", "Segoe UI", sans-serif`
     context.fillText(displayedNumber, center, center + size * 0.02)
-
-    if (appliedHeaderCountText) {
-      const badgeFontSize = Math.max(7, Math.floor(size * 0.33))
-      const badgeX = size - Math.max(1, Math.floor(size * 0.08))
-      const badgeY = Math.max(0, Math.floor(size * 0.03))
-
-      context.textAlign = 'right'
-      context.textBaseline = 'top'
-      context.lineJoin = 'round'
-      context.miterLimit = 2
-      context.font = `800 ${badgeFontSize}px "SF Pro Rounded", "Avenir Next Rounded", "Nunito Sans", "Trebuchet MS", "Segoe UI", sans-serif`
-      context.strokeStyle = 'rgba(15, 23, 42, 0.9)'
-      context.lineWidth = Math.max(1.2, size * 0.12)
-      context.strokeText(appliedHeaderCountText, badgeX, badgeY)
-      context.fillStyle = '#ffffff'
-      context.fillText(appliedHeaderCountText, badgeX, badgeY)
-    }
+    context.globalAlpha = 1
 
     return context.getImageData(0, 0, size, size)
   } catch {
@@ -136,7 +125,7 @@ function createProfileIconSet(
   profileColor: string,
   textColor: string,
   profileNumber: number,
-  appliedHeaderCountText: string
+  iconOpacity: number
 ): { [size: number]: ImageData } | null {
   const imageDataBySize: { [size: number]: ImageData } = {}
 
@@ -146,7 +135,7 @@ function createProfileIconSet(
       profileColor,
       textColor,
       profileNumber,
-      appliedHeaderCountText
+      iconOpacity
     )
     if (!imageData) return null
     imageDataBySize[size] = imageData
@@ -170,7 +159,7 @@ function getAppliedHeaderCountForUrl(profile: Profile, tabUrl: string | undefine
   return getEnabledHeaderCount(profile)
 }
 
-function formatAppliedHeaderCount(count: number): string {
+function formatBadgeCount(count: number): string {
   if (count <= 0) return ''
   return count > 99 ? '99+' : String(count)
 }
@@ -233,6 +222,8 @@ let updateInFlight: Promise<void> | null = null
 let pendingActionUpdate = false
 let actionUpdateInFlight: Promise<void> | null = null
 let lastAppliedIconKey: string | null = null
+let lastBadgeText: string | null = null
+let badgeStyleInitialized = false
 
 async function clearDynamicRulesOnce(): Promise<void> {
   if (hasClearedDynamicRules) return
@@ -262,11 +253,7 @@ function computeEnabledTabIds(profile: Profile): number[] {
   return enabled
 }
 
-async function setActionIcon(
-  profile: Profile | null,
-  profileNumber: number,
-  appliedHeaderCountText: string
-): Promise<void> {
+async function setActionIcon(profile: Profile | null, profileNumber: number, iconOpacity: number): Promise<void> {
   if (!profile || !CAN_RENDER_CUSTOM_ICON) {
     if (lastAppliedIconKey === 'default') return
     await chrome.action.setIcon({ path: DEFAULT_ICON_PATHS })
@@ -276,10 +263,10 @@ async function setActionIcon(
 
   const profileColor = normalizeProfileColor(profile.color)
   const textColor = getReadableTextColor(profileColor)
-  const iconKey = `profile:${profileColor}:${textColor}:${profileNumber}:${appliedHeaderCountText}`
+  const iconKey = `profile:${profileColor}:${textColor}:${profileNumber}:${iconOpacity.toFixed(2)}`
   if (lastAppliedIconKey === iconKey) return
 
-  const iconSet = createProfileIconSet(profileColor, textColor, profileNumber, appliedHeaderCountText)
+  const iconSet = createProfileIconSet(profileColor, textColor, profileNumber, iconOpacity)
   if (!iconSet) {
     if (lastAppliedIconKey === 'default') return
     await chrome.action.setIcon({ path: DEFAULT_ICON_PATHS })
@@ -300,21 +287,33 @@ async function getActiveTabUrl(): Promise<string | undefined> {
   return tabUrls.get(activeTab.id)
 }
 
+async function setActionBadgeText(text: string): Promise<void> {
+  if (text && !badgeStyleInitialized) {
+    await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND_COLOR })
+    if (chrome.action.setBadgeTextColor) {
+      await chrome.action.setBadgeTextColor({ color: BADGE_TEXT_COLOR })
+    }
+    badgeStyleInitialized = true
+  }
+
+  if (lastBadgeText === text) return
+  await chrome.action.setBadgeText({ text })
+  lastBadgeText = text
+}
+
 async function updateActionAppearanceOnce(): Promise<void> {
   try {
     const profile = getActiveProfile(latestState)
     const profileNumber = getActiveProfileNumber(latestState)
-    await chrome.action.setBadgeText({ text: '' })
-
-    if (!profile) {
-      await setActionIcon(profile, profileNumber, '')
-      return
+    let appliedHeaderCount = 0
+    if (profile) {
+      const activeTabUrl = await getActiveTabUrl()
+      appliedHeaderCount = getAppliedHeaderCountForUrl(profile, activeTabUrl)
     }
+    const iconOpacity = appliedHeaderCount > 0 ? 1 : INACTIVE_ICON_OPACITY
 
-    const activeTabUrl = await getActiveTabUrl()
-    const appliedHeaderCount = getAppliedHeaderCountForUrl(profile, activeTabUrl)
-    const appliedHeaderCountText = formatAppliedHeaderCount(appliedHeaderCount)
-    await setActionIcon(profile, profileNumber, appliedHeaderCountText)
+    await setActionIcon(profile, profileNumber, iconOpacity)
+    await setActionBadgeText(formatBadgeCount(appliedHeaderCount))
   } catch (error) {
     console.error('Failed to update action appearance:', error)
   }
