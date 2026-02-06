@@ -7,15 +7,7 @@ import type { Profile } from '@/types'
 vi.mock('lucide-vue-next', () => ({
   Undo2: { template: '<span>Undo2</span>' },
   Redo2: { template: '<span>Redo2</span>' },
-  Plus: { template: '<span>Plus</span>' },
   Download: { template: '<span>Download</span>' },
-  Upload: { template: '<span>Upload</span>' },
-  MoreVertical: { template: '<span>MoreVertical</span>' },
-  Copy: { template: '<span>Copy</span>' },
-  Trash2: { template: '<span>Trash2</span>' },
-  Moon: { template: '<span>Moon</span>' },
-  Sun: { template: '<span>Sun</span>' },
-  Contrast: { template: '<span>Contrast</span>' },
 }))
 
 describe('ProfileHeader', () => {
@@ -35,8 +27,6 @@ describe('ProfileHeader', () => {
     profileIndex: 0,
     canUndo: false,
     canRedo: false,
-    darkModePreference: 'system' as const,
-    languagePreference: 'auto' as const,
   }
 
   const mountComponent = (props = {}) => {
@@ -49,40 +39,13 @@ describe('ProfileHeader', () => {
             props: ['disabled', 'variant', 'size', 'class'],
           },
           Input: {
-            template: '<input :value="modelValue" @blur="$emit(\'blur\')" @keyup="handleKeyup" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template: '<input :value="modelValue" @blur="$emit(\'blur\')" @input="$emit(\'update:modelValue\', $event.target.value)" />',
             props: ['modelValue'],
-            methods: {
-              handleKeyup(e: KeyboardEvent) {
-                if (e.key === 'Enter') this.$emit('keyup.enter')
-                if (e.key === 'Escape') this.$emit('keyup.escape')
-              },
-            },
           },
           Tooltip: { template: '<div><slot /></div>' },
           TooltipContent: { template: '<div><slot /></div>' },
           TooltipProvider: { template: '<div><slot /></div>' },
           TooltipTrigger: { template: '<div><slot /></div>' },
-          DropdownMenu: { template: '<div><slot /></div>' },
-          DropdownMenuTrigger: { template: '<div><slot /></div>' },
-          DropdownMenuContent: { template: '<div><slot /></div>' },
-          DropdownMenuItem: {
-            template: '<div @click="$emit(\'select\')"><slot /></div>',
-          },
-          DropdownMenuSeparator: { template: '<hr />' },
-          DropdownMenuLabel: { template: '<div><slot /></div>' },
-          Select: { template: '<div><slot /></div>' },
-          SelectTrigger: { template: '<div><slot /></div>' },
-          SelectValue: { template: '<div><slot /></div>', props: ['placeholder'] },
-          SelectContent: { template: '<div><slot /></div>' },
-          SelectItem: { template: '<div><slot /></div>', props: ['value'] },
-          AlertDialog: { template: '<div v-if="open"><slot /></div>', props: ['open'] },
-          AlertDialogContent: { template: '<div><slot /></div>' },
-          AlertDialogHeader: { template: '<div><slot /></div>' },
-          AlertDialogTitle: { template: '<div><slot /></div>' },
-          AlertDialogDescription: { template: '<div><slot /></div>' },
-          AlertDialogFooter: { template: '<div><slot /></div>' },
-          AlertDialogCancel: { template: '<button @click="$emit(\'click\')">Cancel</button>' },
-          AlertDialogAction: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
         },
       },
     })
@@ -101,14 +64,6 @@ describe('ProfileHeader', () => {
       const wrapper = mountComponent({ profileIndex: 2 })
 
       expect(wrapper.text()).toContain('3')
-    })
-
-    it('renders theme toggle group with all options', () => {
-      const wrapper = mountComponent()
-
-      expect(wrapper.text()).toContain('System')
-      expect(wrapper.text()).toContain('Light')
-      expect(wrapper.text()).toContain('Dark')
     })
 
     it('applies profile color as background', () => {
@@ -176,16 +131,6 @@ describe('ProfileHeader', () => {
       expect(wrapper.emitted('redo')).toBeTruthy()
     })
 
-    it('emits addHeader when plus button is clicked', async () => {
-      const wrapper = mountComponent()
-
-      const buttons = wrapper.findAll('button')
-      const addButton = buttons.find(b => b.text().includes('Plus'))
-      await addButton?.trigger('click')
-
-      expect(wrapper.emitted('addHeader')).toBeTruthy()
-    })
-
     it('emits export when download button is clicked', async () => {
       const wrapper = mountComponent()
 
@@ -194,31 +139,6 @@ describe('ProfileHeader', () => {
       await exportButton?.trigger('click')
 
       expect(wrapper.emitted('export')).toBeTruthy()
-    })
-
-    it('renders import menu item', async () => {
-      const wrapper = mountComponent()
-      // Verify the menu item exists in the rendered output
-      expect(wrapper.html()).toContain('Import')
-    })
-
-    it('renders duplicate menu item', async () => {
-      const wrapper = mountComponent()
-      // Verify the menu item exists in the rendered output
-      expect(wrapper.html()).toContain('Duplicate')
-    })
-
-    it('renders theme toggle buttons in dropdown menu', async () => {
-      const wrapper = mountComponent()
-      expect(wrapper.text()).toContain('System')
-      expect(wrapper.text()).toContain('Light')
-      expect(wrapper.text()).toContain('Dark')
-    })
-
-    it('renders delete menu item', async () => {
-      const wrapper = mountComponent()
-      // Verify the menu item exists in the rendered output
-      expect(wrapper.html()).toContain('Delete profile')
     })
   })
 

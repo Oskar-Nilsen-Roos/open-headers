@@ -4,7 +4,7 @@ import UrlFilterRow from '@/components/UrlFilterRow.vue'
 import type { UrlFilter } from '@/types'
 
 vi.mock('lucide-vue-next', () => ({
-  MoreVertical: { template: '<span>MoreVertical</span>' },
+  Copy: { template: '<span>Copy</span>' },
   Trash2: { template: '<span>Trash2</span>' },
   GripVertical: { template: '<span>GripVertical</span>' },
 }))
@@ -59,15 +59,9 @@ describe('UrlFilterRow', () => {
           SelectValue: { template: '<div><slot /></div>' },
           SelectContent: { template: '<div><slot /></div>' },
           SelectItem: { template: '<div><slot /></div>' },
-          Button: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
-          Tooltip: { template: '<div><slot /></div>' },
-          TooltipContent: { template: '<div><slot /></div>' },
-          TooltipTrigger: { template: '<div><slot /></div>' },
-          DropdownMenu: { template: '<div><slot /></div>' },
-          DropdownMenuTrigger: { template: '<div><slot /></div>' },
-          DropdownMenuContent: { template: '<div><slot /></div>' },
-          DropdownMenuItem: {
-            template: '<button data-testid="delete" @click="$emit(\'select\')"><slot /></button>',
+          Button: {
+            template: '<button @click="$emit(\'click\')"><slot /></button>',
+            props: ['variant', 'size'],
           },
         },
       },
@@ -108,10 +102,12 @@ describe('UrlFilterRow', () => {
     expect(wrapper.emitted('update')?.[0]).toEqual(['filter-1', { pattern: 'example.com' }])
   })
 
-  it('emits remove when delete is selected', async () => {
+  it('emits remove when delete button is clicked', async () => {
     const wrapper = mountComponent(createFilter())
 
-    await wrapper.find('[data-testid="delete"]').trigger('click')
+    const buttons = wrapper.findAll('button')
+    const deleteButton = buttons.find(b => b.text().includes('Trash2'))
+    await deleteButton?.trigger('click')
 
     expect(wrapper.emitted('remove')).toBeTruthy()
     expect(wrapper.emitted('remove')?.[0]).toEqual(['filter-1'])

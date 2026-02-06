@@ -40,49 +40,15 @@ const slottedItems = computed(() =>
   utils.toSlottedItems(props.items, 'id', slotItemMap.value)
 )
 
-function areIdArraysEqual(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id, idx) => id === b[idx])
-}
-
-function areIdSetsEqual(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false
-  const setA = new Set(a)
-  if (setA.size !== b.length) return false
-  return b.every(id => setA.has(id))
-}
-
-// Watch for external changes:
-// - Add/remove: let dynamicSwapy reconcile the slot map.
-// - Reorder: reset slot map so list reflects the new order (supports undo/redo).
+// Watch for external changes (add, remove, reorder, undo/redo):
+// Reset slot map from data order so the visual list always matches the store.
 watch(
   () => props.items.map(item => item.id),
   (newIds, oldIds) => {
     const prevIds = oldIds ?? []
+    const changed = newIds.length !== prevIds.length || newIds.some((id, i) => id !== prevIds[i])
 
-    const idsChanged = !areIdSetsEqual(newIds, prevIds)
-    const orderChanged = !idsChanged && !areIdArraysEqual(newIds, prevIds)
-
-    if (idsChanged) {
-      if (!swapy.value) {
-        slotItemMap.value = [...utils.initSlotItemMap(props.items, 'id')]
-        return
-      }
-
-      nextTick(() => {
-        utils.dynamicSwapy(
-          swapy.value,
-          props.items,
-          'id',
-          slotItemMap.value,
-          (newMap: SlotItemMapArray) => {
-            slotItemMap.value = newMap
-          }
-        )
-      })
-      return
-    }
-
-    if (orderChanged) {
+    if (changed) {
       slotItemMap.value = [...utils.initSlotItemMap(props.items, 'id')]
       nextTick(() => swapy.value?.update())
     }

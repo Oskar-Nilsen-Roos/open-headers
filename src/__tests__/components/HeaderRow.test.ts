@@ -5,7 +5,6 @@ import type { HeaderRule } from '@/types'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
-  MoreVertical: { template: '<span>MoreVertical</span>' },
   GripVertical: { template: '<span>GripVertical</span>' },
   Copy: { template: '<span>Copy</span>' },
   Trash2: { template: '<span>Trash2</span>' },
@@ -40,16 +39,7 @@ describe('HeaderRow', () => {
             template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" @focus="$emit(\'focus\')" />',
             props: ['modelValue', 'placeholder', 'disabled'],
           },
-          Button: { template: '<button><slot /></button>' },
-          Tooltip: { template: '<div><slot /></div>' },
-          TooltipContent: { template: '<div><slot /></div>' },
-          TooltipTrigger: { template: '<div><slot /></div>' },
-          DropdownMenu: { template: '<div><slot /></div>' },
-          DropdownMenuTrigger: { template: '<div><slot /></div>' },
-          DropdownMenuContent: { template: '<div><slot /></div>' },
-          DropdownMenuItem: {
-            template: '<div @click="$emit(\'select\')"><slot /></div>',
-          },
+          Button: { template: '<button @click="$emit(\'click\')"><slot /></button>' },
           Popover: { template: '<div><slot /></div>' },
           PopoverAnchor: { template: '<div><slot /></div>' },
           PopoverTrigger: { template: '<div><slot /></div>' },
@@ -175,36 +165,26 @@ describe('HeaderRow', () => {
       expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'new comment' }])
     })
 
-    it('emits duplicate when duplicate menu item is selected', async () => {
+    it('emits duplicate when duplicate button is clicked', async () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
-      // Find all divs that act as menu items and click the one with "Duplicate"
-      const allDivs = wrapper.findAll('div')
-      const duplicateItem = allDivs.find(d => d.text() === 'CopyDuplicate')
-      if (duplicateItem) {
-        await duplicateItem.trigger('click')
-      }
+      const buttons = wrapper.findAll('button')
+      const duplicateButton = buttons.find(b => b.text().includes('Copy'))
+      await duplicateButton?.trigger('click')
 
-      // The event may not be emitted due to stub limitations
-      // This test verifies the component structure is correct
-      expect(wrapper.html()).toContain('Duplicate')
+      expect(wrapper.emitted('duplicate')).toBeTruthy()
     })
 
-    it('emits remove when delete menu item is selected', async () => {
+    it('emits remove when delete button is clicked', async () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
-      // Find all divs that act as menu items
-      const allDivs = wrapper.findAll('div')
-      const deleteItem = allDivs.find(d => d.text() === 'Trash2Delete')
-      if (deleteItem) {
-        await deleteItem.trigger('click')
-      }
+      const buttons = wrapper.findAll('button')
+      const deleteButton = buttons.find(b => b.text().includes('Trash2'))
+      await deleteButton?.trigger('click')
 
-      // The event may not be emitted due to stub limitations
-      // This test verifies the component structure is correct
-      expect(wrapper.html()).toContain('Delete')
+      expect(wrapper.emitted('remove')).toBeTruthy()
     })
   })
 

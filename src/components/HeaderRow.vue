@@ -16,13 +16,7 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from '@/components/ui/popover'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { MoreVertical, GripVertical, Copy, Trash2, X } from 'lucide-vue-next'
+import { GripVertical, Copy, Trash2, X } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
 const props = withDefaults(defineProps<{
@@ -289,28 +283,28 @@ function applyValueSuggestion(suggestion: string) {
       @blur="handleCommentBlur"
     />
 
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="text-muted-foreground hover:text-foreground"
-          :aria-label="t('tooltip_more_actions')"
-          :title="t('tooltip_more_actions')"
-        >
-          <MoreVertical class="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem @select="emit('duplicate')">
-          <Copy class="h-4 w-4 mr-2" />
-          {{ t('menu_duplicate') }}
-        </DropdownMenuItem>
-        <DropdownMenuItem class="text-destructive" @select="emit('remove')">
-          <Trash2 class="h-4 w-4 mr-2" />
-          {{ t('menu_delete') }}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div class="flex items-center -space-x-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="text-muted-foreground hover:text-foreground"
+        :aria-label="t('menu_duplicate')"
+        :title="t('menu_duplicate')"
+        @click="emit('duplicate')"
+      >
+        <Copy class="h-3.5 w-3.5" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="text-muted-foreground hover:text-destructive"
+        :aria-label="t('menu_delete')"
+        :title="t('menu_delete')"
+        @click="emit('remove')"
+      >
+        <Trash2 class="h-3.5 w-3.5" />
+      </Button>
+    </div>
   </div>
 </template>

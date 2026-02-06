@@ -75,9 +75,13 @@
     "message": "Redo",
     "description": "Tooltip for redo button"
   },
-  "tooltip_export_profiles": {
-    "message": "Export profiles",
-    "description": "Tooltip for export profiles button"
+  "tooltip_export_profile": {
+    "message": "Export profile",
+    "description": "Tooltip for export profile button"
+  },
+  "menu_export_all_profiles": {
+    "message": "Export all profiles",
+    "description": "Menu item for exporting all profiles"
   },
   "menu_import_profiles": {
     "message": "Import profiles",
@@ -163,9 +167,13 @@
     "message": "Clear filters",
     "description": "Tooltip for clear filters button"
   },
-  "export_file_name": {
+  "export_profile_file_name": {
+    "message": "openheaders-profile.json",
+    "description": "Default filename for single profile export"
+  },
+  "export_profiles_file_name": {
     "message": "openheaders-profiles.json",
-    "description": "Default filename for profile export"
+    "description": "Default filename for all profiles export"
   },
   "url_filters_title": {
     "message": "URL filters",

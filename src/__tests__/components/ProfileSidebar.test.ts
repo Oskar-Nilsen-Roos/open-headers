@@ -6,6 +6,14 @@ import type { Profile } from '@/types'
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
   Plus: { template: '<span>Plus</span>' },
+  MoreVertical: { template: '<span>MoreVertical</span>' },
+  Upload: { template: '<span>Upload</span>' },
+  Copy: { template: '<span>Copy</span>' },
+  Trash2: { template: '<span>Trash2</span>' },
+  Moon: { template: '<span>Moon</span>' },
+  Sun: { template: '<span>Sun</span>' },
+  Contrast: { template: '<span>Contrast</span>' },
+  Download: { template: '<span>Download</span>' },
 }))
 
 // Mock swapy
@@ -44,7 +52,12 @@ describe('ProfileSidebar', () => {
 
   const mountComponent = (props: { profiles: Profile[]; activeProfileId: string | null }) => {
     return mount(ProfileSidebar, {
-      props,
+      props: {
+        activeProfile: props.profiles.find(p => p.id === props.activeProfileId) ?? null,
+        darkModePreference: 'system' as const,
+        languagePreference: 'auto' as const,
+        ...props,
+      },
       global: {
         stubs: {
           Button: {
@@ -55,6 +68,24 @@ describe('ProfileSidebar', () => {
           TooltipContent: { template: '<div><slot /></div>' },
           TooltipProvider: { template: '<div><slot /></div>' },
           TooltipTrigger: { template: '<div><slot /></div>' },
+          DropdownMenu: { template: '<div><slot /></div>' },
+          DropdownMenuTrigger: { template: '<div><slot /></div>' },
+          DropdownMenuContent: { template: '<div><slot /></div>' },
+          DropdownMenuItem: { template: '<div><slot /></div>' },
+          DropdownMenuSeparator: { template: '<div />' },
+          AlertDialog: { template: '<div><slot /></div>' },
+          AlertDialogAction: { template: '<div><slot /></div>' },
+          AlertDialogCancel: { template: '<div><slot /></div>' },
+          AlertDialogContent: { template: '<div><slot /></div>' },
+          AlertDialogDescription: { template: '<div><slot /></div>' },
+          AlertDialogFooter: { template: '<div><slot /></div>' },
+          AlertDialogHeader: { template: '<div><slot /></div>' },
+          AlertDialogTitle: { template: '<div><slot /></div>' },
+          Select: { template: '<div><slot /></div>' },
+          SelectContent: { template: '<div><slot /></div>' },
+          SelectItem: { template: '<div><slot /></div>' },
+          SelectTrigger: { template: '<div><slot /></div>' },
+          SelectValue: { template: '<div><slot /></div>' },
         },
       },
     })
@@ -171,14 +202,12 @@ describe('ProfileSidebar', () => {
   })
 
   describe('empty state', () => {
-    it('only shows add button when no profiles', () => {
+    it('shows add button when no profiles', () => {
       const wrapper = mountComponent({
         profiles: [],
         activeProfileId: null,
       })
 
-      const buttons = wrapper.findAll('button')
-      expect(buttons.length).toBe(1)
       expect(wrapper.text()).toContain('Plus')
     })
   })

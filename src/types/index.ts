@@ -203,7 +203,7 @@ export const DEFAULT_PROFILE_COLORS = [
 export function createEmptyHeader(type: HeaderType = 'request'): HeaderRule {
   return {
     id: generateId(),
-    enabled: true,
+    enabled: false,
     name: '',
     value: '',
     comment: '',
