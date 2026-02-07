@@ -33,7 +33,7 @@ Types:
 
 Examples:
 - `feat: add localhost and path URL filters`
-- `fix: keep action sync without windows API listener`
+- `fix: keep action sync without Windows API listener`
 - `style: dim action icon when native badge count is zero`
 - `chore: bump version to 0.2.0`
 

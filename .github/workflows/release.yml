@@ -36,7 +36,7 @@ jobs:
         id: changelog
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -n 1)
+          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | grep -vFx "$TAG" | head -n 1)
 
           if [ -z "$PREV_TAG" ]; then
             RANGE="HEAD"
@@ -78,7 +78,7 @@ jobs:
 
           {
             echo "body<<EOF"
-            echo -e "$CHANGELOG"
+            printf '%b\n' "$CHANGELOG"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
