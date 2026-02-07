@@ -103,6 +103,14 @@ function buildRulesFromActiveProfile(state: AppState, tabs: TabInfo[]): Rule[] {
   return rules
 }
 
+function countAppliedHeadersForTab(state: AppState, tabUrl: string): number {
+  const profile = state.profiles.find((p) => p.id === state.activeProfileId)
+  if (!profile) return 0
+  if (!tabUrl.startsWith('http://') && !tabUrl.startsWith('https://')) return 0
+  if (!isProfileEnabledForTabUrl(profile, tabUrl)) return 0
+  return profile.headers.filter((h) => h.enabled && h.name.trim()).length
+}
+
 describe('Background Script Logic', () => {
   const createHeader = (overrides: Partial<HeaderRule> = {}): HeaderRule => ({
     id: 'header-id',
@@ -309,6 +317,56 @@ describe('Background Script Logic', () => {
 
       expect(rules.length).toBe(1)
       expect(rules[0]!.condition.tabIds).toEqual([1])
+    })
+  })
+
+  describe('countAppliedHeadersForTab', () => {
+    it('counts only enabled headers with non-empty names', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [
+              createHeader({ enabled: true, name: 'X-Enabled-1' }),
+              createHeader({ id: 'h2', enabled: true, name: 'X-Enabled-2' }),
+              createHeader({ id: 'h3', enabled: false, name: 'X-Disabled' }),
+              createHeader({ id: 'h4', enabled: true, name: '   ' }),
+            ],
+            urlFilters: [
+              { id: 'f1', enabled: true, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
+            ],
+          }),
+        ],
+      })
+
+      // URL filters only gate applicability; they are not counted as active items.
+      expect(countAppliedHeadersForTab(state, 'https://example.com/')).toBe(2)
+    })
+
+    it('returns 0 when include filters do not match', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [createHeader({ name: 'X-Test' })],
+            urlFilters: [
+              { id: 'f1', enabled: true, type: 'include', matchType: 'host_equals', pattern: 'example.com' },
+            ],
+          }),
+        ],
+      })
+
+      expect(countAppliedHeadersForTab(state, 'https://other.com/')).toBe(0)
+    })
+
+    it('returns 0 for non-http tabs', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [createHeader({ name: 'X-Test' })],
+          }),
+        ],
+      })
+
+      expect(countAppliedHeadersForTab(state, 'chrome://extensions')).toBe(0)
     })
   })
 })
