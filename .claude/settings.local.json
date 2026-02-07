@@ -1,0 +1,7 @@
+{
+  "enabledMcpjsonServers": [
+    "shadcn",
+    "vue-mcp"
+  ],
+  "enableAllProjectMcpServers": true
+}

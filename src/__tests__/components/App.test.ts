@@ -21,8 +21,7 @@ const TabsStub = {
 }
 
 const ProfileHeaderStub = {
-  emits: ['addHeader'],
-  template: `<button data-test="profile-add" @click="$emit('addHeader')">+</button>`,
+  template: `<div data-test="profile-header" />`,
 }
 
 const HeaderListStub = {
@@ -121,8 +120,8 @@ describe('App - Header Type Tabs', () => {
     await nextTick()
     expect(wrapper.get('[data-test="header-list"]').attributes('data-count')).toBe('0')
 
-    // Add via profile header (+) while on request tab
-    await wrapper.get('[data-test="profile-add"]').trigger('click')
+    // Add via footer button while on request tab
+    await wrapper.get('[data-testid="footer-add"]').trigger('click')
     await nextTick()
     expect(store.requestHeaders.length).toBe(1)
   })

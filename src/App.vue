@@ -62,6 +62,14 @@ const activeHeaders = computed(() => {
     : store.responseHeaders
 })
 
+const headerNameSuggestions = computed(() => {
+  return store.getHeaderNameSuggestions(activeHeaderType.value)
+})
+
+const getHeaderValueSuggestions = (name: string) => {
+  return store.getHeaderValueSuggestions(name)
+}
+
 const canClearFooter = computed(() => {
   if (activeMainTab.value === 'filters') {
     return (store.activeProfile?.urlFilters.length ?? 0) > 0
@@ -119,6 +127,22 @@ function handleClearHeaders() {
 
 function handleReorderHeaders(orderedIds: string[]) {
   store.reorderHeaders(orderedIds, activeHeaderType.value)
+}
+
+function handleRemoveHeaderNameSuggestion(name: string) {
+  store.removeHeaderNameSuggestion(name)
+}
+
+function handleRemoveHeaderValueSuggestion(name: string, value: string) {
+  store.removeHeaderValueSuggestion(name, value)
+}
+
+const getUrlPatternSuggestions = (matchType: string) => {
+  return store.getUrlPatternSuggestions(matchType)
+}
+
+function handleRemoveUrlPatternSuggestion(matchType: string, pattern: string) {
+  store.removeUrlPatternSuggestion(matchType, pattern)
 }
 
 function handleUpdateUrlFilter(filterId: string, updates: Partial<UrlFilter>) {
@@ -292,21 +316,27 @@ function handleImport() {
             <HeaderList
               v-if="activeMainTab !== 'filters'"
               :headers="activeHeaders"
+              :name-suggestions="headerNameSuggestions"
+              :get-value-suggestions="getHeaderValueSuggestions"
               @remove="handleRemoveHeader"
               @update="handleUpdateHeader"
               @toggle="handleToggleHeader"
               @duplicate="handleDuplicateHeader"
               @add="handleAddHeader"
-              @reorder="handleReorderHeaders" />
+              @reorder="handleReorderHeaders"
+              @remove-name-suggestion="handleRemoveHeaderNameSuggestion"
+              @remove-value-suggestion="handleRemoveHeaderValueSuggestion" />
 
             <UrlFilterList
               v-else
               :filters="store.activeProfile?.urlFilters ?? []"
+              :get-pattern-suggestions="getUrlPatternSuggestions"
               @update="handleUpdateUrlFilter"
               @remove="handleRemoveUrlFilter"
               @duplicate="store.duplicateUrlFilter"
               @add="store.addUrlFilter('include')"
-              @reorder="store.reorderUrlFilters" />
+              @reorder="store.reorderUrlFilters"
+              @remove-pattern-suggestion="handleRemoveUrlPatternSuggestion" />
           </div>
 
           <!-- Sticky Footer Actions -->

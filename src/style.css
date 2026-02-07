@@ -164,6 +164,11 @@
   animation: animate-in 150ms ease-out, fade-in 150ms ease-out, zoom-in-95 150ms ease-out, slide-in-from-left 150ms ease-out;
 }
 
+/* Override reka-ui popper wrapper min-width so popover width matches anchor */
+[data-reka-popper-content-wrapper]:has(> [data-slot="popover-content"]) {
+  min-width: 0 !important;
+}
+
 /* Chrome extension popup specific styles */
 html, body, #app {
   height: 100%;

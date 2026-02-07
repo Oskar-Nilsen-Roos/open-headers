@@ -153,9 +153,9 @@ describe('useHeadersStore', () => {
       const header = store.requestHeaders[0]
       if (!header) throw new Error('No header')
 
-      expect(header.enabled).toBe(true)
-      store.toggleHeader(header.id)
       expect(header.enabled).toBe(false)
+      store.toggleHeader(header.id)
+      expect(header.enabled).toBe(true)
     })
 
     it('clears all headers of a specific type', async () => {
@@ -609,7 +609,7 @@ describe('useHeadersStore', () => {
         comment: 'original comment',
         operation: 'append',
       })
-      store.toggleHeader(original.id) // disable it
+      store.toggleHeader(original.id) // toggle: false -> true
 
       store.duplicateHeader(original.id)
 
@@ -620,7 +620,7 @@ describe('useHeadersStore', () => {
       expect(duplicate.value).toBe('original-value')
       expect(duplicate.comment).toBe('original comment')
       expect(duplicate.operation).toBe('append')
-      expect(duplicate.enabled).toBe(false)
+      expect(duplicate.enabled).toBe(true)
     })
 
     it('inserts duplicate after original', async () => {
@@ -1018,7 +1018,7 @@ describe('useHeadersStore', () => {
       store.addHeader('request')
       const profile1Header = store.requestHeaders[0]
       if (!profile1Header) throw new Error('No header')
-      store.updateHeader(profile1Header.id, { name: 'X-Test', value: 'test' })
+      store.updateHeader(profile1Header.id, { name: 'X-Test', value: 'test', enabled: true })
       expect(profile1Header.enabled).toBe(true)
 
       // Create profile 2
