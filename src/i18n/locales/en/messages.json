@@ -79,6 +79,70 @@
     "message": "Export profile",
     "description": "Tooltip for export profile button"
   },
+  "tooltip_change_profile_color": {
+    "message": "Change profile color",
+    "description": "Tooltip/aria label for opening profile color picker"
+  },
+  "profile_color_label": {
+    "message": "Profile color",
+    "description": "Label shown in the profile color picker popover"
+  },
+  "profile_color_picker_label": {
+    "message": "Color picker",
+    "description": "Label for color control section"
+  },
+  "profile_color_hue_label": {
+    "message": "Hue",
+    "description": "Label for hue slider in profile color picker"
+  },
+  "profile_color_saturation_label": {
+    "message": "Saturation",
+    "description": "Label for saturation slider in profile color picker"
+  },
+  "profile_color_brightness_label": {
+    "message": "Brightness",
+    "description": "Label for brightness slider in profile color picker"
+  },
+  "profile_color_input_label": {
+    "message": "Color input",
+    "description": "Label for free-form profile color input"
+  },
+  "profile_color_input_placeholder": {
+    "message": "#7c3aed or rgb(...) or oklch(...)",
+    "description": "Placeholder text for free-form profile color input"
+  },
+  "profile_color_input_hint": {
+    "message": "Paste hex, rgb(), or oklch() and press Enter.",
+    "description": "Helper text for profile color input field"
+  },
+  "profile_color_input_invalid": {
+    "message": "Invalid color. Use hex, rgb(), or oklch().",
+    "description": "Error text when profile color input cannot be parsed"
+  },
+  "profile_color_eyedropper": {
+    "message": "Pick color from screen",
+    "description": "Tooltip label for eye dropper color picker action"
+  },
+  "profile_color_eyedropper_unavailable": {
+    "message": "Color dropper unavailable in this browser",
+    "description": "Tooltip label when eye dropper API is not available"
+  },
+  "profile_color_hex_label": {
+    "message": "Hex value",
+    "description": "Label for profile color hex input field"
+  },
+  "profile_color_hex_placeholder": {
+    "message": "#7C3AED",
+    "description": "Placeholder text for profile color hex input field"
+  },
+  "profile_color_presets_label": {
+    "message": "Presets",
+    "description": "Label for preset profile colors"
+  },
+  "profile_color_preset": {
+    "message": "Preset color",
+    "description": "Aria label prefix for preset profile color buttons"
+  },
   "menu_export_all_profiles": {
     "message": "Export all profiles",
     "description": "Menu item for exporting all profiles"

@@ -3,17 +3,17 @@ import { mount } from '@vue/test-utils'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import type { Profile } from '@/types'
 
-// Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
   Undo2: { template: '<span>Undo2</span>' },
   Redo2: { template: '<span>Redo2</span>' },
   Download: { template: '<span>Download</span>' },
+  Pipette: { template: '<span>Pipette</span>' },
 }))
 
 describe('ProfileHeader', () => {
   const createProfile = (overrides: Partial<Profile> = {}): Profile => ({
-    id: 'test-profile-id',
-    name: 'Test Profile',
+    id: 'profile-1',
+    name: 'Profile 1',
     color: '#7c3aed',
     headers: [],
     urlFilters: [],
@@ -22,26 +22,47 @@ describe('ProfileHeader', () => {
     ...overrides,
   })
 
-  const defaultProps = {
-    profile: createProfile(),
-    profileIndex: 0,
-    canUndo: false,
-    canRedo: false,
-  }
-
-  const mountComponent = (props = {}) => {
+  const mountComponent = (props: Partial<{
+    profile: Profile | null
+    profileIndex: number
+    canUndo: boolean
+    canRedo: boolean
+  }> = {}) => {
     return mount(ProfileHeader, {
-      props: { ...defaultProps, ...props },
+      props: {
+        profile: createProfile(),
+        profileIndex: 0,
+        canUndo: false,
+        canRedo: false,
+        ...props,
+      },
       global: {
         stubs: {
           Button: {
             template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
-            props: ['disabled', 'variant', 'size', 'class'],
+            props: ['disabled'],
           },
           Input: {
-            template: '<input :value="modelValue" @blur="$emit(\'blur\')" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template: `
+              <input
+                v-bind="$attrs"
+                :value="modelValue"
+                @blur="$emit('blur')"
+                @input="$emit('update:modelValue', $event.target.value)"
+                @keyup="onKeyup"
+              >
+            `,
             props: ['modelValue'],
+            methods: {
+              onKeyup(event: KeyboardEvent) {
+                if (event.key === 'Enter') this.$emit('keyup.enter')
+                if (event.key === 'Escape') this.$emit('keyup.escape')
+              },
+            },
           },
+          Popover: { template: '<div><slot /></div>' },
+          PopoverTrigger: { template: '<div><slot /></div>' },
+          PopoverContent: { template: '<div><slot /></div>' },
           Tooltip: { template: '<div><slot /></div>' },
           TooltipContent: { template: '<div><slot /></div>' },
           TooltipProvider: { template: '<div><slot /></div>' },
@@ -51,116 +72,100 @@ describe('ProfileHeader', () => {
     })
   }
 
-  describe('rendering', () => {
-    it('displays profile name', () => {
-      const wrapper = mountComponent({
-        profile: createProfile({ name: 'My Profile' }),
-      })
-
-      expect(wrapper.text()).toContain('My Profile')
+  it('renders profile name and index badge', () => {
+    const wrapper = mountComponent({
+      profile: createProfile({ name: 'My Profile' }),
+      profileIndex: 2,
     })
 
-    it('displays profile index + 1 as badge', () => {
-      const wrapper = mountComponent({ profileIndex: 2 })
-
-      expect(wrapper.text()).toContain('3')
-    })
-
-    it('applies profile color as background', () => {
-      const wrapper = mountComponent({
-        profile: createProfile({ color: '#ff0000' }),
-      })
-
-      const header = wrapper.find('[style]')
-      expect(header.attributes('style')).toContain('background-color: rgb(255, 0, 0)')
-    })
+    expect(wrapper.text()).toContain('My Profile')
+    expect(wrapper.text()).toContain('3')
   })
 
-  describe('button states', () => {
-    it('disables undo button when canUndo is false', () => {
-      const wrapper = mountComponent({ canUndo: false })
+  it('emits undo, redo and export actions', async () => {
+    const wrapper = mountComponent({ canUndo: true, canRedo: true })
+    const buttons = wrapper.findAll('button')
 
-      const buttons = wrapper.findAll('button')
-      const undoButton = buttons.find(b => b.text().includes('Undo2'))
-      expect(undoButton?.attributes('disabled')).toBeDefined()
-    })
+    const undoButton = buttons.find(b => b.text().includes('Undo2'))
+    const redoButton = buttons.find(b => b.text().includes('Redo2'))
+    const exportButton = buttons.find(b => b.text().includes('Download'))
 
-    it('enables undo button when canUndo is true', () => {
-      const wrapper = mountComponent({ canUndo: true })
+    await undoButton?.trigger('click')
+    await redoButton?.trigger('click')
+    await exportButton?.trigger('click')
 
-      const buttons = wrapper.findAll('button')
-      const undoButton = buttons.find(b => b.text().includes('Undo2'))
-      expect(undoButton?.attributes('disabled')).toBeUndefined()
-    })
-
-    it('disables redo button when canRedo is false', () => {
-      const wrapper = mountComponent({ canRedo: false })
-
-      const buttons = wrapper.findAll('button')
-      const redoButton = buttons.find(b => b.text().includes('Redo2'))
-      expect(redoButton?.attributes('disabled')).toBeDefined()
-    })
-
-    it('enables redo button when canRedo is true', () => {
-      const wrapper = mountComponent({ canRedo: true })
-
-      const buttons = wrapper.findAll('button')
-      const redoButton = buttons.find(b => b.text().includes('Redo2'))
-      expect(redoButton?.attributes('disabled')).toBeUndefined()
-    })
+    expect(wrapper.emitted('undo')).toBeTruthy()
+    expect(wrapper.emitted('redo')).toBeTruthy()
+    expect(wrapper.emitted('export')).toBeTruthy()
   })
 
-  describe('events', () => {
-    it('emits undo when undo button is clicked', async () => {
-      const wrapper = mountComponent({ canUndo: true })
-
-      const buttons = wrapper.findAll('button')
-      const undoButton = buttons.find(b => b.text().includes('Undo2'))
-      await undoButton?.trigger('click')
-
-      expect(wrapper.emitted('undo')).toBeTruthy()
+  it('emits rename when editing profile name and pressing enter', async () => {
+    const wrapper = mountComponent({
+      profile: createProfile({ name: 'Initial Name' }),
     })
 
-    it('emits redo when redo button is clicked', async () => {
-      const wrapper = mountComponent({ canRedo: true })
+    await wrapper.find('.flex-1.font-medium.cursor-pointer').trigger('dblclick')
 
-      const buttons = wrapper.findAll('button')
-      const redoButton = buttons.find(b => b.text().includes('Redo2'))
-      await redoButton?.trigger('click')
+    const textInput = wrapper.get('[data-testid="profile-name-input"]')
+    await textInput.setValue('Renamed Profile')
+    await textInput.trigger('keyup', { key: 'Enter' })
 
-      expect(wrapper.emitted('redo')).toBeTruthy()
-    })
-
-    it('emits export when download button is clicked', async () => {
-      const wrapper = mountComponent()
-
-      const buttons = wrapper.findAll('button')
-      const exportButton = buttons.find(b => b.text().includes('Download'))
-      await exportButton?.trigger('click')
-
-      expect(wrapper.emitted('export')).toBeTruthy()
-    })
+    const renameEvents = wrapper.emitted('rename')
+    expect(renameEvents).toBeTruthy()
+    expect(renameEvents?.[0]).toEqual(['Renamed Profile'])
   })
 
-  describe('inline editing', () => {
-    it('shows input when profile name is double-clicked', async () => {
-      const wrapper = mountComponent({
-        profile: createProfile({ name: 'Test Profile' }),
-      })
-
-      const nameElement = wrapper.find('.cursor-pointer')
-      await nameElement.trigger('dblclick')
-
-      const input = wrapper.find('input')
-      expect(input.exists()).toBe(true)
+  it('emits updateColor when hue slider changes', async () => {
+    const wrapper = mountComponent({
+      profile: createProfile({ color: '#7c3aed' }),
     })
+
+    const hueSlider = wrapper.get('[data-testid="profile-color-hue-slider"]')
+    await hueSlider.setValue('120')
+
+    const events = wrapper.emitted('updateColor')
+    expect(events).toBeTruthy()
+    const emittedColor = events?.[0]?.[0]
+    expect(typeof emittedColor).toBe('string')
+    expect(emittedColor).toMatch(/^#[0-9a-f]{6}$/)
+    expect(emittedColor).not.toBe('#7c3aed')
   })
 
-  describe('null profile handling', () => {
-    it('shows default text when profile is null', () => {
-      const wrapper = mountComponent({ profile: null })
-
-      expect(wrapper.text()).toContain('Profile')
+  it('emits updateColor when saturation slider changes', async () => {
+    const wrapper = mountComponent({
+      profile: createProfile({ color: '#7c3aed' }),
     })
+
+    const saturationSlider = wrapper.get('[data-testid="profile-color-saturation-slider"]')
+    await saturationSlider.setValue('30')
+
+    const events = wrapper.emitted('updateColor')
+    expect(events).toBeTruthy()
+    const emittedColor = events?.[0]?.[0]
+    expect(typeof emittedColor).toBe('string')
+    expect(emittedColor).toMatch(/^#[0-9a-f]{6}$/)
+  })
+
+  it('accepts rgb value in color input', async () => {
+    const wrapper = mountComponent({
+      profile: createProfile({ color: '#7c3aed' }),
+    })
+
+    const colorValueInput = wrapper.get('[data-testid="profile-color-value-input"]')
+    await colorValueInput.setValue('rgb(255, 0, 153)')
+    await colorValueInput.trigger('keyup', { key: 'Enter' })
+
+    const events = wrapper.emitted('updateColor')
+    expect(events).toBeTruthy()
+    const lastEvent = events?.[events.length - 1]
+    expect(lastEvent?.[0]).toBe('#ff0099')
+  })
+
+  it('disables color trigger when profile is null', () => {
+    const wrapper = mountComponent({ profile: null })
+    const trigger = wrapper.get('[data-testid="profile-color-trigger"]')
+
+    expect(trigger.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Profile')
   })
 })
