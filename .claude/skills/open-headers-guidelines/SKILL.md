@@ -16,6 +16,29 @@ Follow these rules whenever generating or editing language content in this repo,
 - For related networking terms not listed, default to leaving them in English and ask if a translation is desired.
 - Preserve original casing (for example, `Header`, `URL`) when matching surrounding text.
 
+## Commit Messages
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) format. This is required because the release workflow generates changelogs from commit messages.
+
+Format: `<type>(<optional scope>): <description>`
+
+Types:
+- `feat:` — new feature
+- `fix:` — bug fix
+- `style:` — visual/UI changes (not code style)
+- `refactor:` — code restructuring without behavior change
+- `docs:` — documentation only
+- `chore:` — maintenance tasks (deps, CI, config)
+- `test:` — adding or updating tests
+
+Examples:
+- `feat: add localhost and path URL filters`
+- `fix: keep action sync without windows API listener`
+- `style: dim action icon when native badge count is zero`
+- `chore: bump version to 0.2.0`
+
+Keep descriptions lowercase, imperative, and concise. No trailing period.
+
 ## Future Behavior
 
 - A future feature will handle some of these fixes automatically; until then, apply these rules manually.
