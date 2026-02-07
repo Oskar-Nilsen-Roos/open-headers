@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
@@ -12,18 +11,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Copy, Trash2, GripVertical } from 'lucide-vue-next'
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '@/components/ui/popover'
+import { Copy, Trash2, GripVertical, X } from 'lucide-vue-next'
 import { t } from '@/i18n'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   filter: UrlFilter
-}>()
+  patternSuggestions?: string[]
+}>(), {
+  patternSuggestions: () => [],
+})
 
 const emit = defineEmits<{
   update: [filterId: string, updates: Partial<UrlFilter>]
   remove: [filterId: string]
   duplicate: [filterId: string]
+  removePatternSuggestion: [matchType: string, pattern: string]
 }>()
+
+const patternDraft = ref(props.filter.pattern)
+const lastCommittedPattern = ref(props.filter.pattern)
+
+const patternInputActive = ref(false)
+const patternIsSearching = ref(false)
+
+// Sync draft when props change externally (undo/redo, etc.)
+watch(() => props.filter.pattern, (value) => {
+  patternDraft.value = value
+  lastCommittedPattern.value = value
+})
 
 const matchType = computed<UrlFilterMatchType>(() => props.filter.matchType ?? 'dnr_url_filter')
 
@@ -47,6 +74,39 @@ const patternPlaceholder = computed(() => {
       return '*.example.com/*'
   }
 })
+
+const filteredPatternSuggestions = computed(() => {
+  const suggestions = props.patternSuggestions ?? []
+  if (!patternIsSearching.value) return suggestions
+  const search = patternDraft.value.trim().toLowerCase()
+  return search
+    ? suggestions.filter(s => s.toLowerCase().includes(search))
+    : suggestions
+})
+
+const patternPopoverOpen = computed({
+  get: () => patternInputActive.value && filteredPatternSuggestions.value.length > 0,
+  set: (val: boolean) => { patternInputActive.value = val },
+})
+
+function commitPattern(value: string) {
+  if (value === lastCommittedPattern.value) return
+  lastCommittedPattern.value = value
+  emit('update', props.filter.id, { pattern: value })
+}
+
+function handlePatternBlur() {
+  patternInputActive.value = false
+  patternIsSearching.value = false
+  commitPattern(patternDraft.value)
+}
+
+function applyPatternSuggestion(suggestion: string) {
+  patternDraft.value = suggestion
+  commitPattern(suggestion)
+  patternInputActive.value = false
+  patternIsSearching.value = false
+}
 
 function handleEnabledChange(value: boolean | 'indeterminate') {
   emit('update', props.filter.id, { enabled: value === true })
@@ -73,8 +133,10 @@ function handleMatchTypeChange(value: unknown) {
   emit('update', props.filter.id, { matchType: value as UrlFilterMatchType })
 }
 
-function handlePatternChange(value: string) {
-  emit('update', props.filter.id, { pattern: value })
+function blurActiveElement() {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
 }
 </script>
 
@@ -132,12 +194,59 @@ function handlePatternChange(value: string) {
       </SelectContent>
     </Select>
 
-    <Input
-      :model-value="filter.pattern"
-      @update:model-value="handlePatternChange"
-      :placeholder="patternPlaceholder"
-      class="flex-1 min-w-0 h-8 text-sm"
-    />
+    <!-- Pattern combobox -->
+    <Command unstyled filter-disabled class="flex-1 min-w-0">
+      <Popover v-model:open="patternPopoverOpen">
+        <PopoverAnchor as-child>
+          <CommandInput
+            v-model="patternDraft"
+            unstyled
+            :placeholder="patternPlaceholder"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            autocomplete="off"
+            type="text"
+            @focus="patternInputActive = true; patternIsSearching = false"
+            @blur="handlePatternBlur"
+            @input="patternInputActive = true; patternIsSearching = true"
+            @keydown.enter="blurActiveElement"
+            @keydown.down="patternInputActive = true"
+            @keydown.up="patternInputActive = true"
+          />
+        </PopoverAnchor>
+        <PopoverContent
+          align="start"
+          class="w-(--reka-popper-anchor-width) p-0"
+          @open-auto-focus="(e: Event) => e.preventDefault()"
+          @close-auto-focus="(e: Event) => e.preventDefault()"
+          @interact-outside="(e: Event) => e.preventDefault()"
+          @mousedown.prevent
+        >
+          <CommandList>
+            <CommandGroup>
+              <CommandItem
+                v-for="suggestion in filteredPatternSuggestions"
+                :key="suggestion"
+                :value="suggestion"
+                class="group/suggestion cursor-pointer"
+                @select="() => applyPatternSuggestion(suggestion)"
+              >
+                <span class="flex-1 truncate">{{ suggestion }}</span>
+                <button
+                  type="button"
+                  class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
+                  @click.stop="emit('removePatternSuggestion', matchType, suggestion)"
+                  @mousedown.stop.prevent
+                  @pointerdown.stop
+                  :aria-label="t('menu_delete')"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </PopoverContent>
+      </Popover>
+    </Command>
 
     <div class="flex items-center -space-x-0.5">
       <Button

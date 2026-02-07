@@ -137,6 +137,14 @@ function handleRemoveHeaderValueSuggestion(name: string, value: string) {
   store.removeHeaderValueSuggestion(name, value)
 }
 
+const getUrlPatternSuggestions = (matchType: string) => {
+  return store.getUrlPatternSuggestions(matchType)
+}
+
+function handleRemoveUrlPatternSuggestion(matchType: string, pattern: string) {
+  store.removeUrlPatternSuggestion(matchType, pattern)
+}
+
 function handleUpdateUrlFilter(filterId: string, updates: Partial<UrlFilter>) {
   store.updateUrlFilter(filterId, updates)
 }
@@ -315,11 +323,13 @@ function handleImport() {
             <UrlFilterList
               v-else
               :filters="store.activeProfile?.urlFilters ?? []"
+              :get-pattern-suggestions="getUrlPatternSuggestions"
               @update="handleUpdateUrlFilter"
               @remove="handleRemoveUrlFilter"
               @duplicate="store.duplicateUrlFilter"
               @add="store.addUrlFilter('include')"
-              @reorder="store.reorderUrlFilters" />
+              @reorder="store.reorderUrlFilters"
+              @remove-pattern-suggestion="handleRemoveUrlPatternSuggestion" />
           </div>
 
           <!-- Sticky Footer Actions -->

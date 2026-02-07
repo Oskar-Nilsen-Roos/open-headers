@@ -147,6 +147,12 @@ function applyValueSuggestion(suggestion: string) {
   valueInputActive.value = false
   valueIsSearching.value = false
 }
+
+function blurActiveElement() {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+}
 </script>
 
 <template>
@@ -183,13 +189,14 @@ function applyValueSuggestion(suggestion: string) {
             @focus="nameInputActive = true; nameIsSearching = false"
             @blur="handleNameBlur"
             @input="nameInputActive = true; nameIsSearching = true"
+            @keydown.enter="blurActiveElement"
             @keydown.down="nameInputActive = true"
             @keydown.up="nameInputActive = true"
           />
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          class="w-[--reka-popper-anchor-width] p-0"
+          class="w-(--reka-popper-anchor-width) p-0"
           @open-auto-focus="(e: Event) => e.preventDefault()"
           @close-auto-focus="(e: Event) => e.preventDefault()"
           @interact-outside="(e: Event) => e.preventDefault()"
@@ -237,13 +244,14 @@ function applyValueSuggestion(suggestion: string) {
             @focus="valueInputActive = true; valueIsSearching = false"
             @blur="handleValueBlur"
             @input="valueInputActive = true; valueIsSearching = true"
+            @keydown.enter="blurActiveElement"
             @keydown.down="valueInputActive = true"
             @keydown.up="valueInputActive = true"
           />
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          class="w-[--reka-popper-anchor-width] p-0"
+          class="w-(--reka-popper-anchor-width) p-0"
           @open-auto-focus="(e: Event) => e.preventDefault()"
           @close-auto-focus="(e: Event) => e.preventDefault()"
           @interact-outside="(e: Event) => e.preventDefault()"
@@ -281,6 +289,7 @@ function applyValueSuggestion(suggestion: string) {
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"
       @blur="handleCommentBlur"
+      @keydown.enter="blurActiveElement"
     />
 
     <div class="flex items-center -space-x-0.5">

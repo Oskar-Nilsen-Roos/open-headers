@@ -171,6 +171,7 @@ export interface AppState {
   darkModePreference: DarkModePreference
   languagePreference: LanguagePreference
   headerSuggestions?: HeaderSuggestionsState
+  urlPatternHistory?: Record<string, string[]>
 }
 
 export interface HeaderSuggestionsState {

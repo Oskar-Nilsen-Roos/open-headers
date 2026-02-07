@@ -10,6 +10,7 @@ const MAX_HISTORY = 50
 const IMPORT_SIZE_WARNING_THRESHOLD = 100
 const MAX_HEADER_NAME_HISTORY = 100
 const MAX_HEADER_VALUE_HISTORY = 50
+const MAX_URL_PATTERN_HISTORY = 50
 
 export const useHeadersStore = defineStore('headers', () => {
   // State
@@ -24,6 +25,7 @@ export const useHeadersStore = defineStore('headers', () => {
   const headerNameHistory = ref<string[]>([])
   const headerValueHistory = ref<Record<string, string[]>>({})
   const hiddenHeaderNameSuggestions = ref<string[]>([])
+  const urlPatternHistory = ref<Record<string, string[]>>({})
 
   // System dark mode detection
   let mediaQuery: MediaQueryList | null = null
@@ -136,6 +138,11 @@ export const useHeadersStore = defineStore('headers', () => {
           addHeaderNameToHistory(header.name)
         }
       }
+      for (const filter of profile.urlFilters ?? []) {
+        if (filter.pattern && filter.matchType) {
+          addUrlPatternToHistory(filter.matchType, filter.pattern)
+        }
+      }
     }
   }
 
@@ -143,6 +150,7 @@ export const useHeadersStore = defineStore('headers', () => {
     headerNameHistory.value = []
     headerValueHistory.value = {}
     hiddenHeaderNameSuggestions.value = []
+    urlPatternHistory.value = {}
 
     if (state?.headerSuggestions) {
       const suggestions = state.headerSuggestions
@@ -160,10 +168,20 @@ export const useHeadersStore = defineStore('headers', () => {
           .map(entry => normalizeHeaderKey(entry))
           .filter(Boolean)
       }
-      return
     }
 
-    seedHeaderSuggestionsFromProfiles(profiles.value)
+    if (state?.urlPatternHistory && typeof state.urlPatternHistory === 'object' && !Array.isArray(state.urlPatternHistory)) {
+      for (const [matchType, patterns] of Object.entries(state.urlPatternHistory)) {
+        if (!Array.isArray(patterns)) continue
+        for (const pattern of patterns) {
+          if (typeof pattern === 'string') addUrlPatternToHistory(matchType, pattern)
+        }
+      }
+    }
+
+    if (!state?.headerSuggestions && !state?.urlPatternHistory) {
+      seedHeaderSuggestionsFromProfiles(profiles.value)
+    }
   }
 
   function getHeaderNameSuggestions(type: HeaderType): string[] {
@@ -182,6 +200,45 @@ export const useHeadersStore = defineStore('headers', () => {
     return headerValueHistory.value[normalized] ?? []
   }
 
+  function addUrlPatternToHistory(matchType: string, pattern: string): void {
+    const trimmed = pattern.trim()
+    if (!trimmed || !matchType) return
+
+    const existing = urlPatternHistory.value[matchType]
+      ? [...urlPatternHistory.value[matchType]]
+      : []
+
+    const existingIndex = existing.indexOf(trimmed)
+    if (existingIndex !== -1) {
+      existing.splice(existingIndex, 1)
+    }
+    existing.unshift(trimmed)
+
+    if (existing.length > MAX_URL_PATTERN_HISTORY) {
+      existing.length = MAX_URL_PATTERN_HISTORY
+    }
+
+    urlPatternHistory.value[matchType] = existing
+  }
+
+  function getUrlPatternSuggestions(matchType: string): string[] {
+    if (!matchType) return []
+    return urlPatternHistory.value[matchType] ?? []
+  }
+
+  function removeUrlPatternSuggestion(matchType: string, pattern: string): void {
+    const values = urlPatternHistory.value[matchType]
+    if (!values) return
+
+    const next = values.filter(p => p !== pattern)
+    if (next.length === 0) {
+      delete urlPatternHistory.value[matchType]
+    } else {
+      urlPatternHistory.value[matchType] = next
+    }
+    persistState()
+  }
+
   // Helper to get current state
   function getState(): AppState {
     const headerSuggestions: HeaderSuggestionsState = {
@@ -196,6 +253,7 @@ export const useHeadersStore = defineStore('headers', () => {
       darkModePreference: darkModePreference.value,
       languagePreference: languagePreference.value,
       headerSuggestions,
+      urlPatternHistory: JSON.parse(JSON.stringify(urlPatternHistory.value)),
     }
   }
 
@@ -651,6 +709,12 @@ export const useHeadersStore = defineStore('headers', () => {
     if (!filter) return
 
     Object.assign(filter, updates)
+
+    if (updates.pattern !== undefined) {
+      const mt = updates.matchType ?? filter.matchType
+      if (mt) addUrlPatternToHistory(mt, updates.pattern)
+    }
+
     activeProfile.value.updatedAt = Date.now()
     saveToHistory()
     persistState()
@@ -818,6 +882,8 @@ export const useHeadersStore = defineStore('headers', () => {
     getHeaderValueSuggestions,
     removeHeaderNameSuggestion,
     removeHeaderValueSuggestion,
+    getUrlPatternSuggestions,
+    removeUrlPatternSuggestion,
 
     // Actions
     loadState,

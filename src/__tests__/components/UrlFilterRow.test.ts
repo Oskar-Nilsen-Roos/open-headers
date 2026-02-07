@@ -7,6 +7,7 @@ vi.mock('lucide-vue-next', () => ({
   Copy: { template: '<span>Copy</span>' },
   Trash2: { template: '<span>Trash2</span>' },
   GripVertical: { template: '<span>GripVertical</span>' },
+  X: { template: '<span>X</span>' },
 }))
 
 describe('UrlFilterRow', () => {
@@ -19,18 +20,14 @@ describe('UrlFilterRow', () => {
     ...overrides,
   })
 
-  const mountComponent = (filter: UrlFilter) => {
+  const mountComponent = (filter: UrlFilter, props: Partial<{ patternSuggestions: string[] }> = {}) => {
     return mount(UrlFilterRow, {
-      props: { filter },
+      props: { filter, ...props },
       global: {
         stubs: {
           Checkbox: {
             template: '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', !modelValue)" />',
             props: ['modelValue'],
-          },
-          Input: {
-            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
-            props: ['modelValue', 'placeholder'],
           },
           ToggleGroup: {
             template: `
@@ -63,6 +60,17 @@ describe('UrlFilterRow', () => {
             template: '<button @click="$emit(\'click\')"><slot /></button>',
             props: ['variant', 'size'],
           },
+          Popover: { template: '<div><slot /></div>' },
+          PopoverAnchor: { template: '<div><slot /></div>' },
+          PopoverContent: { template: '<div><slot /></div>' },
+          Command: { template: '<div><slot /></div>' },
+          CommandList: { template: '<div><slot /></div>' },
+          CommandGroup: { template: '<div><slot /></div>' },
+          CommandItem: { template: '<div><slot /></div>' },
+          CommandInput: {
+            template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" @focus="$emit(\'focus\')" />',
+            props: ['modelValue', 'placeholder', 'disabled'],
+          },
         },
       },
     })
@@ -93,10 +101,13 @@ describe('UrlFilterRow', () => {
     expect(wrapper.emitted('update')?.[0]).toEqual(['filter-1', { matchType: 'regex' }])
   })
 
-  it('emits update when pattern changes', async () => {
+  it('emits update when pattern input blurs with changed value', async () => {
     const wrapper = mountComponent(createFilter())
-    const input = wrapper.find('input:not([type="checkbox"])')
-    await input.setValue('example.com')
+    const inputs = wrapper.findAll('input')
+    const patternInput = inputs[1]! // First is checkbox, second is pattern CommandInput
+    await patternInput.setValue('example.com')
+    expect(wrapper.emitted('update')).toBeFalsy()
+    await patternInput.trigger('blur')
 
     expect(wrapper.emitted('update')).toBeTruthy()
     expect(wrapper.emitted('update')?.[0]).toEqual(['filter-1', { pattern: 'example.com' }])
@@ -111,5 +122,14 @@ describe('UrlFilterRow', () => {
 
     expect(wrapper.emitted('remove')).toBeTruthy()
     expect(wrapper.emitted('remove')?.[0]).toEqual(['filter-1'])
+  })
+
+  it('renders pattern suggestion items', () => {
+    const wrapper = mountComponent(createFilter(), {
+      patternSuggestions: ['example.com', 'api.test.com'],
+    })
+
+    expect(wrapper.html()).toContain('example.com')
+    expect(wrapper.html()).toContain('api.test.com')
   })
 })
