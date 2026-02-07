@@ -1,12 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference } from '../types'
+import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference, HeaderSuggestionsState } from '../types'
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
+import { COMMON_REQUEST_HEADER_NAMES, getCanonicalHeaderName, normalizeHeaderKey } from '@/lib/header-suggestions'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
 const IMPORT_SIZE_WARNING_THRESHOLD = 100
+const MAX_HEADER_NAME_HISTORY = 100
+const MAX_HEADER_VALUE_HISTORY = 50
+const MAX_URL_PATTERN_HISTORY = 50
 
 export const useHeadersStore = defineStore('headers', () => {
   // State
@@ -18,6 +22,10 @@ export const useHeadersStore = defineStore('headers', () => {
   const history = ref<AppState[]>([])
   const historyIndex = ref(-1)
   const isInitialized = ref(false)
+  const headerNameHistory = ref<string[]>([])
+  const headerValueHistory = ref<Record<string, string[]>>({})
+  const hiddenHeaderNameSuggestions = ref<string[]>([])
+  const urlPatternHistory = ref<Record<string, string[]>>({})
 
   // System dark mode detection
   let mediaQuery: MediaQueryList | null = null
@@ -59,13 +67,193 @@ export const useHeadersStore = defineStore('headers', () => {
   const canUndo = computed(() => historyIndex.value > 0)
   const canRedo = computed(() => historyIndex.value < history.value.length - 1)
 
+  function mergeUniqueHeaderNames(names: string[]): string[] {
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const name of names) {
+      const normalized = normalizeHeaderKey(name)
+      if (!normalized || seen.has(normalized)) continue
+      seen.add(normalized)
+      result.push(name)
+    }
+    return result
+  }
+
+  function addHeaderNameToHistory(rawName: string): void {
+    const trimmed = rawName.trim()
+    if (!trimmed) return
+
+    const canonical = getCanonicalHeaderName(trimmed)
+    const normalized = normalizeHeaderKey(canonical)
+    const existingIndex = headerNameHistory.value.findIndex(
+      name => normalizeHeaderKey(name) === normalized
+    )
+    const entry = existingIndex === -1 ? canonical : headerNameHistory.value[existingIndex] ?? canonical
+
+    if (existingIndex !== -1) {
+      headerNameHistory.value.splice(existingIndex, 1)
+    }
+
+    headerNameHistory.value.unshift(entry)
+
+    if (headerNameHistory.value.length > MAX_HEADER_NAME_HISTORY) {
+      headerNameHistory.value.length = MAX_HEADER_NAME_HISTORY
+    }
+  }
+
+  function addHeaderValueToHistory(rawName: string, rawValue: string): void {
+    const value = rawValue.trim()
+    if (!value) return
+
+    addHeaderNameToHistory(rawName)
+
+    const normalizedName = normalizeHeaderKey(rawName)
+    if (!normalizedName) return
+
+    const existingValues = headerValueHistory.value[normalizedName]
+      ? [...headerValueHistory.value[normalizedName]]
+      : []
+
+    const existingIndex = existingValues.indexOf(value)
+    if (existingIndex !== -1) {
+      existingValues.splice(existingIndex, 1)
+    }
+    existingValues.unshift(value)
+
+    if (existingValues.length > MAX_HEADER_VALUE_HISTORY) {
+      existingValues.length = MAX_HEADER_VALUE_HISTORY
+    }
+
+    headerValueHistory.value[normalizedName] = existingValues
+  }
+
+  function seedHeaderSuggestionsFromProfiles(profilesToSeed: Profile[]): void {
+    for (const profile of profilesToSeed) {
+      for (const header of profile.headers ?? []) {
+        if (header.name && header.value) {
+          addHeaderValueToHistory(header.name, header.value)
+          continue
+        }
+        if (header.name) {
+          addHeaderNameToHistory(header.name)
+        }
+      }
+      for (const filter of profile.urlFilters ?? []) {
+        if (filter.pattern && filter.matchType) {
+          addUrlPatternToHistory(filter.matchType, filter.pattern)
+        }
+      }
+    }
+  }
+
+  function hydrateHeaderSuggestions(state: AppState | null): void {
+    headerNameHistory.value = []
+    headerValueHistory.value = {}
+    hiddenHeaderNameSuggestions.value = []
+    urlPatternHistory.value = {}
+
+    if (state?.headerSuggestions) {
+      const suggestions = state.headerSuggestions
+      for (const name of suggestions.names ?? []) {
+        addHeaderNameToHistory(name)
+      }
+      for (const [name, values] of Object.entries(suggestions.valuesByName ?? {})) {
+        if (!Array.isArray(values)) continue
+        for (const value of values) {
+          addHeaderValueToHistory(name, value)
+        }
+      }
+      if (Array.isArray(suggestions.hiddenNames)) {
+        hiddenHeaderNameSuggestions.value = suggestions.hiddenNames
+          .map(entry => normalizeHeaderKey(entry))
+          .filter(Boolean)
+      }
+    }
+
+    if (state?.urlPatternHistory && typeof state.urlPatternHistory === 'object' && !Array.isArray(state.urlPatternHistory)) {
+      for (const [matchType, patterns] of Object.entries(state.urlPatternHistory)) {
+        if (!Array.isArray(patterns)) continue
+        for (const pattern of patterns) {
+          if (typeof pattern === 'string') addUrlPatternToHistory(matchType, pattern)
+        }
+      }
+    }
+
+    if (!state?.headerSuggestions && !state?.urlPatternHistory) {
+      seedHeaderSuggestionsFromProfiles(profiles.value)
+    }
+  }
+
+  function getHeaderNameSuggestions(type: HeaderType): string[] {
+    const suggestions = type === 'request'
+      ? [...headerNameHistory.value, ...COMMON_REQUEST_HEADER_NAMES]
+      : [...headerNameHistory.value]
+    const hiddenSet = new Set(hiddenHeaderNameSuggestions.value)
+    return mergeUniqueHeaderNames(suggestions).filter(
+      name => !hiddenSet.has(normalizeHeaderKey(name))
+    )
+  }
+
+  function getHeaderValueSuggestions(name: string): string[] {
+    const normalized = normalizeHeaderKey(name)
+    if (!normalized) return []
+    return headerValueHistory.value[normalized] ?? []
+  }
+
+  function addUrlPatternToHistory(matchType: string, pattern: string): void {
+    const trimmed = pattern.trim()
+    if (!trimmed || !matchType) return
+
+    const existing = urlPatternHistory.value[matchType]
+      ? [...urlPatternHistory.value[matchType]]
+      : []
+
+    const existingIndex = existing.indexOf(trimmed)
+    if (existingIndex !== -1) {
+      existing.splice(existingIndex, 1)
+    }
+    existing.unshift(trimmed)
+
+    if (existing.length > MAX_URL_PATTERN_HISTORY) {
+      existing.length = MAX_URL_PATTERN_HISTORY
+    }
+
+    urlPatternHistory.value[matchType] = existing
+  }
+
+  function getUrlPatternSuggestions(matchType: string): string[] {
+    if (!matchType) return []
+    return urlPatternHistory.value[matchType] ?? []
+  }
+
+  function removeUrlPatternSuggestion(matchType: string, pattern: string): void {
+    const values = urlPatternHistory.value[matchType]
+    if (!values) return
+
+    const next = values.filter(p => p !== pattern)
+    if (next.length === 0) {
+      delete urlPatternHistory.value[matchType]
+    } else {
+      urlPatternHistory.value[matchType] = next
+    }
+    persistState()
+  }
+
   // Helper to get current state
   function getState(): AppState {
+    const headerSuggestions: HeaderSuggestionsState = {
+      names: [...headerNameHistory.value],
+      valuesByName: JSON.parse(JSON.stringify(headerValueHistory.value)),
+      hiddenNames: [...hiddenHeaderNameSuggestions.value],
+    }
+
     return {
       profiles: JSON.parse(JSON.stringify(profiles.value)),
       activeProfileId: activeProfileId.value,
       darkModePreference: darkModePreference.value,
       languagePreference: languagePreference.value,
+      headerSuggestions,
+      urlPatternHistory: JSON.parse(JSON.stringify(urlPatternHistory.value)),
     }
   }
 
@@ -94,6 +282,7 @@ export const useHeadersStore = defineStore('headers', () => {
     darkModePreference.value = state.darkModePreference
     languagePreference.value = state.languagePreference ?? 'auto'
     setI18nLanguagePreference(languagePreference.value)
+    hydrateHeaderSuggestions(state)
   }
 
   // Actions
@@ -194,6 +383,8 @@ export const useHeadersStore = defineStore('headers', () => {
         activeProfileId.value = firstProfile ? firstProfile.id : null
       }
 
+      hydrateHeaderSuggestions(state)
+
       // Initialize history
       history.value = [getState()]
       historyIndex.value = 0
@@ -208,6 +399,7 @@ export const useHeadersStore = defineStore('headers', () => {
       )
       profiles.value.push(defaultProfile)
       activeProfileId.value = defaultProfile.id
+      hydrateHeaderSuggestions(null)
       history.value = [getState()]
       historyIndex.value = 0
       isInitialized.value = true
@@ -333,8 +525,59 @@ export const useHeadersStore = defineStore('headers', () => {
     const header = activeProfile.value.headers.find(h => h.id === headerId)
     if (!header) return
 
+    const nextName = typeof updates.name === 'string' ? updates.name : header.name
+    const nextValue = typeof updates.value === 'string' ? updates.value : header.value
+
     Object.assign(header, updates)
     activeProfile.value.updatedAt = Date.now()
+
+    const hasNameUpdate = typeof updates.name === 'string'
+    const hasValueUpdate = typeof updates.value === 'string'
+
+    if (hasNameUpdate) {
+      addHeaderNameToHistory(nextName)
+    }
+
+    if (hasValueUpdate) {
+      addHeaderValueToHistory(nextName, updates.value as string)
+    } else if (hasNameUpdate && nextValue) {
+      addHeaderValueToHistory(nextName, nextValue)
+    }
+
+    saveToHistory()
+    persistState()
+  }
+
+  function removeHeaderNameSuggestion(name: string): void {
+    const normalized = normalizeHeaderKey(name)
+    if (!normalized) return
+
+    headerNameHistory.value = headerNameHistory.value.filter(
+      entry => normalizeHeaderKey(entry) !== normalized
+    )
+
+    if (!hiddenHeaderNameSuggestions.value.includes(normalized)) {
+      hiddenHeaderNameSuggestions.value.push(normalized)
+    }
+
+    saveToHistory()
+    persistState()
+  }
+
+  function removeHeaderValueSuggestion(name: string, value: string): void {
+    const normalized = normalizeHeaderKey(name)
+    if (!normalized) return
+
+    const values = headerValueHistory.value[normalized]
+    if (!values) return
+
+    const nextValues = values.filter(entry => entry !== value)
+    if (nextValues.length === 0) {
+      delete headerValueHistory.value[normalized]
+    } else {
+      headerValueHistory.value[normalized] = nextValues
+    }
+
     saveToHistory()
     persistState()
   }
@@ -420,7 +663,7 @@ export const useHeadersStore = defineStore('headers', () => {
 
     const filter: UrlFilter = {
       id: generateId(),
-      enabled: false,
+      enabled: true,
       matchType: 'host_equals',
       pattern: '',
       type,
@@ -466,6 +709,12 @@ export const useHeadersStore = defineStore('headers', () => {
     if (!filter) return
 
     Object.assign(filter, updates)
+
+    if (updates.pattern !== undefined) {
+      const mt = updates.matchType ?? filter.matchType
+      if (mt) addUrlPatternToHistory(mt, updates.pattern)
+    }
+
     activeProfile.value.updatedAt = Date.now()
     saveToHistory()
     persistState()
@@ -519,6 +768,7 @@ export const useHeadersStore = defineStore('headers', () => {
   function importProfiles(jsonString: string): boolean {
     try {
       const data = JSON.parse(jsonString)
+      const importedProfiles: Profile[] = []
 
       // Check if this is ModHeader format (array of profiles with 'title' and 'headers')
       if (isModHeaderFormat(data)) {
@@ -533,6 +783,7 @@ export const useHeadersStore = defineStore('headers', () => {
           try {
             const converted = convertModHeaderProfile(modProfile, startingColorIndex + i)
             profiles.value.push(converted)
+            importedProfiles.push(converted)
             importedCount++
           } catch (error) {
             console.warn(`Failed to convert ModHeader profile at index ${i}:`, error)
@@ -540,6 +791,7 @@ export const useHeadersStore = defineStore('headers', () => {
           }
         }
         if (importedCount > 0) {
+          seedHeaderSuggestionsFromProfiles(importedProfiles)
           saveToHistory()
           persistState()
         }
@@ -576,6 +828,11 @@ export const useHeadersStore = defineStore('headers', () => {
           updatedAt: Date.now(),
         }
         profiles.value.push(newProfile)
+        importedProfiles.push(newProfile)
+      }
+
+      if (importedProfiles.length > 0) {
+        seedHeaderSuggestionsFromProfiles(importedProfiles)
       }
 
       saveToHistory()
@@ -621,6 +878,12 @@ export const useHeadersStore = defineStore('headers', () => {
     responseHeaders,
     canUndo,
     canRedo,
+    getHeaderNameSuggestions,
+    getHeaderValueSuggestions,
+    removeHeaderNameSuggestion,
+    removeHeaderValueSuggestion,
+    getUrlPatternSuggestions,
+    removeUrlPatternSuggestion,
 
     // Actions
     loadState,

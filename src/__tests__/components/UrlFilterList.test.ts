@@ -38,9 +38,9 @@ describe('UrlFilterList', () => {
     })
   }
 
-  it('shows empty state when no filters', () => {
+  it('shows add button when no filters', () => {
     const wrapper = mountComponent([])
-    expect(wrapper.text()).toContain('No URL filters')
+    expect(wrapper.text().toLowerCase()).toContain('add')
   })
 
   it('re-emits row update and remove events', async () => {

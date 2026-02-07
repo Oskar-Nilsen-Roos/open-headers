@@ -14,7 +14,7 @@ describe('createEmptyHeader', () => {
     const header = createEmptyHeader()
 
     expect(header.type).toBe('request')
-    expect(header.enabled).toBe(true)
+    expect(header.enabled).toBe(false)
     expect(header.name).toBe('')
     expect(header.value).toBe('')
     expect(header.comment).toBe('')

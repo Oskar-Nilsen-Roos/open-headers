@@ -170,6 +170,14 @@ export interface AppState {
   activeProfileId: string | null
   darkModePreference: DarkModePreference
   languagePreference: LanguagePreference
+  headerSuggestions?: HeaderSuggestionsState
+  urlPatternHistory?: Record<string, string[]>
+}
+
+export interface HeaderSuggestionsState {
+  names: string[]
+  valuesByName: Record<string, string[]>
+  hiddenNames?: string[]
 }
 
 export interface HistoryEntry {

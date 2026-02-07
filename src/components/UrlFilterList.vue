@@ -7,7 +7,12 @@ import { Plus } from 'lucide-vue-next'
 
 const props = defineProps<{
   filters: UrlFilter[]
+  getPatternSuggestions?: (matchType: string) => string[]
 }>()
+
+const patternSuggestionsFor = (matchType: string) => {
+  return props.getPatternSuggestions ? props.getPatternSuggestions(matchType) : []
+}
 
 const emit = defineEmits<{
   update: [filterId: string, updates: Partial<UrlFilter>]
@@ -15,6 +20,7 @@ const emit = defineEmits<{
   duplicate: [filterId: string]
   reorder: [orderedIds: string[]]
   add: []
+  removePatternSuggestion: [matchType: string, pattern: string]
 }>()
 
 function handleUpdate(filterId: string, updates: Partial<UrlFilter>) {
@@ -33,9 +39,11 @@ function handleRemove(filterId: string) {
       <template #default="{ item }">
         <UrlFilterRow
           :filter="item"
+          :pattern-suggestions="patternSuggestionsFor(item.matchType ?? 'dnr_url_filter')"
           @update="handleUpdate"
           @remove="handleRemove"
           @duplicate="emit('duplicate', $event)"
+          @remove-pattern-suggestion="(matchType, pattern) => emit('removePatternSuggestion', matchType, pattern)"
         />
       </template>
     </DraggableList>

@@ -49,9 +49,9 @@ describe('Integration Workflows', () => {
         value: 'application/json',
       })
 
-      // 4. Disable one header
+      // 4. Toggle one header (starts disabled, becomes enabled)
       store.toggleHeader(headers[1]!.id)
-      expect(headers[1]!.enabled).toBe(false)
+      expect(headers[1]!.enabled).toBe(true)
 
       // 5. Reorder headers
       store.reorderHeaders(

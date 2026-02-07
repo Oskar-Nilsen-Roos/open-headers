@@ -5,9 +5,17 @@ import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
 import { Plus } from 'lucide-vue-next'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   headers: HeaderRule[]
-}>()
+  nameSuggestions?: string[]
+  getValueSuggestions?: (name: string) => string[]
+}>(), {
+  nameSuggestions: () => [],
+})
+
+const valueSuggestionsFor = (name: string) => {
+  return props.getValueSuggestions ? props.getValueSuggestions(name) : []
+}
 
 const emit = defineEmits<{
   remove: [headerId: string]
@@ -16,6 +24,8 @@ const emit = defineEmits<{
   duplicate: [headerId: string]
   reorder: [orderedIds: string[]]
   add: []
+  removeNameSuggestion: [name: string]
+  removeValueSuggestion: [name: string, value: string]
 }>()
 </script>
 
@@ -26,10 +36,14 @@ const emit = defineEmits<{
       <template #default="{ item }">
         <HeaderRow
           :header="item"
+          :name-suggestions="props.nameSuggestions"
+          :value-suggestions="valueSuggestionsFor(item.name)"
           @update="updates => emit('update', item.id, updates)"
           @remove="emit('remove', item.id)"
           @toggle="emit('toggle', item.id)"
-          @duplicate="emit('duplicate', item.id)" />
+          @duplicate="emit('duplicate', item.id)"
+          @remove-name-suggestion="name => emit('removeNameSuggestion', name)"
+          @remove-value-suggestion="(name, value) => emit('removeValueSuggestion', name, value)" />
       </template>
     </DraggableList>
 
