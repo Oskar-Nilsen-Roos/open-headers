@@ -147,10 +147,8 @@ function applyNameSuggestion(suggestion: string) {
 function applyValueSuggestion(suggestion: ValueSuggestion) {
   valueDraft.value = suggestion.value
   commitValue(suggestion.value)
-  if (suggestion.comment) {
-    commentDraft.value = suggestion.comment
-    commitComment(suggestion.comment)
-  }
+  commentDraft.value = suggestion.comment
+  commitComment(suggestion.comment)
   valueInputActive.value = false
   valueIsSearching.value = false
 }
@@ -273,8 +271,11 @@ function blurActiveElement() {
                 class="group/suggestion cursor-pointer"
                 @select="() => applyValueSuggestion(suggestion)"
               >
-                <span v-if="suggestion.comment" class="flex-1 truncate italic text-muted-foreground">{{ suggestion.comment }}</span>
-                <span v-else class="flex-1 truncate">{{ suggestion.value }}</span>
+                <span v-if="suggestion.comment" class="flex-1 min-w-0" :title="suggestion.value">
+                  <span class="block truncate italic text-muted-foreground text-xs">{{ suggestion.comment }}</span>
+                  <span class="block truncate text-[10px] text-muted-foreground/60">{{ suggestion.value }}</span>
+                </span>
+                <span v-else class="flex-1 truncate" :title="suggestion.value">{{ suggestion.value }}</span>
                 <button
                   type="button"
                   class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"

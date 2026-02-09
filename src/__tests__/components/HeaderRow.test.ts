@@ -102,11 +102,10 @@ describe('HeaderRow', () => {
         valueSuggestions: [{ value: 'Bearer token123', comment: 'Production API key' }],
       })
 
+      // Comment should be displayed
       expect(wrapper.html()).toContain('Production API key')
-      // The value text should not be shown directly when comment exists
-      const html = wrapper.html()
-      // Comment should be in an italic element
-      expect(html).toMatch(/italic.*Production API key/)
+      // Value should also be shown as secondary text
+      expect(wrapper.html()).toContain('Bearer token123')
     })
 
     it('renders checkbox with correct state when enabled', () => {

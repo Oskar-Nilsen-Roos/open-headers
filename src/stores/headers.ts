@@ -539,18 +539,19 @@ export const useHeadersStore = defineStore('headers', () => {
     const hasNameUpdate = typeof updates.name === 'string'
     const hasValueUpdate = typeof updates.value === 'string'
     const hasCommentUpdate = typeof updates.comment === 'string'
-    const nextComment = header.comment
+    // Read comment after Object.assign so it reflects the post-update state
+    const currentComment = header.comment
 
     if (hasNameUpdate) {
       addHeaderNameToHistory(nextName)
     }
 
     if (hasValueUpdate) {
-      addHeaderValueToHistory(nextName, updates.value as string, nextComment)
+      addHeaderValueToHistory(nextName, updates.value as string, currentComment)
     } else if (hasCommentUpdate && nextValue) {
-      addHeaderValueToHistory(nextName, nextValue, nextComment)
+      addHeaderValueToHistory(nextName, nextValue, currentComment)
     } else if (hasNameUpdate && nextValue) {
-      addHeaderValueToHistory(nextName, nextValue, nextComment)
+      addHeaderValueToHistory(nextName, nextValue, currentComment)
     }
 
     saveToHistory()
