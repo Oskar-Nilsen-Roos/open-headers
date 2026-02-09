@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { HeaderRule } from '@/types'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ import { t } from '@/i18n'
 const props = withDefaults(defineProps<{
   header: HeaderRule
   nameSuggestions?: string[]
-  valueSuggestions?: string[]
+  valueSuggestions?: ValueSuggestion[]
 }>(), {
   nameSuggestions: () => [],
   valueSuggestions: () => [],
@@ -84,7 +84,10 @@ const filteredValueSuggestions = computed(() => {
   if (!valueIsSearching.value) return suggestions
   const search = valueDraft.value.trim().toLowerCase()
   return search
-    ? suggestions.filter(s => s.toLowerCase().includes(search))
+    ? suggestions.filter(s =>
+        s.value.toLowerCase().includes(search) ||
+        s.comment.toLowerCase().includes(search)
+      )
     : suggestions
 })
 
@@ -141,9 +144,13 @@ function applyNameSuggestion(suggestion: string) {
   nameIsSearching.value = false
 }
 
-function applyValueSuggestion(suggestion: string) {
-  valueDraft.value = suggestion
-  commitValue(suggestion)
+function applyValueSuggestion(suggestion: ValueSuggestion) {
+  valueDraft.value = suggestion.value
+  commitValue(suggestion.value)
+  if (suggestion.comment) {
+    commentDraft.value = suggestion.comment
+    commitComment(suggestion.comment)
+  }
   valueInputActive.value = false
   valueIsSearching.value = false
 }
@@ -261,16 +268,17 @@ function blurActiveElement() {
             <CommandGroup>
               <CommandItem
                 v-for="suggestion in filteredValueSuggestions"
-                :key="suggestion"
-                :value="suggestion"
+                :key="suggestion.value"
+                :value="suggestion.value"
                 class="group/suggestion cursor-pointer"
                 @select="() => applyValueSuggestion(suggestion)"
               >
-                <span class="flex-1 truncate">{{ suggestion }}</span>
+                <span v-if="suggestion.comment" class="flex-1 truncate italic text-muted-foreground">{{ suggestion.comment }}</span>
+                <span v-else class="flex-1 truncate">{{ suggestion.value }}</span>
                 <button
                   type="button"
                   class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
-                  @click.stop="emit('removeValueSuggestion', header.name, suggestion)"
+                  @click.stop="emit('removeValueSuggestion', header.name, suggestion.value)"
                   @mousedown.stop.prevent
                   @pointerdown.stop
                   :aria-label="t('menu_delete')"

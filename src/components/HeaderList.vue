@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HeaderRule } from '@/types'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 import HeaderRow from './HeaderRow.vue'
 import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
@@ -8,12 +8,12 @@ import { Plus } from 'lucide-vue-next'
 const props = withDefaults(defineProps<{
   headers: HeaderRule[]
   nameSuggestions?: string[]
-  getValueSuggestions?: (name: string) => string[]
+  getValueSuggestions?: (name: string) => ValueSuggestion[]
 }>(), {
   nameSuggestions: () => [],
 })
 
-const valueSuggestionsFor = (name: string) => {
+const valueSuggestionsFor = (name: string): ValueSuggestion[] => {
   return props.getValueSuggestions ? props.getValueSuggestions(name) : []
 }
 

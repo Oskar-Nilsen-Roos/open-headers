@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
-import type { HeaderRule } from '@/types'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
@@ -25,7 +25,7 @@ describe('HeaderRow', () => {
 
   const mountComponent = (
     header: HeaderRule,
-    props: Partial<{ nameSuggestions: string[]; valueSuggestions: string[] }> = {}
+    props: Partial<{ nameSuggestions: string[]; valueSuggestions: ValueSuggestion[] }> = {}
   ) => {
     return mount(HeaderRow, {
       props: { header, ...props },
@@ -89,11 +89,24 @@ describe('HeaderRow', () => {
       const header = createHeader({ name: '', value: '' })
       const wrapper = mountComponent(header, {
         nameSuggestions: ['Accept', 'Authorization'],
-        valueSuggestions: ['application/json'],
+        valueSuggestions: [{ value: 'application/json', comment: '' }],
       })
 
       expect(wrapper.html()).toContain('Accept')
       expect(wrapper.html()).toContain('application/json')
+    })
+
+    it('renders comment in italic when value suggestion has a comment', () => {
+      const header = createHeader({ name: 'Authorization', value: '' })
+      const wrapper = mountComponent(header, {
+        valueSuggestions: [{ value: 'Bearer token123', comment: 'Production API key' }],
+      })
+
+      expect(wrapper.html()).toContain('Production API key')
+      // The value text should not be shown directly when comment exists
+      const html = wrapper.html()
+      // Comment should be in an italic element
+      expect(html).toMatch(/italic.*Production API key/)
     })
 
     it('renders checkbox with correct state when enabled', () => {
