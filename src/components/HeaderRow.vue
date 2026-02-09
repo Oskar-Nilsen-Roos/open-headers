@@ -127,10 +127,22 @@ function handleNameBlur() {
   commitName(nameDraft.value)
 }
 
+function syncCommentFromSuggestion(value: string) {
+  const match = props.valueSuggestions.find(s => s.value === value)
+  if (match) {
+    commentDraft.value = match.comment
+    commitComment(match.comment)
+  }
+}
+
 function handleValueBlur() {
   valueInputActive.value = false
   valueIsSearching.value = false
+  const changed = valueDraft.value !== lastCommittedValue.value
   commitValue(valueDraft.value)
+  if (changed) {
+    syncCommentFromSuggestion(valueDraft.value)
+  }
 }
 
 function handleCommentBlur() {
