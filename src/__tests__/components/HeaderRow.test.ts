@@ -96,7 +96,7 @@ describe('HeaderRow', () => {
       expect(wrapper.html()).toContain('application/json')
     })
 
-    it('renders comment in italic when value suggestion has a comment', () => {
+    it('renders comment text when value suggestion has a comment', () => {
       const header = createHeader({ name: 'Authorization', value: '' })
       const wrapper = mountComponent(header, {
         valueSuggestions: [{ value: 'Bearer token123', comment: 'Production API key' }],
@@ -162,6 +162,23 @@ describe('HeaderRow', () => {
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-value' }])
+    })
+
+    it('auto-fills comment when value matches a known suggestion on blur', async () => {
+      const header = createHeader({ value: '' })
+      const wrapper = mountComponent(header, {
+        valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
+      })
+
+      const inputs = wrapper.findAll('input')
+      const valueInput = inputs[2]!
+      await valueInput.setValue('Bearer token')
+      await valueInput.trigger('blur')
+
+      const updates = wrapper.emitted('update')
+      expect(updates).toBeTruthy()
+      // Single emit with both value and comment
+      expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
     })
 
     it('emits update with comment when comment input blurs', async () => {

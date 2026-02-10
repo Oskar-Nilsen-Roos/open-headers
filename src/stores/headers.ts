@@ -163,8 +163,14 @@ export const useHeadersStore = defineStore('headers', () => {
           // Migrate from old string[] format to ValueSuggestion[]
           if (typeof entry === 'string') {
             addHeaderValueToHistory(name, entry)
-          } else if (entry && typeof entry === 'object' && 'value' in entry) {
-            addHeaderValueToHistory(name, entry.value, entry.comment ?? '')
+          } else if (
+            entry &&
+            typeof entry === 'object' &&
+            'value' in entry &&
+            typeof (entry as { value: unknown }).value === 'string'
+          ) {
+            const comment = (entry as { comment?: unknown }).comment
+            addHeaderValueToHistory(name, (entry as { value: string }).value, typeof comment === 'string' ? comment : '')
           }
         }
       }
@@ -539,8 +545,9 @@ export const useHeadersStore = defineStore('headers', () => {
     const hasNameUpdate = typeof updates.name === 'string'
     const hasValueUpdate = typeof updates.value === 'string'
     const hasCommentUpdate = typeof updates.comment === 'string'
-    // Read comment after Object.assign so it reflects the post-update state
-    const currentComment = header.comment
+    // Read comment after Object.assign so it reflects the post-update state,
+    // and coalesce to an empty string so we never pass undefined downstream.
+    const currentComment: string = header.comment ?? ''
 
     if (hasNameUpdate) {
       addHeaderNameToHistory(nextName)

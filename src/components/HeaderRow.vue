@@ -130,21 +130,31 @@ function handleNameBlur() {
   commitName(nameDraft.value)
 }
 
-function syncCommentFromSuggestion(value: string) {
+function syncCommentFromSuggestion(value: string): boolean {
   const match = props.valueSuggestions.find(s => s.value === value)
   if (match) {
     commentDraft.value = match.comment
-    commitComment(match.comment)
+    lastCommittedComment.value = match.comment
+    return true
   }
+  return false
 }
 
 function handleValueBlur() {
   valueInputActive.value = false
   valueIsSearching.value = false
   const changed = valueDraft.value !== lastCommittedValue.value
-  commitValue(valueDraft.value)
   if (changed) {
-    syncCommentFromSuggestion(valueDraft.value)
+    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
+    lastCommittedValue.value = valueDraft.value
+    if (commentSynced) {
+      // Emit value + comment together so it's a single undo step
+      emit('update', { value: valueDraft.value, comment: commentDraft.value })
+    } else {
+      emit('update', { value: valueDraft.value })
+    }
+  } else {
+    commitValue(valueDraft.value)
   }
 }
 
@@ -168,9 +178,11 @@ function applyNameSuggestion(suggestion: string) {
 function applyValueSuggestion(suggestion: ValueSuggestion) {
   skipNextEnterBlur = true
   valueDraft.value = suggestion.value
-  commitValue(suggestion.value)
   commentDraft.value = suggestion.comment
-  commitComment(suggestion.comment)
+  // Single emit for both value + comment so it's one undo step
+  lastCommittedValue.value = suggestion.value
+  lastCommittedComment.value = suggestion.comment
+  emit('update', { value: suggestion.value, comment: suggestion.comment })
   valueInputActive.value = false
   valueIsSearching.value = false
   focusRef(commentInputRef)
