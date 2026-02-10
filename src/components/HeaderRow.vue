@@ -182,12 +182,20 @@ function focusRef(r: typeof valueInputRef | typeof commentInputRef) {
   if (input instanceof HTMLElement) input.focus()
 }
 
-function handleEnterKey() {
+function handleNameEnterKey() {
   if (skipNextEnterBlur) {
     skipNextEnterBlur = false
     return
   }
-  blurActiveElement()
+  focusRef(valueInputRef)
+}
+
+function handleValueEnterKey() {
+  if (skipNextEnterBlur) {
+    skipNextEnterBlur = false
+    return
+  }
+  focusRef(commentInputRef)
 }
 
 function blurActiveElement() {
@@ -231,7 +239,7 @@ function blurActiveElement() {
             @focus="nameInputActive = true; nameIsSearching = false"
             @blur="handleNameBlur"
             @input="nameInputActive = true; nameIsSearching = true"
-            @keydown.enter="handleEnterKey"
+            @keydown.enter="handleNameEnterKey"
             @keydown.down="nameInputActive = true"
             @keydown.up="nameInputActive = true"
           />
@@ -287,7 +295,7 @@ function blurActiveElement() {
             @focus="valueInputActive = true; valueIsSearching = false"
             @blur="handleValueBlur"
             @input="valueInputActive = true; valueIsSearching = true"
-            @keydown.enter="handleEnterKey"
+            @keydown.enter="handleValueEnterKey"
             @keydown.down="valueInputActive = true"
             @keydown.up="valueInputActive = true"
           />
