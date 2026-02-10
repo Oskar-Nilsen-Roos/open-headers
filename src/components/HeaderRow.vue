@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -36,6 +36,9 @@ const emit = defineEmits<{
   removeNameSuggestion: [name: string]
   removeValueSuggestion: [name: string, value: string]
 }>()
+
+const valueInputRef = ref<ComponentPublicInstance | null>(null)
+const commentInputRef = ref<ComponentPublicInstance | null>(null)
 
 const nameDraft = ref(props.header.name)
 const valueDraft = ref(props.header.value)
@@ -154,6 +157,7 @@ function applyNameSuggestion(suggestion: string) {
   commitName(suggestion)
   nameInputActive.value = false
   nameIsSearching.value = false
+  focusRef(valueInputRef)
 }
 
 function applyValueSuggestion(suggestion: ValueSuggestion) {
@@ -163,6 +167,13 @@ function applyValueSuggestion(suggestion: ValueSuggestion) {
   commitComment(suggestion.comment)
   valueInputActive.value = false
   valueIsSearching.value = false
+  focusRef(commentInputRef)
+}
+
+function focusRef(r: typeof valueInputRef | typeof commentInputRef) {
+  const el = r.value?.$el
+  const input = el instanceof HTMLElement ? el.querySelector('input') ?? el : null
+  if (input instanceof HTMLElement) input.focus()
 }
 
 function blurActiveElement() {
@@ -251,6 +262,7 @@ function blurActiveElement() {
       <Popover v-model:open="valuePopoverOpen">
         <PopoverAnchor as-child>
           <CommandInput
+            ref="valueInputRef"
             v-model="valueDraft"
             unstyled
             :placeholder="t('placeholder_value')"
@@ -284,10 +296,10 @@ function blurActiveElement() {
                 @select="() => applyValueSuggestion(suggestion)"
               >
                 <span v-if="suggestion.comment" class="flex-1 min-w-0" :title="suggestion.value">
-                  <span class="block truncate italic text-muted-foreground text-xs">{{ suggestion.comment }}</span>
-                  <span class="block truncate text-[10px] text-muted-foreground/60">{{ suggestion.value }}</span>
+                  <span class="block truncate text-xs">{{ suggestion.value }}</span>
+                  <span class="block font-mono truncate text-xs text-muted-foreground/60">{{ suggestion.comment }}</span>
                 </span>
-                <span v-else class="flex-1 truncate" :title="suggestion.value">{{ suggestion.value }}</span>
+                <span v-else class="flex-1 truncate text-xs" :title="suggestion.value">{{ suggestion.value }}</span>
                 <button
                   type="button"
                   class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
@@ -306,6 +318,7 @@ function blurActiveElement() {
     </Command>
 
     <Input
+      ref="commentInputRef"
       v-model="commentDraft"
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"

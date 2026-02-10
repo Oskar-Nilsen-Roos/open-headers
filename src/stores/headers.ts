@@ -550,6 +550,13 @@ export const useHeadersStore = defineStore('headers', () => {
       addHeaderValueToHistory(nextName, updates.value as string, currentComment)
     } else if (hasCommentUpdate && nextValue) {
       addHeaderValueToHistory(nextName, nextValue, currentComment)
+      // Propagate comment to sibling headers with the same name+value
+      const normalizedName = normalizeHeaderKey(nextName)
+      for (const h of activeProfile.value.headers) {
+        if (h.id !== headerId && normalizeHeaderKey(h.name) === normalizedName && h.value === nextValue) {
+          h.comment = currentComment
+        }
+      }
     } else if (hasNameUpdate && nextValue) {
       addHeaderValueToHistory(nextName, nextValue, currentComment)
     }
