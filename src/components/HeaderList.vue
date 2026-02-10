@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { HeaderRule } from '@/types'
+import { nextTick, ref } from 'vue'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 import HeaderRow from './HeaderRow.vue'
 import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
@@ -8,12 +9,12 @@ import { Plus } from 'lucide-vue-next'
 const props = withDefaults(defineProps<{
   headers: HeaderRule[]
   nameSuggestions?: string[]
-  getValueSuggestions?: (name: string) => string[]
+  getValueSuggestions?: (name: string) => ValueSuggestion[]
 }>(), {
   nameSuggestions: () => [],
 })
 
-const valueSuggestionsFor = (name: string) => {
+const valueSuggestionsFor = (name: string): ValueSuggestion[] => {
   return props.getValueSuggestions ? props.getValueSuggestions(name) : []
 }
 
@@ -27,10 +28,21 @@ const emit = defineEmits<{
   removeNameSuggestion: [name: string]
   removeValueSuggestion: [name: string, value: string]
 }>()
+
+const listRef = ref<HTMLElement | null>(null)
+
+async function handleAdd() {
+  emit('add')
+  await nextTick()
+  const rows = listRef.value?.querySelectorAll('[data-testid="header-row"]')
+  const lastRow = rows?.[rows.length - 1]
+  const firstInput = lastRow?.querySelector('input:not([type="checkbox"])')
+  if (firstInput instanceof HTMLElement) firstInput.focus()
+}
 </script>
 
 <template>
-  <div class="flex flex-col bg-background">
+  <div ref="listRef" class="flex flex-col bg-background">
     <!-- Headers List -->
     <DraggableList :items="headers" @reorder="emit('reorder', $event)">
       <template #default="{ item }">
@@ -52,7 +64,7 @@ const emit = defineEmits<{
       type="button"
       class="w-full flex items-center gap-2 px-2 py-1.5 border-b border-dashed border-border/50 hover:border-border hover:bg-muted/20 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
       :aria-label="t('tooltip_add_header')"
-      @click="emit('add')">
+      @click="handleAdd">
       <div class="shrink-0 flex items-center justify-center size-8">
         <Plus class="h-3.5 w-3.5" />
       </div>

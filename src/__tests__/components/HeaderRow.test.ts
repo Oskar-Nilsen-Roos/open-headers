@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
-import type { HeaderRule } from '@/types'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
@@ -25,7 +25,7 @@ describe('HeaderRow', () => {
 
   const mountComponent = (
     header: HeaderRule,
-    props: Partial<{ nameSuggestions: string[]; valueSuggestions: string[] }> = {}
+    props: Partial<{ nameSuggestions: string[]; valueSuggestions: ValueSuggestion[] }> = {}
   ) => {
     return mount(HeaderRow, {
       props: { header, ...props },
@@ -89,11 +89,23 @@ describe('HeaderRow', () => {
       const header = createHeader({ name: '', value: '' })
       const wrapper = mountComponent(header, {
         nameSuggestions: ['Accept', 'Authorization'],
-        valueSuggestions: ['application/json'],
+        valueSuggestions: [{ value: 'application/json', comment: '' }],
       })
 
       expect(wrapper.html()).toContain('Accept')
       expect(wrapper.html()).toContain('application/json')
+    })
+
+    it('renders comment text when value suggestion has a comment', () => {
+      const header = createHeader({ name: 'Authorization', value: '' })
+      const wrapper = mountComponent(header, {
+        valueSuggestions: [{ value: 'Bearer token123', comment: 'Production API key' }],
+      })
+
+      // Comment should be displayed
+      expect(wrapper.html()).toContain('Production API key')
+      // Value should also be shown as secondary text
+      expect(wrapper.html()).toContain('Bearer token123')
     })
 
     it('renders checkbox with correct state when enabled', () => {
@@ -150,6 +162,23 @@ describe('HeaderRow', () => {
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-value' }])
+    })
+
+    it('auto-fills comment when value matches a known suggestion on blur', async () => {
+      const header = createHeader({ value: '' })
+      const wrapper = mountComponent(header, {
+        valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
+      })
+
+      const inputs = wrapper.findAll('input')
+      const valueInput = inputs[2]!
+      await valueInput.setValue('Bearer token')
+      await valueInput.trigger('blur')
+
+      const updates = wrapper.emitted('update')
+      expect(updates).toBeTruthy()
+      // Single emit with both value and comment
+      expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
     })
 
     it('emits update with comment when comment input blurs', async () => {

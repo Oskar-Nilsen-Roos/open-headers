@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick, ref } from 'vue'
 import type { UrlFilter } from '@/types'
 import UrlFilterRow from './UrlFilterRow.vue'
 import DraggableList from './DraggableList.vue'
@@ -30,10 +31,21 @@ function handleUpdate(filterId: string, updates: Partial<UrlFilter>) {
 function handleRemove(filterId: string) {
   emit('remove', filterId)
 }
+
+const listRef = ref<HTMLElement | null>(null)
+
+async function handleAdd() {
+  emit('add')
+  await nextTick()
+  const rows = listRef.value?.querySelectorAll('[data-testid="url-filter-row"]')
+  const lastRow = rows?.[rows.length - 1]
+  const input = lastRow?.querySelector('input[type="text"]')
+  if (input instanceof HTMLElement) input.focus()
+}
 </script>
 
 <template>
-  <div class="flex flex-col bg-background">
+  <div ref="listRef" class="flex flex-col bg-background">
     <!-- Filters List -->
     <DraggableList :items="filters" @reorder="emit('reorder', $event)">
       <template #default="{ item }">
@@ -53,7 +65,7 @@ function handleRemove(filterId: string) {
       type="button"
       class="w-full flex items-center gap-2 px-2 py-1.5 border-b border-dashed border-border/50 hover:border-border hover:bg-muted/20 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
       :aria-label="t('tooltip_add_filter')"
-      @click="emit('add')">
+      @click="handleAdd">
       <div class="shrink-0 flex items-center justify-center size-8">
         <Plus class="h-3.5 w-3.5" />
       </div>

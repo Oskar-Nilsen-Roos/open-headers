@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ const emit = defineEmits<{
   removePatternSuggestion: [matchType: string, pattern: string]
 }>()
 
+const patternInputRef = ref<ComponentPublicInstance | null>(null)
 const patternDraft = ref(props.filter.pattern)
 const lastCommittedPattern = ref(props.filter.pattern)
 
@@ -131,6 +132,13 @@ function handleMatchTypeChange(value: unknown) {
   ]
   if (!allowed.includes(value as UrlFilterMatchType)) return
   emit('update', props.filter.id, { matchType: value as UrlFilterMatchType })
+  focusPatternInput()
+}
+
+function focusPatternInput() {
+  const el = patternInputRef.value?.$el
+  const input = el instanceof HTMLElement ? el.querySelector('input') ?? el : null
+  if (input instanceof HTMLElement) input.focus()
 }
 
 function blurActiveElement() {
@@ -182,7 +190,7 @@ function blurActiveElement() {
       <SelectTrigger size="sm" class="w-40 h-8 px-2">
         <SelectValue :placeholder="t('url_filters_match_type_placeholder')" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent @close-auto-focus="(e: Event) => e.preventDefault()">
         <SelectItem value="host_equals">{{ t('url_filters_match_host_equals') }}</SelectItem>
         <SelectItem value="host_ends_with">{{ t('url_filters_match_host_ends_with') }}</SelectItem>
         <SelectItem value="localhost_port">{{ t('url_filters_match_localhost') }}</SelectItem>
@@ -199,6 +207,7 @@ function blurActiveElement() {
       <Popover v-model:open="patternPopoverOpen">
         <PopoverAnchor as-child>
           <CommandInput
+            ref="patternInputRef"
             v-model="patternDraft"
             unstyled
             :placeholder="patternPlaceholder"

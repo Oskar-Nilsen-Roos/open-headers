@@ -960,6 +960,135 @@ describe('useHeadersStore', () => {
     })
   })
 
+  describe('value suggestions with comments', () => {
+    it('stores comment with value suggestion when updating header value', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addHeader('request')
+      const header = store.requestHeaders[0]!
+      store.updateHeader(header.id, { name: 'Authorization', value: 'Bearer token123' })
+      store.updateHeader(header.id, { comment: 'Production API key' })
+
+      const suggestions = store.getHeaderValueSuggestions('Authorization')
+      expect(suggestions.length).toBe(1)
+      expect(suggestions[0]?.value).toBe('Bearer token123')
+      expect(suggestions[0]?.comment).toBe('Production API key')
+    })
+
+    it('updates comment for existing value suggestion', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addHeader('request')
+      const header = store.requestHeaders[0]!
+      store.updateHeader(header.id, { name: 'Authorization', value: 'Bearer token123' })
+      store.updateHeader(header.id, { comment: 'Old comment' })
+      store.updateHeader(header.id, { comment: 'New comment' })
+
+      const suggestions = store.getHeaderValueSuggestions('Authorization')
+      expect(suggestions.length).toBe(1)
+      expect(suggestions[0]?.comment).toBe('New comment')
+    })
+
+    it('returns ValueSuggestion[] from getHeaderValueSuggestions', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addHeader('request')
+      const header = store.requestHeaders[0]!
+      store.updateHeader(header.id, { name: 'Accept', value: 'application/json' })
+
+      const suggestions = store.getHeaderValueSuggestions('Accept')
+      expect(suggestions.length).toBe(1)
+      expect(suggestions[0]).toHaveProperty('value')
+      expect(suggestions[0]).toHaveProperty('comment')
+      expect(suggestions[0]?.value).toBe('application/json')
+    })
+
+    it('removes value suggestion by value string', async () => {
+      const store = useHeadersStore()
+      await store.loadState()
+
+      store.addHeader('request')
+      const header = store.requestHeaders[0]!
+      store.updateHeader(header.id, { name: 'Accept', value: 'application/json' })
+
+      expect(store.getHeaderValueSuggestions('Accept').length).toBe(1)
+
+      store.removeHeaderValueSuggestion('Accept', 'application/json')
+
+      expect(store.getHeaderValueSuggestions('Accept').length).toBe(0)
+    })
+
+    it('seeds suggestions with comments from profile headers', async () => {
+      const state = {
+        profiles: [{
+          id: 'test-profile',
+          name: 'Test Profile',
+          color: '#ff0000',
+          headers: [{
+            id: 'test-header',
+            name: 'Authorization',
+            value: 'Bearer seeded-token',
+            comment: 'Seeded comment',
+            type: 'request',
+            operation: 'set',
+            enabled: true,
+          }],
+          urlFilters: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }],
+        activeProfileId: 'test-profile',
+        darkModePreference: 'system',
+      }
+      localStorage.setItem('openheaders_state', JSON.stringify(state))
+
+      const store = useHeadersStore()
+      await store.loadState()
+
+      const suggestions = store.getHeaderValueSuggestions('Authorization')
+      expect(suggestions.length).toBe(1)
+      expect(suggestions[0]?.value).toBe('Bearer seeded-token')
+      expect(suggestions[0]?.comment).toBe('Seeded comment')
+    })
+
+    it('migrates old string[] format to ValueSuggestion[]', async () => {
+      const state = {
+        profiles: [{
+          id: 'test-profile',
+          name: 'Test Profile',
+          color: '#ff0000',
+          headers: [],
+          urlFilters: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }],
+        activeProfileId: 'test-profile',
+        darkModePreference: 'system',
+        headerSuggestions: {
+          names: ['Authorization'],
+          valuesByName: {
+            authorization: ['Bearer old-token', 'Bearer old-token2'],
+          },
+        },
+      }
+      localStorage.setItem('openheaders_state', JSON.stringify(state))
+
+      const store = useHeadersStore()
+      await store.loadState()
+
+      const suggestions = store.getHeaderValueSuggestions('Authorization')
+      expect(suggestions.length).toBe(2)
+      // hydration iterates and unshifts, so last item ends up first
+      expect(suggestions[0]?.value).toBe('Bearer old-token2')
+      expect(suggestions[0]?.comment).toBe('')
+      expect(suggestions[1]?.value).toBe('Bearer old-token')
+      expect(suggestions[1]?.comment).toBe('')
+    })
+  })
+
   describe('profile switching', () => {
     it('shows correct headers when switching between profiles', async () => {
       const store = useHeadersStore()

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference, HeaderSuggestionsState } from '../types'
+import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePreference, LanguagePreference, HeaderSuggestionsState, ValueSuggestion } from '../types'
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
 import { COMMON_REQUEST_HEADER_NAMES, getCanonicalHeaderName, normalizeHeaderKey } from '@/lib/header-suggestions'
@@ -23,7 +23,7 @@ export const useHeadersStore = defineStore('headers', () => {
   const historyIndex = ref(-1)
   const isInitialized = ref(false)
   const headerNameHistory = ref<string[]>([])
-  const headerValueHistory = ref<Record<string, string[]>>({})
+  const headerValueHistory = ref<Record<string, ValueSuggestion[]>>({})
   const hiddenHeaderNameSuggestions = ref<string[]>([])
   const urlPatternHistory = ref<Record<string, string[]>>({})
 
@@ -101,7 +101,7 @@ export const useHeadersStore = defineStore('headers', () => {
     }
   }
 
-  function addHeaderValueToHistory(rawName: string, rawValue: string): void {
+  function addHeaderValueToHistory(rawName: string, rawValue: string, comment = ''): void {
     const value = rawValue.trim()
     if (!value) return
 
@@ -114,11 +114,11 @@ export const useHeadersStore = defineStore('headers', () => {
       ? [...headerValueHistory.value[normalizedName]]
       : []
 
-    const existingIndex = existingValues.indexOf(value)
+    const existingIndex = existingValues.findIndex(s => s.value === value)
     if (existingIndex !== -1) {
       existingValues.splice(existingIndex, 1)
     }
-    existingValues.unshift(value)
+    existingValues.unshift({ value, comment })
 
     if (existingValues.length > MAX_HEADER_VALUE_HISTORY) {
       existingValues.length = MAX_HEADER_VALUE_HISTORY
@@ -131,7 +131,7 @@ export const useHeadersStore = defineStore('headers', () => {
     for (const profile of profilesToSeed) {
       for (const header of profile.headers ?? []) {
         if (header.name && header.value) {
-          addHeaderValueToHistory(header.name, header.value)
+          addHeaderValueToHistory(header.name, header.value, header.comment)
           continue
         }
         if (header.name) {
@@ -159,8 +159,19 @@ export const useHeadersStore = defineStore('headers', () => {
       }
       for (const [name, values] of Object.entries(suggestions.valuesByName ?? {})) {
         if (!Array.isArray(values)) continue
-        for (const value of values) {
-          addHeaderValueToHistory(name, value)
+        for (const entry of values) {
+          // Migrate from old string[] format to ValueSuggestion[]
+          if (typeof entry === 'string') {
+            addHeaderValueToHistory(name, entry)
+          } else if (
+            entry &&
+            typeof entry === 'object' &&
+            'value' in entry &&
+            typeof (entry as { value: unknown }).value === 'string'
+          ) {
+            const comment = (entry as { comment?: unknown }).comment
+            addHeaderValueToHistory(name, (entry as { value: string }).value, typeof comment === 'string' ? comment : '')
+          }
         }
       }
       if (Array.isArray(suggestions.hiddenNames)) {
@@ -194,7 +205,7 @@ export const useHeadersStore = defineStore('headers', () => {
     )
   }
 
-  function getHeaderValueSuggestions(name: string): string[] {
+  function getHeaderValueSuggestions(name: string): ValueSuggestion[] {
     const normalized = normalizeHeaderKey(name)
     if (!normalized) return []
     return headerValueHistory.value[normalized] ?? []
@@ -533,15 +544,28 @@ export const useHeadersStore = defineStore('headers', () => {
 
     const hasNameUpdate = typeof updates.name === 'string'
     const hasValueUpdate = typeof updates.value === 'string'
+    const hasCommentUpdate = typeof updates.comment === 'string'
+    // Read comment after Object.assign so it reflects the post-update state,
+    // and coalesce to an empty string so we never pass undefined downstream.
+    const currentComment: string = header.comment ?? ''
 
     if (hasNameUpdate) {
       addHeaderNameToHistory(nextName)
     }
 
     if (hasValueUpdate) {
-      addHeaderValueToHistory(nextName, updates.value as string)
+      addHeaderValueToHistory(nextName, updates.value as string, currentComment)
+    } else if (hasCommentUpdate && nextValue) {
+      addHeaderValueToHistory(nextName, nextValue, currentComment)
+      // Propagate comment to sibling headers with the same name+value
+      const normalizedName = normalizeHeaderKey(nextName)
+      for (const h of activeProfile.value.headers) {
+        if (h.id !== headerId && normalizeHeaderKey(h.name) === normalizedName && h.value === nextValue) {
+          h.comment = currentComment
+        }
+      }
     } else if (hasNameUpdate && nextValue) {
-      addHeaderValueToHistory(nextName, nextValue)
+      addHeaderValueToHistory(nextName, nextValue, currentComment)
     }
 
     saveToHistory()
@@ -571,7 +595,7 @@ export const useHeadersStore = defineStore('headers', () => {
     const values = headerValueHistory.value[normalized]
     if (!values) return
 
-    const nextValues = values.filter(entry => entry !== value)
+    const nextValues = values.filter(entry => entry.value !== value)
     if (nextValues.length === 0) {
       delete headerValueHistory.value[normalized]
     } else {

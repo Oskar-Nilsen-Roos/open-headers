@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { HeaderRule } from '@/types'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import type { HeaderRule, ValueSuggestion } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ import { t } from '@/i18n'
 const props = withDefaults(defineProps<{
   header: HeaderRule
   nameSuggestions?: string[]
-  valueSuggestions?: string[]
+  valueSuggestions?: ValueSuggestion[]
 }>(), {
   nameSuggestions: () => [],
   valueSuggestions: () => [],
@@ -36,6 +36,9 @@ const emit = defineEmits<{
   removeNameSuggestion: [name: string]
   removeValueSuggestion: [name: string, value: string]
 }>()
+
+const valueInputRef = ref<ComponentPublicInstance | null>(null)
+const commentInputRef = ref<ComponentPublicInstance | null>(null)
 
 const nameDraft = ref(props.header.name)
 const valueDraft = ref(props.header.value)
@@ -84,7 +87,10 @@ const filteredValueSuggestions = computed(() => {
   if (!valueIsSearching.value) return suggestions
   const search = valueDraft.value.trim().toLowerCase()
   return search
-    ? suggestions.filter(s => s.toLowerCase().includes(search))
+    ? suggestions.filter(s =>
+        s.value.toLowerCase().includes(search) ||
+        s.comment.toLowerCase().includes(search)
+      )
     : suggestions
 })
 
@@ -124,28 +130,84 @@ function handleNameBlur() {
   commitName(nameDraft.value)
 }
 
+function syncCommentFromSuggestion(value: string): boolean {
+  const match = props.valueSuggestions.find(s => s.value === value)
+  if (match) {
+    commentDraft.value = match.comment
+    lastCommittedComment.value = match.comment
+    return true
+  }
+  return false
+}
+
 function handleValueBlur() {
   valueInputActive.value = false
   valueIsSearching.value = false
-  commitValue(valueDraft.value)
+  const changed = valueDraft.value !== lastCommittedValue.value
+  if (changed) {
+    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
+    lastCommittedValue.value = valueDraft.value
+    if (commentSynced) {
+      // Emit value + comment together so it's a single undo step
+      emit('update', { value: valueDraft.value, comment: commentDraft.value })
+    } else {
+      emit('update', { value: valueDraft.value })
+    }
+  } else {
+    commitValue(valueDraft.value)
+  }
 }
 
 function handleCommentBlur() {
   commitComment(commentDraft.value)
 }
 
+// Flag to prevent Enter keydown from blurring after a dropdown selection
+// already moved focus to the next field.
+let skipNextEnterBlur = false
+
 function applyNameSuggestion(suggestion: string) {
+  skipNextEnterBlur = true
   nameDraft.value = suggestion
   commitName(suggestion)
   nameInputActive.value = false
   nameIsSearching.value = false
+  focusRef(valueInputRef)
 }
 
-function applyValueSuggestion(suggestion: string) {
-  valueDraft.value = suggestion
-  commitValue(suggestion)
+function applyValueSuggestion(suggestion: ValueSuggestion) {
+  skipNextEnterBlur = true
+  valueDraft.value = suggestion.value
+  commentDraft.value = suggestion.comment
+  // Single emit for both value + comment so it's one undo step
+  lastCommittedValue.value = suggestion.value
+  lastCommittedComment.value = suggestion.comment
+  emit('update', { value: suggestion.value, comment: suggestion.comment })
   valueInputActive.value = false
   valueIsSearching.value = false
+  focusRef(commentInputRef)
+}
+
+function focusRef(r: typeof valueInputRef | typeof commentInputRef) {
+  const el = r.value?.$el
+  const input = el instanceof HTMLElement ? el.querySelector('input') ?? el : null
+  if (input instanceof HTMLElement) input.focus()
+}
+
+function handleNameEnterKey() {
+  if (skipNextEnterBlur) {
+    skipNextEnterBlur = false
+    return
+  }
+  focusRef(valueInputRef)
+}
+
+function handleValueEnterKey() {
+  if (skipNextEnterBlur) {
+    skipNextEnterBlur = false
+    return
+  }
+  focusRef(commentInputRef)
 }
 
 function blurActiveElement() {
@@ -189,7 +251,7 @@ function blurActiveElement() {
             @focus="nameInputActive = true; nameIsSearching = false"
             @blur="handleNameBlur"
             @input="nameInputActive = true; nameIsSearching = true"
-            @keydown.enter="blurActiveElement"
+            @keydown.enter="handleNameEnterKey"
             @keydown.down="nameInputActive = true"
             @keydown.up="nameInputActive = true"
           />
@@ -234,6 +296,7 @@ function blurActiveElement() {
       <Popover v-model:open="valuePopoverOpen">
         <PopoverAnchor as-child>
           <CommandInput
+            ref="valueInputRef"
             v-model="valueDraft"
             unstyled
             :placeholder="t('placeholder_value')"
@@ -244,7 +307,7 @@ function blurActiveElement() {
             @focus="valueInputActive = true; valueIsSearching = false"
             @blur="handleValueBlur"
             @input="valueInputActive = true; valueIsSearching = true"
-            @keydown.enter="blurActiveElement"
+            @keydown.enter="handleValueEnterKey"
             @keydown.down="valueInputActive = true"
             @keydown.up="valueInputActive = true"
           />
@@ -261,16 +324,20 @@ function blurActiveElement() {
             <CommandGroup>
               <CommandItem
                 v-for="suggestion in filteredValueSuggestions"
-                :key="suggestion"
-                :value="suggestion"
+                :key="suggestion.value"
+                :value="suggestion.value"
                 class="group/suggestion cursor-pointer"
                 @select="() => applyValueSuggestion(suggestion)"
               >
-                <span class="flex-1 truncate">{{ suggestion }}</span>
+                <span v-if="suggestion.comment" class="flex-1 min-w-0" :title="suggestion.value">
+                  <span class="block truncate text-xs">{{ suggestion.value }}</span>
+                  <span class="block font-mono truncate text-xs text-muted-foreground/60">{{ suggestion.comment }}</span>
+                </span>
+                <span v-else class="flex-1 truncate text-xs" :title="suggestion.value">{{ suggestion.value }}</span>
                 <button
                   type="button"
                   class="ml-2 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-opacity group-hover/suggestion:opacity-100 hover:text-foreground hover:bg-muted/70"
-                  @click.stop="emit('removeValueSuggestion', header.name, suggestion)"
+                  @click.stop="emit('removeValueSuggestion', header.name, suggestion.value)"
                   @mousedown.stop.prevent
                   @pointerdown.stop
                   :aria-label="t('menu_delete')"
@@ -285,6 +352,7 @@ function blurActiveElement() {
     </Command>
 
     <Input
+      ref="commentInputRef"
       v-model="commentDraft"
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"

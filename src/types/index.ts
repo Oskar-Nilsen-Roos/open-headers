@@ -174,9 +174,14 @@ export interface AppState {
   urlPatternHistory?: Record<string, string[]>
 }
 
+export interface ValueSuggestion {
+  value: string
+  comment: string
+}
+
 export interface HeaderSuggestionsState {
   names: string[]
-  valuesByName: Record<string, string[]>
+  valuesByName: Record<string, ValueSuggestion[]>
   hiddenNames?: string[]
 }
 
