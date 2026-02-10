@@ -152,7 +152,12 @@ function handleCommentBlur() {
   commitComment(commentDraft.value)
 }
 
+// Flag to prevent Enter keydown from blurring after a dropdown selection
+// already moved focus to the next field.
+let skipNextEnterBlur = false
+
 function applyNameSuggestion(suggestion: string) {
+  skipNextEnterBlur = true
   nameDraft.value = suggestion
   commitName(suggestion)
   nameInputActive.value = false
@@ -161,6 +166,7 @@ function applyNameSuggestion(suggestion: string) {
 }
 
 function applyValueSuggestion(suggestion: ValueSuggestion) {
+  skipNextEnterBlur = true
   valueDraft.value = suggestion.value
   commitValue(suggestion.value)
   commentDraft.value = suggestion.comment
@@ -174,6 +180,14 @@ function focusRef(r: typeof valueInputRef | typeof commentInputRef) {
   const el = r.value?.$el
   const input = el instanceof HTMLElement ? el.querySelector('input') ?? el : null
   if (input instanceof HTMLElement) input.focus()
+}
+
+function handleEnterKey() {
+  if (skipNextEnterBlur) {
+    skipNextEnterBlur = false
+    return
+  }
+  blurActiveElement()
 }
 
 function blurActiveElement() {
@@ -217,7 +231,7 @@ function blurActiveElement() {
             @focus="nameInputActive = true; nameIsSearching = false"
             @blur="handleNameBlur"
             @input="nameInputActive = true; nameIsSearching = true"
-            @keydown.enter="blurActiveElement"
+            @keydown.enter="handleEnterKey"
             @keydown.down="nameInputActive = true"
             @keydown.up="nameInputActive = true"
           />
@@ -273,7 +287,7 @@ function blurActiveElement() {
             @focus="valueInputActive = true; valueIsSearching = false"
             @blur="handleValueBlur"
             @input="valueInputActive = true; valueIsSearching = true"
-            @keydown.enter="blurActiveElement"
+            @keydown.enter="handleEnterKey"
             @keydown.down="valueInputActive = true"
             @keydown.up="valueInputActive = true"
           />
