@@ -62,6 +62,20 @@ Optional:
 Project-specific skills in `.claude/skills/`:
 - `/repomix-explorer` - Pack codebase for context export
 
+## Releases
+A GitHub Action (`.github/workflows/release.yml`) handles releases automatically. **Do not create releases manually with `gh release create`.**
+
+To release a new version:
+1. Bump `version` in both `package.json` and `public/manifest.json`
+2. Commit: `chore: bump version to X.Y.Z`
+3. Tag and push:
+   ```bash
+   git tag vX.Y.Z
+   git push origin main --tags
+   ```
+
+The Action will run tests, build, package `openheaders-vX.Y.Z.zip`, generate a changelog from commit messages, and create the GitHub release with the artifact attached.
+
 ## Notes
 - Uses declarativeNetRequest API (not webRequest)
 - Dark mode preference: system/light/dark
