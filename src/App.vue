@@ -20,6 +20,7 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
 const isShowingFilters = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 type MainTab = HeaderType | 'filters'
 
@@ -219,25 +220,32 @@ function handleExportAllProfiles() {
 }
 
 function handleImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json'
-  input.onchange = e => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
+  fileInputRef.value?.click()
+}
 
-    const reader = new FileReader()
-    reader.onload = event => {
-      const content = event.target?.result as string
-      store.importProfiles(content)
-    }
-    reader.readAsText(file)
+function onFileSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = event => {
+    const content = event.target?.result as string
+    store.importProfiles(content)
   }
-  input.click()
+  reader.readAsText(file)
+  // Reset so the same file can be re-imported
+  ;(e.target as HTMLInputElement).value = ''
 }
 </script>
 
 <template>
+  <input
+    ref="fileInputRef"
+    type="file"
+    accept=".json"
+    class="hidden"
+    @change="onFileSelected"
+  />
   <div v-if="store.isInitialized" class="flex h-full bg-background">
     <!-- Profile Sidebar -->
     <ProfileSidebar
