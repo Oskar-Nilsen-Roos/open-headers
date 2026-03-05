@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    exclude: ['**/node_modules/**', '**/browser/**'],
+    exclude: ['**/node_modules/**', '**/browser/**', '**/e2e/**'],
     setupFiles: ['src/__tests__/setup.ts'],
   },
 })
