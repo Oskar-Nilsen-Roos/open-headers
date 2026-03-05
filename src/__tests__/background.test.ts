@@ -63,7 +63,7 @@ function buildRulesFromActiveProfile(state: AppState, tabs: TabInfo[]): Rule[] {
   const enabledHeaders = profile.headers.filter((h) => {
     if (!h.enabled || !h.name.trim()) return false
     // Chrome requires a value for set/append — omitting it silently rejects the entire rule
-    if (h.operation !== 'remove' && !h.value) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
     return true
   })
   if (enabledHeaders.length === 0) return rules
@@ -113,7 +113,11 @@ function countAppliedHeadersForTab(state: AppState, tabUrl: string): number {
   if (!profile) return 0
   if (!tabUrl.startsWith('http://') && !tabUrl.startsWith('https://')) return 0
   if (!isProfileEnabledForTabUrl(profile, tabUrl)) return 0
-  return profile.headers.filter((h) => h.enabled && h.name.trim()).length
+  return profile.headers.filter((h) => {
+    if (!h.enabled || !h.name.trim()) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  }).length
 }
 
 describe('Background Script Logic', () => {

@@ -150,7 +150,11 @@ function getActiveProfile(state: AppState | null): Profile | null {
 }
 
 function getEnabledHeaderCount(profile: Profile): number {
-  return profile.headers.filter(h => h.enabled && h.name.trim()).length
+  return profile.headers.filter(h => {
+    if (!h.enabled || !h.name.trim()) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  }).length
 }
 
 function getAppliedHeaderCountForUrl(profile: Profile, tabUrl: string | undefined): number {
@@ -179,7 +183,7 @@ function buildSessionRuleFromProfile(
   const enabledHeaders = profile.headers.filter(h => {
     if (!h.enabled || !h.name.trim()) return false
     // Chrome requires a value for set/append — omitting it silently rejects the entire rule
-    if (h.operation !== 'remove' && !h.value) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
     return true
   })
   if (enabledHeaders.length === 0) return null
