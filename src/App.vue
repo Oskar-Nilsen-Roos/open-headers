@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { t } from '@/i18n'
-import type { HeaderType, UrlFilter } from '@/types'
+import type { HeaderRule, HeaderType, UrlFilter } from '@/types'
 import { Plus, Trash2 } from 'lucide-vue-next'
 
 const store = useHeadersStore()
@@ -110,7 +110,7 @@ function handleRemoveHeader(headerId: string) {
   store.removeHeader(headerId)
 }
 
-function handleUpdateHeader(headerId: string, updates: Record<string, unknown>) {
+function handleUpdateHeader(headerId: string, updates: Partial<HeaderRule>) {
   store.updateHeader(headerId, updates)
 }
 

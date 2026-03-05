@@ -150,7 +150,11 @@ function getActiveProfile(state: AppState | null): Profile | null {
 }
 
 function getEnabledHeaderCount(profile: Profile): number {
-  return profile.headers.filter(h => h.enabled && h.name.trim()).length
+  return profile.headers.filter(h => {
+    if (!h.enabled || !h.name.trim()) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  }).length
 }
 
 function getAppliedHeaderCountForUrl(profile: Profile, tabUrl: string | undefined): number {
@@ -176,7 +180,12 @@ function buildSessionRuleFromProfile(
 ): chrome.declarativeNetRequest.Rule | null {
   if (enabledTabIds.length === 0) return null
 
-  const enabledHeaders = profile.headers.filter(h => h.enabled && h.name.trim())
+  const enabledHeaders = profile.headers.filter(h => {
+    if (!h.enabled || !h.name.trim()) return false
+    // Chrome requires a value for set/append — omitting it silently rejects the entire rule
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  })
   if (enabledHeaders.length === 0) return null
 
   const requestHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
@@ -186,7 +195,7 @@ function buildSessionRuleFromProfile(
     const headerInfo: chrome.declarativeNetRequest.ModifyHeaderInfo = {
       header: header.name,
       operation: headerOperationToChrome(header.operation),
-      ...(header.operation !== 'remove' && header.value ? { value: header.value } : {}),
+      ...(header.operation !== 'remove' ? { value: header.value } : {}),
     }
 
     if (header.type === 'request') {
@@ -216,7 +225,7 @@ function buildSessionRuleFromProfile(
 
 const tabUrls = new Map<number, string>()
 let latestState: AppState | null = null
-let hasClearedDynamicRules = false
+let clearDynamicRulesPromise: Promise<void> | null = null
 let pendingUpdate = false
 let updateInFlight: Promise<void> | null = null
 let pendingActionUpdate = false
@@ -225,19 +234,21 @@ let lastAppliedIconKey: string | null = null
 let lastBadgeText: string | null = null
 let badgeStyleInitialized = false
 
-async function clearDynamicRulesOnce(): Promise<void> {
-  if (hasClearedDynamicRules) return
-  try {
-    const dynamic = await chrome.declarativeNetRequest.getDynamicRules()
-    const ids = dynamic.map(r => r.id)
-    if (ids.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids })
-    }
-  } catch (error) {
-    console.warn('Failed to clear dynamic rules (continuing):', error)
-  } finally {
-    hasClearedDynamicRules = true
+function clearDynamicRulesOnce(): Promise<void> {
+  if (!clearDynamicRulesPromise) {
+    clearDynamicRulesPromise = (async () => {
+      try {
+        const dynamic = await chrome.declarativeNetRequest.getDynamicRules()
+        const ids = dynamic.map(r => r.id)
+        if (ids.length > 0) {
+          await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids })
+        }
+      } catch (error) {
+        console.warn('Failed to clear dynamic rules (continuing):', error)
+      }
+    })()
   }
+  return clearDynamicRulesPromise
 }
 
 function computeEnabledTabIds(profile: Profile): number[] {
@@ -461,10 +472,6 @@ async function initialize(): Promise<void> {
 
   queueUpdateRules()
 }
-
-chrome.runtime.onInstalled.addListener(async () => {
-  await initialize()
-})
 
 initialize().catch((error) => console.error('Failed to initialize background script:', error))
 

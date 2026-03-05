@@ -60,7 +60,12 @@ function buildRulesFromActiveProfile(state: AppState, tabs: TabInfo[]): Rule[] {
   const profile = state.profiles.find((p) => p.id === state.activeProfileId)
   if (!profile) return rules
 
-  const enabledHeaders = profile.headers.filter((h) => h.enabled && h.name.trim())
+  const enabledHeaders = profile.headers.filter((h) => {
+    if (!h.enabled || !h.name.trim()) return false
+    // Chrome requires a value for set/append — omitting it silently rejects the entire rule
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  })
   if (enabledHeaders.length === 0) return rules
 
   const enabledTabIds = computeEnabledTabIds(profile, tabs)
@@ -73,7 +78,7 @@ function buildRulesFromActiveProfile(state: AppState, tabs: TabInfo[]): Rule[] {
     const headerInfo: ModifyHeaderInfo = {
       header: header.name,
       operation: headerOperationToChrome(header.operation),
-      ...(header.operation !== 'remove' && header.value ? { value: header.value } : {}),
+      ...(header.operation !== 'remove' ? { value: header.value } : {}),
     }
 
     if (header.type === 'request') {
@@ -108,7 +113,11 @@ function countAppliedHeadersForTab(state: AppState, tabUrl: string): number {
   if (!profile) return 0
   if (!tabUrl.startsWith('http://') && !tabUrl.startsWith('https://')) return 0
   if (!isProfileEnabledForTabUrl(profile, tabUrl)) return 0
-  return profile.headers.filter((h) => h.enabled && h.name.trim()).length
+  return profile.headers.filter((h) => {
+    if (!h.enabled || !h.name.trim()) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  }).length
 }
 
 describe('Background Script Logic', () => {
@@ -295,6 +304,53 @@ describe('Background Script Logic', () => {
 
       expect(rules.length).toBe(1)
       expect(rules[0]!.condition.tabIds).toEqual([1])
+    })
+
+    it('filters out set/append headers with empty value without breaking other headers', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [
+              createHeader({ id: 'h1', name: 'X-Empty', value: '', type: 'request', operation: 'set' }),
+              createHeader({ id: 'h2', name: 'X-Valid', value: 'ok', type: 'request', operation: 'set' }),
+              createHeader({ id: 'h3', name: 'X-Empty-Append', value: '', type: 'response', operation: 'append' }),
+              createHeader({ id: 'h4', name: 'X-Remove', value: '', type: 'request', operation: 'remove' }),
+            ],
+          }),
+        ],
+      })
+
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+      ])
+
+      expect(rules.length).toBe(1)
+      // X-Valid (set with value) and X-Remove (remove doesn't need value) should be included
+      expect(rules[0]!.action.requestHeaders).toEqual([
+        { header: 'X-Valid', operation: 'SET', value: 'ok' },
+        { header: 'X-Remove', operation: 'REMOVE' },
+      ])
+      // X-Empty-Append has empty value, so no response headers
+      expect(rules[0]!.action.responseHeaders).toBeUndefined()
+    })
+
+    it('returns empty array when all set/append headers have empty values', () => {
+      const state = createState({
+        profiles: [
+          createProfile({
+            headers: [
+              createHeader({ id: 'h1', name: 'X-Empty', value: '', operation: 'set' }),
+              createHeader({ id: 'h2', name: 'X-Also-Empty', value: '', operation: 'append' }),
+            ],
+          }),
+        ],
+      })
+
+      const rules = buildRulesFromActiveProfile(state, [
+        { id: 1, url: 'https://example.com/' },
+      ])
+
+      expect(rules).toEqual([])
     })
 
     it('excludes tabs matching exclude filters even if include matches', () => {

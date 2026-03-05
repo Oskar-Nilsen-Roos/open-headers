@@ -231,6 +231,8 @@ function getProfileBadgeStyle(color: string): Record<string, string> {
               variant="ghost"
               size="icon"
               class="border border-dashed border-muted-foreground/30"
+              data-testid="add-profile"
+              :aria-label="t('tooltip_add_profile')"
               @click="emit('add')"
             >
               <Plus class="h-4 w-4 text-muted-foreground" />

@@ -10,8 +10,11 @@
     "build:watch": "vite build --watch",
     "copy-manifest": "cp public/manifest.json dist/manifest.json && cp -r public/icons dist/ && mkdir -p dist/_locales && cp -r src/i18n/locales/* dist/_locales/",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest run && playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:server": "bun run e2e/test-server.ts"
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
