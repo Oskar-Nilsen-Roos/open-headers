@@ -190,6 +190,21 @@ export interface HistoryEntry {
   timestamp: number
 }
 
+export interface HistoryLogEntry {
+  id: string
+  timestamp: number
+  tabId: number
+  url: string
+  profileName: string
+  profileColor: string
+  headers: Array<{
+    name: string
+    value: string
+    type: HeaderType
+    operation: HeaderOperation
+  }>
+}
+
 export const DEFAULT_PROFILE_COLORS = [
   '#7c3aed', // violet
   '#2563eb', // blue

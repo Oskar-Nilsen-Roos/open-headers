@@ -5,6 +5,7 @@ import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
 import UrlFilterList from '@/components/UrlFilterList.vue'
+import HistoryLog from '@/components/HistoryLog.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -21,6 +22,7 @@ const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
 const isShowingFilters = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const showHistoryLog = ref(false)
 
 type MainTab = HeaderType | 'filters'
 
@@ -261,6 +263,7 @@ function onFileSelected(e: Event) {
       @duplicate="handleDuplicateProfile"
       @delete="handleDeleteProfile"
       @export-all="handleExportAllProfiles"
+      @history-log="showHistoryLog = true"
       @set-dark-mode="store.setDarkModePreference"
       @set-language="store.setLanguagePreference" />
 
@@ -396,4 +399,6 @@ function onFileSelected(e: Event) {
   <div v-else class="flex items-center justify-center h-64 text-muted-foreground">
     {{ t('app_loading') }}
   </div>
+
+  <HistoryLog v-model:open="showHistoryLog" />
 </template>

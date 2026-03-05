@@ -1,4 +1,5 @@
-import type { HeaderRule, AppState, Profile } from '../types'
+import type { HeaderRule, AppState, Profile, HistoryLogEntry } from '../types'
+import { generateId } from '../types'
 import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
 import { getReadableTextColor, parseColorInputToHex } from '../lib/color'
 
@@ -234,6 +235,63 @@ let lastAppliedIconKey: string | null = null
 let lastBadgeText: string | null = null
 let badgeStyleInitialized = false
 
+const HISTORY_LOG_KEY = 'openheaders_history_log'
+const MAX_HISTORY_ENTRIES = 200
+
+let historyLog: HistoryLogEntry[] = []
+
+function getEnabledHeaders(profile: Profile): HeaderRule[] {
+  return profile.headers.filter(h => {
+    if (!h.enabled || !h.name.trim()) return false
+    if (h.operation !== 'remove' && !h.value?.trim()) return false
+    return true
+  })
+}
+
+function addHistoryEntry(tabId: number, url: string, profile: Profile): void {
+  const enabledHeaders = getEnabledHeaders(profile)
+  if (enabledHeaders.length === 0) return
+
+  const entry: HistoryLogEntry = {
+    id: generateId(),
+    timestamp: Date.now(),
+    tabId,
+    url,
+    profileName: profile.name,
+    profileColor: profile.color,
+    headers: enabledHeaders.map(h => ({
+      name: h.name,
+      value: h.value,
+      type: h.type,
+      operation: h.operation,
+    })),
+  }
+
+  historyLog.unshift(entry)
+  if (historyLog.length > MAX_HISTORY_ENTRIES) {
+    historyLog = historyLog.slice(0, MAX_HISTORY_ENTRIES)
+  }
+
+  persistHistoryLog()
+}
+
+function persistHistoryLog(): void {
+  try {
+    chrome.storage.session.set({ [HISTORY_LOG_KEY]: historyLog })
+  } catch {
+    // storage.session may not be available in all environments
+  }
+}
+
+async function loadHistoryLog(): Promise<void> {
+  try {
+    const result = await chrome.storage.session.get(HISTORY_LOG_KEY)
+    historyLog = (result[HISTORY_LOG_KEY] as HistoryLogEntry[] | undefined) ?? []
+  } catch {
+    historyLog = []
+  }
+}
+
 function clearDynamicRulesOnce(): Promise<void> {
   if (!clearDynamicRulesPromise) {
     clearDynamicRulesPromise = (async () => {
@@ -428,6 +486,14 @@ function updateTabUrl(tabId: number, url: string | undefined): void {
 
 // Track tab URL changes so we can apply rules based on the top-level site (tab URL)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Log history on navigation start (when headers will be applied)
+  if (changeInfo.status === 'loading' && tab.url && isHttpUrl(tab.url)) {
+    const profile = getActiveProfile(latestState)
+    if (profile && isProfileEnabledForTabUrl(profile, tab.url)) {
+      addHistoryEntry(tabId, tab.url, profile)
+    }
+  }
+
   if (changeInfo.url) {
     updateTabUrl(tabId, changeInfo.url)
     return
@@ -458,6 +524,8 @@ async function initialize(): Promise<void> {
   const result = await chrome.storage.local.get(STORAGE_KEY)
   latestState = result[STORAGE_KEY] as AppState | null
 
+  await loadHistoryLog()
+
   // Prime tab URL cache
   try {
     const tabs = await chrome.tabs.query({})
@@ -487,5 +555,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ error: String(error) })
     })
     return true // Keep channel open for async response
+  }
+
+  if (message.type === 'GET_HISTORY_LOG') {
+    sendResponse({ entries: historyLog })
+    return false
+  }
+
+  if (message.type === 'CLEAR_HISTORY_LOG') {
+    historyLog = []
+    persistHistoryLog()
+    sendResponse({ success: true })
+    return false
   }
 })

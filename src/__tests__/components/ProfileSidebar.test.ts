@@ -14,6 +14,7 @@ vi.mock('lucide-vue-next', () => ({
   Sun: { template: '<span>Sun</span>' },
   Contrast: { template: '<span>Contrast</span>' },
   Download: { template: '<span>Download</span>' },
+  ScrollText: { template: '<span>ScrollText</span>' },
 }))
 
 // Mock swapy

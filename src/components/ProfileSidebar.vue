@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, MoreVertical, Upload, Copy, Trash2, Moon, Sun, Contrast, Download } from 'lucide-vue-next'
+import { Plus, MoreVertical, Upload, Copy, Trash2, Moon, Sun, Contrast, Download, ScrollText } from 'lucide-vue-next'
 import { getReadableTextColor } from '@/lib/color'
 import { cn } from '@/lib/utils'
 import { t } from '@/i18n'
@@ -56,6 +56,7 @@ const emit = defineEmits<{
   duplicate: []
   delete: []
   exportAll: []
+  historyLog: []
   setDarkMode: [preference: DarkModePreference]
   setLanguage: [preference: LanguagePreference]
 }>()
@@ -264,6 +265,12 @@ function getProfileBadgeStyle(color: string): Record<string, string> {
             <Upload class="h-4 w-4 mr-2" />
             {{ t('menu_import_profiles') }}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @select="emit('historyLog')">
+            <ScrollText class="h-4 w-4 mr-2" />
+            {{ t('menu_history_log') }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem :disabled="!activeProfileId" @select="emit('duplicate')">
             <Copy class="h-4 w-4 mr-2" />
             {{ t('menu_duplicate_profile') }}

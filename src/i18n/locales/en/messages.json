@@ -302,5 +302,29 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Match type label for regular expression matching"
+  },
+  "menu_history_log": {
+    "message": "History log",
+    "description": "Menu item for opening the history debug log"
+  },
+  "history_log_title": {
+    "message": "History log",
+    "description": "Title for the history log modal"
+  },
+  "history_log_description": {
+    "message": "Shows which headers were applied on each page load.",
+    "description": "Description text for the history log modal"
+  },
+  "history_log_refresh": {
+    "message": "Refresh",
+    "description": "Button label to refresh the history log"
+  },
+  "history_log_clear": {
+    "message": "Clear",
+    "description": "Button label to clear the history log"
+  },
+  "history_log_empty": {
+    "message": "No history yet. Browse pages with headers enabled to see entries here.",
+    "description": "Empty state text when the history log has no entries"
   }
 }

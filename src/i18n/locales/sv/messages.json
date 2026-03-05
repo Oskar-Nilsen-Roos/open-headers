@@ -302,5 +302,29 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Matchtyp för reguljära uttryck"
+  },
+  "menu_history_log": {
+    "message": "Historiklogg",
+    "description": "Menyval för att öppna historikloggen"
+  },
+  "history_log_title": {
+    "message": "Historiklogg",
+    "description": "Titel för historikloggens modal"
+  },
+  "history_log_description": {
+    "message": "Visar vilka headers som tillämpades vid varje sidladdning.",
+    "description": "Beskrivningstext för historikloggens modal"
+  },
+  "history_log_refresh": {
+    "message": "Uppdatera",
+    "description": "Knappetikett för att uppdatera historikloggen"
+  },
+  "history_log_clear": {
+    "message": "Rensa",
+    "description": "Knappetikett för att rensa historikloggen"
+  },
+  "history_log_empty": {
+    "message": "Ingen historik ännu. Surfa med headers aktiverade för att se poster här.",
+    "description": "Tomtillstånd när historikloggen är tom"
   }
 }
