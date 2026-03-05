@@ -34,7 +34,4 @@ jobs:
         run: bun run build
 
       - name: Run header verification e2e tests
-        run: |
-          bun run e2e/test-server.ts &
-          sleep 1
-          xvfb-run bunx playwright test --config e2e/playwright.config.ts
+        run: xvfb-run bunx playwright test --config e2e/playwright.config.ts

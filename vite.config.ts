@@ -31,8 +31,13 @@ function copyExtensionLocales(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [vue(), tailwindcss(), VueMcp(), copyExtensionLocales()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    vue(),
+    tailwindcss(),
+    ...(mode === 'development' ? [VueMcp()] : []),
+    copyExtensionLocales(),
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -55,4 +60,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

@@ -225,7 +225,7 @@ function buildSessionRuleFromProfile(
 
 const tabUrls = new Map<number, string>()
 let latestState: AppState | null = null
-let hasClearedDynamicRules = false
+let clearDynamicRulesPromise: Promise<void> | null = null
 let pendingUpdate = false
 let updateInFlight: Promise<void> | null = null
 let pendingActionUpdate = false
@@ -234,19 +234,21 @@ let lastAppliedIconKey: string | null = null
 let lastBadgeText: string | null = null
 let badgeStyleInitialized = false
 
-async function clearDynamicRulesOnce(): Promise<void> {
-  if (hasClearedDynamicRules) return
-  try {
-    const dynamic = await chrome.declarativeNetRequest.getDynamicRules()
-    const ids = dynamic.map(r => r.id)
-    if (ids.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids })
-    }
-  } catch (error) {
-    console.warn('Failed to clear dynamic rules (continuing):', error)
-  } finally {
-    hasClearedDynamicRules = true
+function clearDynamicRulesOnce(): Promise<void> {
+  if (!clearDynamicRulesPromise) {
+    clearDynamicRulesPromise = (async () => {
+      try {
+        const dynamic = await chrome.declarativeNetRequest.getDynamicRules()
+        const ids = dynamic.map(r => r.id)
+        if (ids.length > 0) {
+          await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids })
+        }
+      } catch (error) {
+        console.warn('Failed to clear dynamic rules (continuing):', error)
+      }
+    })()
   }
+  return clearDynamicRulesPromise
 }
 
 function computeEnabledTabIds(profile: Profile): number[] {
@@ -470,10 +472,6 @@ async function initialize(): Promise<void> {
 
   queueUpdateRules()
 }
-
-chrome.runtime.onInstalled.addListener(async () => {
-  await initialize()
-})
 
 initialize().catch((error) => console.error('Failed to initialize background script:', error))
 
