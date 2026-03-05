@@ -176,7 +176,12 @@ function buildSessionRuleFromProfile(
 ): chrome.declarativeNetRequest.Rule | null {
   if (enabledTabIds.length === 0) return null
 
-  const enabledHeaders = profile.headers.filter(h => h.enabled && h.name.trim())
+  const enabledHeaders = profile.headers.filter(h => {
+    if (!h.enabled || !h.name.trim()) return false
+    // Chrome requires a value for set/append — omitting it silently rejects the entire rule
+    if (h.operation !== 'remove' && !h.value) return false
+    return true
+  })
   if (enabledHeaders.length === 0) return null
 
   const requestHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
@@ -186,7 +191,7 @@ function buildSessionRuleFromProfile(
     const headerInfo: chrome.declarativeNetRequest.ModifyHeaderInfo = {
       header: header.name,
       operation: headerOperationToChrome(header.operation),
-      ...(header.operation !== 'remove' && header.value ? { value: header.value } : {}),
+      ...(header.operation !== 'remove' ? { value: header.value } : {}),
     }
 
     if (header.type === 'request') {

@@ -470,12 +470,11 @@ test.describe('Edge cases', () => {
     await extPage.close()
   })
 
-  test('header with empty value for set operation invalidates the rule', async ({ background, testPage, testServerUrl }) => {
-    // The background script only includes value when header.value is truthy:
-    //   ...(header.operation !== 'remove' && header.value ? { value: header.value } : {})
-    // Chrome's declarativeNetRequest requires a value for 'set' operation.
-    // A SET header without a value field causes the entire rule to be silently rejected
-    // by Chrome, meaning NO headers in the profile are applied.
+  test('set/append headers with empty value are filtered out, not poisoning the rule', async ({ background, testPage, testServerUrl }) => {
+    // Chrome requires a value for set/append operations. If a header without
+    // a value is included, Chrome silently rejects the ENTIRE rule.
+    // The fix: filter out set/append headers with empty values so that
+    // other valid headers in the same profile still get applied.
     const profile = makeProfile({
       headers: [
         makeHeader({ name: 'X-Empty-Value', value: '', type: 'request', operation: 'set' }),
@@ -486,9 +485,9 @@ test.describe('Edge cases', () => {
     await navigateAndWaitForRules(testPage, testServerUrl, background)
 
     const headers = await fetchEchoHeaders(testPage, testServerUrl)
-    // Both headers are NOT applied because Chrome rejects the entire rule
+    // Empty-value header is filtered out, but the valid header still applies
     expect(headers['x-empty-value']).toBeUndefined()
-    expect(headers['x-has-value']).toBeUndefined()
+    expect(headers['x-has-value']).toBe('present')
   })
 })
 
