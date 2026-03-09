@@ -302,5 +302,21 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Match type label for regular expression matching"
+  },
+  "command_open_extension": {
+    "message": "Open OpenHeaders",
+    "description": "Chrome command description for opening the extension popup"
+  },
+  "command_switch_profile_1": {
+    "message": "Switch to profile 1",
+    "description": "Chrome command description for switching to the first profile"
+  },
+  "command_switch_profile_2": {
+    "message": "Switch to profile 2",
+    "description": "Chrome command description for switching to the second profile"
+  },
+  "command_switch_profile_3": {
+    "message": "Switch to profile 3",
+    "description": "Chrome command description for switching to the third profile"
   }
 }

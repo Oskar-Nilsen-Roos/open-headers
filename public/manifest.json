@@ -27,6 +27,36 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+H",
+        "mac": "Command+Shift+H"
+      },
+      "description": "__MSG_command_open_extension__"
+    },
+    "switch-profile-1": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+1",
+        "mac": "Command+Shift+1"
+      },
+      "description": "__MSG_command_switch_profile_1__"
+    },
+    "switch-profile-2": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+2",
+        "mac": "Command+Shift+2"
+      },
+      "description": "__MSG_command_switch_profile_2__"
+    },
+    "switch-profile-3": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+3",
+        "mac": "Command+Shift+3"
+      },
+      "description": "__MSG_command_switch_profile_3__"
+    }
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

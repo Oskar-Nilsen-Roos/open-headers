@@ -302,5 +302,21 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Matchtyp för reguljära uttryck"
+  },
+  "command_open_extension": {
+    "message": "Öppna OpenHeaders",
+    "description": "Chrome-kommandobeskrivning för att öppna tilläggets popup"
+  },
+  "command_switch_profile_1": {
+    "message": "Byt till profil 1",
+    "description": "Chrome-kommandobeskrivning för att byta till den första profilen"
+  },
+  "command_switch_profile_2": {
+    "message": "Byt till profil 2",
+    "description": "Chrome-kommandobeskrivning för att byta till den andra profilen"
+  },
+  "command_switch_profile_3": {
+    "message": "Byt till profil 3",
+    "description": "Chrome-kommandobeskrivning för att byta till den tredje profilen"
   }
 }

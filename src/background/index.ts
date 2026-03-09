@@ -475,6 +475,47 @@ async function initialize(): Promise<void> {
 
 initialize().catch((error) => console.error('Failed to initialize background script:', error))
 
+// Handle keyboard shortcut commands for profile switching
+chrome.commands.onCommand.addListener(async (command) => {
+  const match = command.match(/^switch-profile-(\d+)$/)
+  if (!match?.[1]) return
+
+  const profileIndex = parseInt(match[1], 10) - 1
+  if (!latestState || profileIndex < 0 || profileIndex >= latestState.profiles.length) return
+
+  const targetProfile = latestState.profiles[profileIndex]
+  if (!targetProfile || targetProfile.id === latestState.activeProfileId) return
+
+  // Update active profile in storage
+  const newState: AppState = {
+    ...latestState,
+    activeProfileId: targetProfile.id,
+  }
+  await chrome.storage.local.set({ [STORAGE_KEY]: newState })
+
+  // Flash badge text briefly with profile number
+  const profileNumber = String(profileIndex + 1)
+  await chrome.action.setBadgeText({ text: profileNumber })
+  setTimeout(() => {
+    queueUpdateActionAppearance()
+  }, 1500)
+
+  // Notify active tab for toast notification
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+    if (activeTab?.id && activeTab.url?.startsWith('http')) {
+      await chrome.tabs.sendMessage(activeTab.id, {
+        type: 'PROFILE_SWITCHED',
+        profileName: targetProfile.name,
+        profileColor: targetProfile.color,
+        profileNumber: profileIndex + 1,
+      })
+    }
+  } catch {
+    // Content script may not be injected yet — that's fine
+  }
+})
+
 // Message handler for popup communication
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GET_ACTIVE_RULES') {
