@@ -375,6 +375,10 @@
     "message": "Edit in Chrome",
     "description": "Link to open Chrome shortcuts settings"
   },
+  "settings_shortcuts_swap": {
+    "message": "Swap",
+    "description": "Button to swap conflicting shortcut bindings"
+  },
   "settings_shortcuts_not_set": {
     "message": "Not set",
     "description": "Shown when a shortcut has no binding"

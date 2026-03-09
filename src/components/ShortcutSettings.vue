@@ -171,7 +171,7 @@ function openChromeShortcuts() {
                     class="h-6 px-2 text-xs"
                     @click="confirmSwap"
                   >
-                    Swap
+                    {{ t('settings_shortcuts_swap') }}
                   </Button>
                   <Button
                     variant="ghost"
@@ -224,7 +224,7 @@ function openChromeShortcuts() {
                     class="h-6 px-2 text-xs"
                     @click="confirmSwap"
                   >
-                    Swap
+                    {{ t('settings_shortcuts_swap') }}
                   </Button>
                   <Button
                     variant="ghost"

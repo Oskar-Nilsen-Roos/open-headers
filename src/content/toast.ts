@@ -1,5 +1,11 @@
 // Content script: listens for PROFILE_SWITCHED messages and shows a toast
 // Uses Shadow DOM to avoid CSS conflicts with host page
+// Guarded against multiple injections (chrome.scripting.executeScript may re-run)
+
+if ((window as any).__openheaders_toast_injected) {
+  // Already injected — skip re-registration
+} else {
+(window as any).__openheaders_toast_injected = true
 
 let container: HTMLElement | null = null
 let shadowRoot: ShadowRoot | null = null
@@ -96,3 +102,5 @@ chrome.runtime.onMessage.addListener((message) => {
     showToast(message.profileName, message.profileColor)
   }
 })
+
+} // end idempotency guard

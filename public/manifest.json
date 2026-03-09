@@ -7,7 +7,8 @@
   "permissions": [
     "storage",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback"
+    "declarativeNetRequestFeedback",
+    "scripting"
   ],
   "host_permissions": ["<all_urls>"],
   "action": {
@@ -57,13 +58,6 @@
       "description": "__MSG_command_switch_profile_3__"
     }
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content-toast.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

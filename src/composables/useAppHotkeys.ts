@@ -18,24 +18,32 @@ export interface AppHotkeyOptions {
 
 /**
  * Parses a hotkey string into a RegisterableHotkey.
- * Handles both simple keys like "1" and compound keys like "Mod+N".
- * For the object form with `mod: true`, we parse "Mod+" prefix.
+ * Handles simple keys ("1"), modifier combos ("Mod+N", "Shift+?", "Alt+K"),
+ * and multi-modifier combos ("Mod+Shift+Z").
+ * The recorder outputs "Mod+" for platform-appropriate modifier (Cmd on Mac, Ctrl elsewhere).
  */
 function parseHotkeyBinding(binding: string): RegisterableHotkey {
   if (!binding) return { key: '' }
 
-  // Handle Mod+Shift+Key, Mod+Key patterns -> use object form with mod: true
-  if (binding.startsWith('Mod+')) {
-    const rest = binding.slice(4) // remove "Mod+"
-    if (rest.startsWith('Shift+')) {
-      const key = rest.slice(6)
-      return { key, mod: true, shift: true }
-    }
-    return { key: rest, mod: true }
+  const parts = binding.split('+')
+  if (parts.length === 1) {
+    // Simple key (single character, "Escape", "?", etc.)
+    return binding as RegisterableHotkey
   }
 
-  // Simple key (single character or "Escape", "?", etc.)
-  return binding as RegisterableHotkey
+  // Compound key — extract modifiers and the final key
+  const key = parts[parts.length - 1]!
+  const modifiers = new Set(parts.slice(0, -1).map(m => m.toLowerCase()))
+
+  const result: { key: string; mod?: boolean; shift?: boolean; alt?: boolean; ctrl?: boolean; meta?: boolean } = { key }
+
+  if (modifiers.has('mod')) result.mod = true
+  if (modifiers.has('shift')) result.shift = true
+  if (modifiers.has('alt')) result.alt = true
+  if (modifiers.has('control')) result.ctrl = true
+  if (modifiers.has('meta')) result.meta = true
+
+  return result
 }
 
 /**

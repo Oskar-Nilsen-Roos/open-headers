@@ -375,6 +375,10 @@
     "message": "Ändra i Chrome",
     "description": "Länk för att öppna Chrome-kortkommandoinställningar"
   },
+  "settings_shortcuts_swap": {
+    "message": "Byt",
+    "description": "Knapp för att byta kortkommandon som krockar"
+  },
   "settings_shortcuts_not_set": {
     "message": "Ej inställd",
     "description": "Visas när ett kortkommando inte har någon bindning"

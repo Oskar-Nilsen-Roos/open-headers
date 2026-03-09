@@ -106,19 +106,35 @@ export const useShortcutsStore = defineStore('shortcuts', () => {
     persistBindings()
   }
 
+  function isValidBinding(entry: unknown): entry is ShortcutBinding {
+    return (
+      typeof entry === 'object' &&
+      entry !== null &&
+      typeof (entry as ShortcutBinding).key === 'string' &&
+      typeof (entry as ShortcutBinding).enabled === 'boolean'
+    )
+  }
+
   async function loadBindings(): Promise<void> {
     try {
+      let raw: unknown = null
+
       if (typeof chrome !== 'undefined' && chrome.storage) {
         const result = await chrome.storage.local.get(STORAGE_KEY)
-        const stored = result[STORAGE_KEY]
-        if (stored && typeof stored === 'object') {
-          customBindings.value = stored as Record<string, ShortcutBinding>
-        }
+        raw = result[STORAGE_KEY]
       } else {
         const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored) {
-          customBindings.value = JSON.parse(stored) as Record<string, ShortcutBinding>
+        if (stored) raw = JSON.parse(stored)
+      }
+
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        const validated: Record<string, ShortcutBinding> = {}
+        for (const [id, entry] of Object.entries(raw as Record<string, unknown>)) {
+          if (isValidBinding(entry)) {
+            validated[id] = entry
+          }
         }
+        customBindings.value = validated
       }
     } catch (error) {
       console.error('Failed to load shortcut bindings:', error)

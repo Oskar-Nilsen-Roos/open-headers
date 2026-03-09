@@ -31,8 +31,7 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "uuid": "^13.0.0",
-    "vue": "^3.5.24",
-    "vue-sonner": "^2.0.9"
+    "vue": "^3.5.24"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
