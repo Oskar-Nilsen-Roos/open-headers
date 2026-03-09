@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useHeadersStore } from '@/stores/headers'
+import { useAppHotkeys } from '@/composables/useAppHotkeys'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
@@ -21,6 +22,8 @@ const store = useHeadersStore()
 const activeHeaderType = ref<HeaderType>('request')
 const isShowingFilters = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const showSettingsModal = ref(false)
+const showHelpOverlay = ref(false)
 
 type MainTab = HeaderType | 'filters'
 
@@ -34,6 +37,18 @@ const activeMainTab = computed<MainTab>({
 
     isShowingFilters.value = false
     activeHeaderType.value = value
+  },
+})
+
+// Register keyboard shortcuts
+useAppHotkeys({
+  activeMainTab,
+  activeHeaderType,
+  onOpenSettings: () => { showSettingsModal.value = true },
+  onShowHelp: () => { showHelpOverlay.value = true },
+  onCloseModals: () => {
+    showSettingsModal.value = false
+    showHelpOverlay.value = false
   },
 })
 
