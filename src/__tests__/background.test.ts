@@ -425,4 +425,170 @@ describe('Background Script Logic', () => {
       expect(countAppliedHeadersForTab(state, 'chrome://extensions')).toBe(0)
     })
   })
+
+  // Mirror the command handler logic from background/index.ts for testing
+  // The real handler uses chrome.commands.onCommand which we can't easily mock,
+  // so we test the pure logic: parsing command name and determining profile switch.
+  describe('Command handler logic (switch-profile-N)', () => {
+    function parseProfileCommand(command: string): number | null {
+      const match = command.match(/^switch-profile-(\d+)$/)
+      if (!match?.[1]) return null
+      return parseInt(match[1], 10) - 1
+    }
+
+    function shouldSwitchProfile(
+      state: AppState | null,
+      profileIndex: number
+    ): { switch: boolean; targetProfileId?: string } {
+      if (!state || profileIndex < 0 || profileIndex >= state.profiles.length) {
+        return { switch: false }
+      }
+      const targetProfile = state.profiles[profileIndex]
+      if (!targetProfile || targetProfile.id === state.activeProfileId) {
+        return { switch: false }
+      }
+      return { switch: true, targetProfileId: targetProfile.id }
+    }
+
+    describe('parseProfileCommand', () => {
+      it('parses switch-profile-1 to index 0', () => {
+        expect(parseProfileCommand('switch-profile-1')).toBe(0)
+      })
+
+      it('parses switch-profile-2 to index 1', () => {
+        expect(parseProfileCommand('switch-profile-2')).toBe(1)
+      })
+
+      it('parses switch-profile-3 to index 2', () => {
+        expect(parseProfileCommand('switch-profile-3')).toBe(2)
+      })
+
+      it('returns null for non-matching commands', () => {
+        expect(parseProfileCommand('_execute_action')).toBeNull()
+        expect(parseProfileCommand('some-other-command')).toBeNull()
+        expect(parseProfileCommand('switch-profile-')).toBeNull()
+        expect(parseProfileCommand('')).toBeNull()
+      })
+
+      it('returns null for switch-profile without a number', () => {
+        expect(parseProfileCommand('switch-profile-abc')).toBeNull()
+      })
+    })
+
+    describe('shouldSwitchProfile', () => {
+      it('returns false when state is null', () => {
+        const result = shouldSwitchProfile(null, 0)
+        expect(result.switch).toBe(false)
+      })
+
+      it('returns false when profile index is negative', () => {
+        const state = createState()
+        const result = shouldSwitchProfile(state, -1)
+        expect(result.switch).toBe(false)
+      })
+
+      it('returns false when profile index exceeds profiles length', () => {
+        const state = createState({
+          profiles: [createProfile()],
+        })
+        const result = shouldSwitchProfile(state, 5)
+        expect(result.switch).toBe(false)
+      })
+
+      it('returns false when profile index equals profiles length (out of bounds)', () => {
+        const state = createState({
+          profiles: [createProfile()],
+        })
+        const result = shouldSwitchProfile(state, 1)
+        expect(result.switch).toBe(false)
+      })
+
+      it('returns false when target profile is already active (no-op)', () => {
+        const state = createState({
+          profiles: [createProfile({ id: 'p1' })],
+          activeProfileId: 'p1',
+        })
+        const result = shouldSwitchProfile(state, 0)
+        expect(result.switch).toBe(false)
+      })
+
+      it('returns true with target profile id when switching to a different profile', () => {
+        const state = createState({
+          profiles: [
+            createProfile({ id: 'p1', name: 'Profile 1' }),
+            createProfile({ id: 'p2', name: 'Profile 2' }),
+          ],
+          activeProfileId: 'p1',
+        })
+        const result = shouldSwitchProfile(state, 1)
+        expect(result.switch).toBe(true)
+        expect(result.targetProfileId).toBe('p2')
+      })
+
+      it('can switch to the first profile when another is active', () => {
+        const state = createState({
+          profiles: [
+            createProfile({ id: 'p1', name: 'Profile 1' }),
+            createProfile({ id: 'p2', name: 'Profile 2' }),
+          ],
+          activeProfileId: 'p2',
+        })
+        const result = shouldSwitchProfile(state, 0)
+        expect(result.switch).toBe(true)
+        expect(result.targetProfileId).toBe('p1')
+      })
+
+      it('handles state with no active profile', () => {
+        const state = createState({
+          profiles: [
+            createProfile({ id: 'p1', name: 'Profile 1' }),
+          ],
+          activeProfileId: null,
+        })
+        const result = shouldSwitchProfile(state, 0)
+        expect(result.switch).toBe(true)
+        expect(result.targetProfileId).toBe('p1')
+      })
+    })
+
+    describe('end-to-end command parsing and profile switch', () => {
+      it('full flow: parse command then decide switch', () => {
+        const state = createState({
+          profiles: [
+            createProfile({ id: 'p1', name: 'Profile 1' }),
+            createProfile({ id: 'p2', name: 'Profile 2' }),
+            createProfile({ id: 'p3', name: 'Profile 3' }),
+          ],
+          activeProfileId: 'p1',
+        })
+
+        const index = parseProfileCommand('switch-profile-2')
+        expect(index).toBe(1)
+
+        const result = shouldSwitchProfile(state, index!)
+        expect(result.switch).toBe(true)
+        expect(result.targetProfileId).toBe('p2')
+      })
+
+      it('full flow: command for out-of-range profile does nothing', () => {
+        const state = createState({
+          profiles: [
+            createProfile({ id: 'p1', name: 'Profile 1' }),
+          ],
+          activeProfileId: 'p1',
+        })
+
+        const index = parseProfileCommand('switch-profile-3')
+        expect(index).toBe(2)
+
+        const result = shouldSwitchProfile(state, index!)
+        expect(result.switch).toBe(false)
+      })
+
+      it('full flow: non-profile command is ignored', () => {
+        const index = parseProfileCommand('_execute_action')
+        expect(index).toBeNull()
+      })
+    })
+  })
 })
