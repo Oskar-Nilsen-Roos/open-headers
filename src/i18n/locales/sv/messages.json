@@ -302,5 +302,109 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Matchtyp för reguljära uttryck"
+  },
+  "shortcuts_title": {
+    "message": "Kortkommandon",
+    "description": "Titel för hjälpdialogen med kortkommandon"
+  },
+  "shortcuts_general": {
+    "message": "Allmänt",
+    "description": "Sektionsrubrik för allmänna kortkommandon"
+  },
+  "shortcuts_profiles": {
+    "message": "Profiler",
+    "description": "Sektionsrubrik för profilkortkommandon"
+  },
+  "shortcuts_chrome": {
+    "message": "Globalt (Chrome)",
+    "description": "Sektionsrubrik för globala Chrome-kortkommandon"
+  },
+  "shortcut_open_settings": {
+    "message": "Öppna inställningar",
+    "description": "Beskrivning för kortkommandot öppna inställningar"
+  },
+  "shortcut_add_new": {
+    "message": "Lägg till nytt",
+    "description": "Beskrivning för kortkommandot lägg till nytt"
+  },
+  "shortcut_undo": {
+    "message": "Ångra",
+    "description": "Beskrivning för kortkommandot ångra"
+  },
+  "shortcut_redo": {
+    "message": "Gör om",
+    "description": "Beskrivning för kortkommandot gör om"
+  },
+  "shortcut_show_help": {
+    "message": "Visa kortkommandon",
+    "description": "Beskrivning för kortkommandot visa kortkommandon"
+  },
+  "shortcut_close": {
+    "message": "Stäng dialog",
+    "description": "Beskrivning för kortkommandot stäng dialog"
+  },
+  "shortcut_switch_profile": {
+    "message": "Byt till profil",
+    "description": "Beskrivning för kortkommandot byt profil"
+  },
+  "shortcut_open_extension": {
+    "message": "Öppna OpenHeaders",
+    "description": "Beskrivning för kortkommandot öppna tillägget"
+  },
+  "shortcut_switch_profile_chrome": {
+    "message": "Byt profil 1-3",
+    "description": "Beskrivning för Chrome-kortkommandon för profilbyte"
+  },
+  "settings_shortcuts_title": {
+    "message": "Kortkommandon",
+    "description": "Titel för dialogrutan för kortkommandoinställningar"
+  },
+  "settings_shortcuts_reset_all": {
+    "message": "Återställ till standard",
+    "description": "Knapp för att återställa alla kortkommandon till standard"
+  },
+  "settings_shortcuts_recording": {
+    "message": "Tryck en tangent...",
+    "description": "Platshållare som visas vid inspelning av nytt kortkommando"
+  },
+  "settings_shortcuts_conflict": {
+    "message": "Redan tilldelad till {{name}}",
+    "description": "Varning när ett kortkommando krockar med ett annat"
+  },
+  "settings_shortcuts_edit_chrome": {
+    "message": "Ändra i Chrome",
+    "description": "Länk för att öppna Chrome-kortkommandoinställningar"
+  },
+  "settings_shortcuts_swap": {
+    "message": "Byt",
+    "description": "Knapp för att byta kortkommandon som krockar"
+  },
+  "settings_shortcuts_not_set": {
+    "message": "Ej inställd",
+    "description": "Visas när ett kortkommando inte har någon bindning"
+  },
+  "shortcut_profile_n": {
+    "message": "Byt till profil {{number}}",
+    "description": "Etikett för kortkommando för profilbyte med nummer"
+  },
+  "shortcut_chrome_profile_n": {
+    "message": "Byt till profil {{number}}",
+    "description": "Etikett för Chrome-kortkommando för profilbyte med nummer"
+  },
+  "command_open_extension": {
+    "message": "Öppna OpenHeaders",
+    "description": "Chrome-kommandobeskrivning för att öppna tilläggets popup"
+  },
+  "command_switch_profile_1": {
+    "message": "Byt till profil 1",
+    "description": "Chrome-kommandobeskrivning för att byta till den första profilen"
+  },
+  "command_switch_profile_2": {
+    "message": "Byt till profil 2",
+    "description": "Chrome-kommandobeskrivning för att byta till den andra profilen"
+  },
+  "command_switch_profile_3": {
+    "message": "Byt till profil 3",
+    "description": "Chrome-kommandobeskrivning för att byta till den tredje profilen"
   }
 }

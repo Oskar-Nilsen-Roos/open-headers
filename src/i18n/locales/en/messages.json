@@ -302,5 +302,109 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Match type label for regular expression matching"
+  },
+  "shortcuts_title": {
+    "message": "Keyboard Shortcuts",
+    "description": "Title for the keyboard shortcuts help dialog"
+  },
+  "shortcuts_general": {
+    "message": "General",
+    "description": "Section heading for general shortcuts"
+  },
+  "shortcuts_profiles": {
+    "message": "Profiles",
+    "description": "Section heading for profile shortcuts"
+  },
+  "shortcuts_chrome": {
+    "message": "Global (Chrome)",
+    "description": "Section heading for Chrome global shortcuts"
+  },
+  "shortcut_open_settings": {
+    "message": "Open settings",
+    "description": "Description for open settings shortcut"
+  },
+  "shortcut_add_new": {
+    "message": "Add new item",
+    "description": "Description for add new item shortcut"
+  },
+  "shortcut_undo": {
+    "message": "Undo",
+    "description": "Description for undo shortcut"
+  },
+  "shortcut_redo": {
+    "message": "Redo",
+    "description": "Description for redo shortcut"
+  },
+  "shortcut_show_help": {
+    "message": "Show shortcuts",
+    "description": "Description for show shortcuts shortcut"
+  },
+  "shortcut_close": {
+    "message": "Close dialog",
+    "description": "Description for close dialog shortcut"
+  },
+  "shortcut_switch_profile": {
+    "message": "Switch to profile",
+    "description": "Description for switch profile shortcut"
+  },
+  "shortcut_open_extension": {
+    "message": "Open OpenHeaders",
+    "description": "Description for open extension shortcut"
+  },
+  "shortcut_switch_profile_chrome": {
+    "message": "Switch profile 1-3",
+    "description": "Description for Chrome profile switch shortcuts"
+  },
+  "settings_shortcuts_title": {
+    "message": "Keyboard Shortcuts",
+    "description": "Title for the shortcut settings modal"
+  },
+  "settings_shortcuts_reset_all": {
+    "message": "Reset all to defaults",
+    "description": "Button to reset all shortcut bindings to defaults"
+  },
+  "settings_shortcuts_recording": {
+    "message": "Press a key...",
+    "description": "Placeholder shown when recording a new shortcut binding"
+  },
+  "settings_shortcuts_conflict": {
+    "message": "Already assigned to {{name}}",
+    "description": "Warning when a shortcut conflicts with another"
+  },
+  "settings_shortcuts_edit_chrome": {
+    "message": "Edit in Chrome",
+    "description": "Link to open Chrome shortcuts settings"
+  },
+  "settings_shortcuts_swap": {
+    "message": "Swap",
+    "description": "Button to swap conflicting shortcut bindings"
+  },
+  "settings_shortcuts_not_set": {
+    "message": "Not set",
+    "description": "Shown when a shortcut has no binding"
+  },
+  "shortcut_profile_n": {
+    "message": "Switch to profile {{number}}",
+    "description": "Label for profile switch shortcut with number"
+  },
+  "shortcut_chrome_profile_n": {
+    "message": "Switch to profile {{number}}",
+    "description": "Label for Chrome profile switch shortcut with number"
+  },
+  "command_open_extension": {
+    "message": "Open OpenHeaders",
+    "description": "Chrome command description for opening the extension popup"
+  },
+  "command_switch_profile_1": {
+    "message": "Switch to profile 1",
+    "description": "Chrome command description for switching to the first profile"
+  },
+  "command_switch_profile_2": {
+    "message": "Switch to profile 2",
+    "description": "Chrome command description for switching to the second profile"
+  },
+  "command_switch_profile_3": {
+    "message": "Switch to profile 3",
+    "description": "Chrome command description for switching to the third profile"
   }
 }

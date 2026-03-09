@@ -475,6 +475,58 @@ async function initialize(): Promise<void> {
 
 initialize().catch((error) => console.error('Failed to initialize background script:', error))
 
+// Handle keyboard shortcut commands for profile switching
+let badgeFlashTimeout: ReturnType<typeof setTimeout> | null = null
+
+chrome.commands.onCommand.addListener(async (command) => {
+  const match = command.match(/^switch-profile-(\d+)$/)
+  if (!match?.[1]) return
+
+  const profileIndex = parseInt(match[1], 10) - 1
+  if (!latestState || profileIndex < 0 || profileIndex >= latestState.profiles.length) return
+
+  const targetProfile = latestState.profiles[profileIndex]
+  if (!targetProfile || targetProfile.id === latestState.activeProfileId) return
+
+  // Update active profile in storage and in-memory state
+  const newState: AppState = {
+    ...latestState,
+    activeProfileId: targetProfile.id,
+  }
+  latestState = newState
+  await chrome.storage.local.set({ [STORAGE_KEY]: newState })
+
+  // Flash badge text briefly with profile number
+  if (badgeFlashTimeout) clearTimeout(badgeFlashTimeout)
+  const profileNumber = String(profileIndex + 1)
+  lastBadgeText = null // Invalidate cache since we bypass setActionBadgeText
+  await chrome.action.setBadgeText({ text: profileNumber })
+  badgeFlashTimeout = setTimeout(() => {
+    badgeFlashTimeout = null
+    queueUpdateActionAppearance()
+  }, 1500)
+
+  // Notify active tab for toast notification via programmatic injection
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+    if (activeTab?.id && activeTab.url?.startsWith('http')) {
+      // Inject content script on demand, then send message
+      await chrome.scripting.executeScript({
+        target: { tabId: activeTab.id },
+        files: ['content-toast.js'],
+      })
+      await chrome.tabs.sendMessage(activeTab.id, {
+        type: 'PROFILE_SWITCHED',
+        profileName: targetProfile.name,
+        profileColor: targetProfile.color,
+        profileNumber: profileIndex + 1,
+      })
+    }
+  } catch {
+    // Tab may not support scripting (e.g. chrome:// pages)
+  }
+})
+
 // Message handler for popup communication
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GET_ACTIVE_RULES') {
