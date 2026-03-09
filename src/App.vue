@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useHeadersStore } from '@/stores/headers'
+import { useShortcutsStore } from '@/stores/shortcuts'
 import { useAppHotkeys } from '@/composables/useAppHotkeys'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 import ProfileHeader from '@/components/ProfileHeader.vue'
 import HeaderList from '@/components/HeaderList.vue'
 import UrlFilterList from '@/components/UrlFilterList.vue'
+import ShortcutSettings from '@/components/ShortcutSettings.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -20,6 +22,7 @@ import type { HeaderRule, HeaderType, UrlFilter } from '@/types'
 import { Plus, Trash2 } from 'lucide-vue-next'
 
 const store = useHeadersStore()
+const shortcutsStore = useShortcutsStore()
 const activeHeaderType = ref<HeaderType>('request')
 const isShowingFilters = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -53,9 +56,12 @@ useAppHotkeys({
   },
 })
 
-// Initialize store on mount
+// Initialize stores on mount
 onMounted(async () => {
-  await store.loadState()
+  await Promise.all([
+    store.loadState(),
+    shortcutsStore.loadBindings(),
+  ])
 })
 
 // Watch dark mode - uses computed isDarkMode which respects system preference
@@ -408,6 +414,7 @@ function onFileSelected(e: Event) {
     </div>
 
     <KeyboardShortcutsHelp v-model:open="showHelpOverlay" />
+    <ShortcutSettings v-model:open="showSettingsModal" />
   </div>
 
   <!-- Loading State -->

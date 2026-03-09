@@ -355,6 +355,38 @@
     "message": "Switch profile 1-3",
     "description": "Description for Chrome profile switch shortcuts"
   },
+  "settings_shortcuts_title": {
+    "message": "Keyboard Shortcuts",
+    "description": "Title for the shortcut settings modal"
+  },
+  "settings_shortcuts_reset_all": {
+    "message": "Reset all to defaults",
+    "description": "Button to reset all shortcut bindings to defaults"
+  },
+  "settings_shortcuts_recording": {
+    "message": "Press a key...",
+    "description": "Placeholder shown when recording a new shortcut binding"
+  },
+  "settings_shortcuts_conflict": {
+    "message": "Already assigned to {{name}}",
+    "description": "Warning when a shortcut conflicts with another"
+  },
+  "settings_shortcuts_edit_chrome": {
+    "message": "Edit in Chrome",
+    "description": "Link to open Chrome shortcuts settings"
+  },
+  "settings_shortcuts_not_set": {
+    "message": "Not set",
+    "description": "Shown when a shortcut has no binding"
+  },
+  "shortcut_profile_n": {
+    "message": "Switch to profile {{number}}",
+    "description": "Label for profile switch shortcut with number"
+  },
+  "shortcut_chrome_profile_n": {
+    "message": "Switch to profile {{number}}",
+    "description": "Label for Chrome profile switch shortcut with number"
+  },
   "command_open_extension": {
     "message": "Open OpenHeaders",
     "description": "Chrome command description for opening the extension popup"

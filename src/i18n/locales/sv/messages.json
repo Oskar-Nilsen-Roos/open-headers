@@ -355,6 +355,38 @@
     "message": "Byt profil 1-3",
     "description": "Beskrivning för Chrome-kortkommandon för profilbyte"
   },
+  "settings_shortcuts_title": {
+    "message": "Kortkommandon",
+    "description": "Titel för dialogrutan för kortkommandoinställningar"
+  },
+  "settings_shortcuts_reset_all": {
+    "message": "Återställ till standard",
+    "description": "Knapp för att återställa alla kortkommandon till standard"
+  },
+  "settings_shortcuts_recording": {
+    "message": "Tryck en tangent...",
+    "description": "Platshållare som visas vid inspelning av nytt kortkommando"
+  },
+  "settings_shortcuts_conflict": {
+    "message": "Redan tilldelad till {{name}}",
+    "description": "Varning när ett kortkommando krockar med ett annat"
+  },
+  "settings_shortcuts_edit_chrome": {
+    "message": "Ändra i Chrome",
+    "description": "Länk för att öppna Chrome-kortkommandoinställningar"
+  },
+  "settings_shortcuts_not_set": {
+    "message": "Ej inställd",
+    "description": "Visas när ett kortkommando inte har någon bindning"
+  },
+  "shortcut_profile_n": {
+    "message": "Byt till profil {{number}}",
+    "description": "Etikett för kortkommando för profilbyte med nummer"
+  },
+  "shortcut_chrome_profile_n": {
+    "message": "Byt till profil {{number}}",
+    "description": "Etikett för Chrome-kortkommando för profilbyte med nummer"
+  },
   "command_open_extension": {
     "message": "Öppna OpenHeaders",
     "description": "Chrome-kommandobeskrivning för att öppna tilläggets popup"
