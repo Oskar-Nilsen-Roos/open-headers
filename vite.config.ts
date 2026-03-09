@@ -50,10 +50,13 @@ export default defineConfig(({ mode }) => ({
       input: {
         popup: resolve(__dirname, 'index.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
+        'content-toast': resolve(__dirname, 'src/content/toast.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          return chunkInfo.name === 'background' ? 'background.js' : 'assets/[name]-[hash].js'
+          if (chunkInfo.name === 'background') return 'background.js'
+          if (chunkInfo.name === 'content-toast') return 'content-toast.js'
+          return 'assets/[name]-[hash].js'
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
