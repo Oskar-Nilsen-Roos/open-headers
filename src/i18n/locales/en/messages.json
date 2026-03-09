@@ -303,6 +303,58 @@
     "message": "Regex",
     "description": "Match type label for regular expression matching"
   },
+  "shortcuts_title": {
+    "message": "Keyboard Shortcuts",
+    "description": "Title for the keyboard shortcuts help dialog"
+  },
+  "shortcuts_general": {
+    "message": "General",
+    "description": "Section heading for general shortcuts"
+  },
+  "shortcuts_profiles": {
+    "message": "Profiles",
+    "description": "Section heading for profile shortcuts"
+  },
+  "shortcuts_chrome": {
+    "message": "Global (Chrome)",
+    "description": "Section heading for Chrome global shortcuts"
+  },
+  "shortcut_open_settings": {
+    "message": "Open settings",
+    "description": "Description for open settings shortcut"
+  },
+  "shortcut_add_new": {
+    "message": "Add new item",
+    "description": "Description for add new item shortcut"
+  },
+  "shortcut_undo": {
+    "message": "Undo",
+    "description": "Description for undo shortcut"
+  },
+  "shortcut_redo": {
+    "message": "Redo",
+    "description": "Description for redo shortcut"
+  },
+  "shortcut_show_help": {
+    "message": "Show shortcuts",
+    "description": "Description for show shortcuts shortcut"
+  },
+  "shortcut_close": {
+    "message": "Close dialog",
+    "description": "Description for close dialog shortcut"
+  },
+  "shortcut_switch_profile": {
+    "message": "Switch to profile",
+    "description": "Description for switch profile shortcut"
+  },
+  "shortcut_open_extension": {
+    "message": "Open OpenHeaders",
+    "description": "Description for open extension shortcut"
+  },
+  "shortcut_switch_profile_chrome": {
+    "message": "Switch profile 1-3",
+    "description": "Description for Chrome profile switch shortcuts"
+  },
   "command_open_extension": {
     "message": "Open OpenHeaders",
     "description": "Chrome command description for opening the extension popup"

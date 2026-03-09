@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import KeyboardShortcutsHelp from '@/components/KeyboardShortcutsHelp.vue'
 import { t } from '@/i18n'
 import type { HeaderRule, HeaderType, UrlFilter } from '@/types'
 import { Plus, Trash2 } from 'lucide-vue-next'
@@ -405,6 +406,8 @@ function onFileSelected(e: Event) {
         </TooltipProvider>
       </div>
     </div>
+
+    <KeyboardShortcutsHelp v-model:open="showHelpOverlay" />
   </div>
 
   <!-- Loading State -->

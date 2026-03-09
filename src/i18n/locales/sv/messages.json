@@ -303,6 +303,58 @@
     "message": "Regex",
     "description": "Matchtyp för reguljära uttryck"
   },
+  "shortcuts_title": {
+    "message": "Kortkommandon",
+    "description": "Titel för hjälpdialogen med kortkommandon"
+  },
+  "shortcuts_general": {
+    "message": "Allmänt",
+    "description": "Sektionsrubrik för allmänna kortkommandon"
+  },
+  "shortcuts_profiles": {
+    "message": "Profiler",
+    "description": "Sektionsrubrik för profilkortkommandon"
+  },
+  "shortcuts_chrome": {
+    "message": "Globalt (Chrome)",
+    "description": "Sektionsrubrik för globala Chrome-kortkommandon"
+  },
+  "shortcut_open_settings": {
+    "message": "Öppna inställningar",
+    "description": "Beskrivning för kortkommandot öppna inställningar"
+  },
+  "shortcut_add_new": {
+    "message": "Lägg till nytt",
+    "description": "Beskrivning för kortkommandot lägg till nytt"
+  },
+  "shortcut_undo": {
+    "message": "Ångra",
+    "description": "Beskrivning för kortkommandot ångra"
+  },
+  "shortcut_redo": {
+    "message": "Gör om",
+    "description": "Beskrivning för kortkommandot gör om"
+  },
+  "shortcut_show_help": {
+    "message": "Visa kortkommandon",
+    "description": "Beskrivning för kortkommandot visa kortkommandon"
+  },
+  "shortcut_close": {
+    "message": "Stäng dialog",
+    "description": "Beskrivning för kortkommandot stäng dialog"
+  },
+  "shortcut_switch_profile": {
+    "message": "Byt till profil",
+    "description": "Beskrivning för kortkommandot byt profil"
+  },
+  "shortcut_open_extension": {
+    "message": "Öppna OpenHeaders",
+    "description": "Beskrivning för kortkommandot öppna tillägget"
+  },
+  "shortcut_switch_profile_chrome": {
+    "message": "Byt profil 1-3",
+    "description": "Beskrivning för Chrome-kortkommandon för profilbyte"
+  },
   "command_open_extension": {
     "message": "Öppna OpenHeaders",
     "description": "Chrome-kommandobeskrivning för att öppna tilläggets popup"
