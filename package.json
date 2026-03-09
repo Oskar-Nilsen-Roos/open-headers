@@ -19,18 +19,20 @@
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
     "@tailwindcss/vite": "^4.1.18",
-    "@vueuse/core": "^14.2.0",
+    "@tanstack/vue-hotkeys": "^0.4.0",
+    "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "culori": "^4.0.2",
     "lucide-vue-next": "^0.563.0",
     "pinia": "^3.0.4",
-    "reka-ui": "^2.8.0",
+    "reka-ui": "^2.9.0",
     "swapy": "^1.0.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "uuid": "^13.0.0",
-    "vue": "^3.5.24"
+    "vue": "^3.5.24",
+    "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
