@@ -1,86 +1,46 @@
-# OpenHeaders - Project Context
+# OpenHeaders
 
-## Overview
-A Chrome extension for modifying HTTP request and response headers. Built with Vue 3, TypeScript, Tailwind CSS 4, and shadcn-vue.
+A Chrome extension for modifying HTTP request and response headers, built with Vue 3, TypeScript, Tailwind CSS 4, and shadcn-vue.
 
-**Project Name:** OpenHeaders
-**Package Name:** openheaders
-**Storage Key:** openheaders_state
-**Export Filename:** openheaders-profiles.json
+## Package Manager
 
-## Tech Stack
-- Vue 3 with Composition API
-- TypeScript
-- Tailwind CSS 4
-- shadcn-vue components (reka-ui based)
-- Pinia for state management
-- Vite for building
-- Vitest for testing
-
-## Project Structure
-```
-src/
-├── background/       # Chrome extension service worker
-├── components/       # Vue components
-│   └── ui/          # shadcn-vue UI components
-├── stores/          # Pinia stores (headers.ts is main store)
-├── types/           # TypeScript types
-├── lib/             # Utilities
-└── __tests__/       # Tests (unit, integration, browser, e2e)
-```
-
-## Key Files
-- `src/stores/headers.ts` - Main state management (profiles, headers, undo/redo)
-- `src/background/index.ts` - Chrome declarativeNetRequest rules
-- `src/components/ProfileHeader.vue` - Header bar with actions
-- `src/components/HeaderList.vue` - Header rows display
-- `src/components/ProfileSidebar.vue` - Profile switching
-- `public/manifest.json` - Chrome extension manifest v3
+This project uses bun.
 
 ## Commands
+
 ```bash
 bun run dev      # Dev server at localhost:5173
 bun run build    # Build to dist/
 bun run test     # Run tests
 ```
 
-## TODO
-- [ ] Import ModHeader JSON profiles (convert format to OpenHeaders)
+## Domain Concepts
 
-## Claude Code Setup
-
-### Recommended Plugins
-Contributors using Claude Code should enable these plugins for the best experience:
-- `typescript-lsp` - TypeScript language server for type checking
-- `playwright` - Browser testing and interaction
-- `context7` - Up-to-date documentation lookup
-
-Optional:
-- `frontend-design` - UI/UX design assistance
-
-### Available Skills
-Project-specific skills in `.claude/skills/`:
-- `/repomix-explorer` - Pack codebase for context export
-
-## Releases
-A GitHub Action (`.github/workflows/release.yml`) handles releases automatically. **Do not create releases manually with `gh release create`.**
-
-To release a new version:
-1. Bump `version` in both `package.json` and `public/manifest.json`
-2. Commit: `chore: bump version to X.Y.Z`
-3. Tag and push:
-   ```bash
-   git tag vX.Y.Z
-   git push origin main --tags
-   ```
-
-The Action will run tests, build, package `openheaders-vX.Y.Z.zip`, generate a changelog from commit messages, and create the GitHub release with the artifact attached.
-
-## Notes
-- Uses declarativeNetRequest API (not webRequest)
-- Dark mode preference: system/light/dark
-- Profile colors are customizable
+- Uses Chrome's declarativeNetRequest API (not webRequest)
 - Headers have: name, value, comment, enabled, type (request/response), operation (set/remove/append)
+- Profiles group headers and URL filters together
+- Dark mode supports system/light/dark preferences
+- Profile colors are customizable
 
 ## Gotchas
-- ProfileHeader uses `text-white` not `text-primary-foreground` - the latter is dark in dark theme causing contrast issues. This goes for any contrasting background color that's the same in both light and dark mode.
+
+- Use `text-white` (not `text-primary-foreground`) on colored backgrounds — the latter is dark in dark mode, causing contrast issues on backgrounds that are the same in both themes.
+
+## Documentation
+
+For detailed guides, see `docs/`:
+- [Features & architecture](docs/FEATURES.md) — data types, UI composition, Chrome integration
+- [Store API](docs/STORE_API.md) — Pinia store methods and state
+- [Testing](docs/TESTING.md) — test structure, categories, commands
+- [Releasing](docs/RELEASING.md) — version bumps, tagging, CI workflow
+- [Conventions](docs/CONVENTIONS.md) — commit messages, terminology
+
+## Claude Code
+
+### Plugins
+- `typescript-lsp` — type checking
+- `playwright` — browser testing
+- `context7` — documentation lookup
+
+### Skills
+- `/repomix-explorer` — pack codebase for context export
