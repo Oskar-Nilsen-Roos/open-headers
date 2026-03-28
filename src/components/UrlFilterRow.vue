@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -146,6 +146,20 @@ function blurActiveElement() {
     document.activeElement.blur()
   }
 }
+
+// Flush uncommitted pattern draft on popup dismissal or component teardown.
+function flushDrafts() {
+  commitPattern(patternDraft.value)
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', flushDrafts)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', flushDrafts)
+  flushDrafts()
+})
 </script>
 
 <template>

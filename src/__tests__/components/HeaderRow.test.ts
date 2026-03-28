@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { mount, VueWrapper } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
 
@@ -224,6 +224,112 @@ describe('HeaderRow', () => {
 
       const dragHandle = wrapper.find('[data-swapy-handle]')
       expect(dragHandle.exists()).toBe(true)
+    })
+  })
+
+  describe('popup dismissal — flush uncommitted drafts (issue #51)', () => {
+    let wrapper: VueWrapper
+
+    afterEach(() => {
+      wrapper?.unmount()
+    })
+
+    it('flushes uncommitted name on beforeunload', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-New-Name')
+      // No blur — popup dismissed
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-New-Name' }])
+    })
+
+    it('flushes uncommitted value on beforeunload', async () => {
+      const header = createHeader({ value: '' })
+      wrapper = mountComponent(header)
+
+      const valueInput = wrapper.findAll('input')[2]!
+      await valueInput.setValue('new-secret-value')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-secret-value' }])
+    })
+
+    it('flushes uncommitted comment on beforeunload', async () => {
+      const header = createHeader({ comment: '' })
+      wrapper = mountComponent(header)
+
+      const commentInput = wrapper.findAll('input')[3]!
+      await commentInput.setValue('important note')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'important note' }])
+    })
+
+    it('does not emit update on beforeunload if nothing changed', () => {
+      const header = createHeader()
+      wrapper = mountComponent(header)
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(wrapper.emitted('update')).toBeFalsy()
+    })
+
+    it('auto-fills comment from value suggestion on beforeunload', async () => {
+      const header = createHeader({ value: '' })
+      wrapper = mountComponent(header, {
+        valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
+      })
+
+      const valueInput = wrapper.findAll('input')[2]!
+      await valueInput.setValue('Bearer token')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      const updates = wrapper.emitted('update')
+      expect(updates).toBeTruthy()
+      expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
+    })
+
+    it('flushes uncommitted drafts on component unmount', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Unmount-Test')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      wrapper.unmount()
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Unmount-Test' }])
+    })
+
+    it('removes beforeunload listener on unmount (no double-flush)', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Once')
+
+      wrapper.unmount()
+      // Listener should be removed — second beforeunload should not emit again
+      window.dispatchEvent(new Event('beforeunload'))
+
+      const updates = wrapper.emitted('update')
+      expect(updates?.length).toBe(1)
     })
   })
 })

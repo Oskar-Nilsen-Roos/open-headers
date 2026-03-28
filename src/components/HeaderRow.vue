@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -215,6 +215,34 @@ function blurActiveElement() {
     document.activeElement.blur()
   }
 }
+
+// Flush uncommitted drafts to the store — called on beforeunload (popup
+// dismissed) and onBeforeUnmount so in-progress edits are never lost.
+function flushDrafts() {
+  commitName(nameDraft.value)
+
+  const valueChanged = valueDraft.value !== lastCommittedValue.value
+  if (valueChanged) {
+    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
+    lastCommittedValue.value = valueDraft.value
+    if (commentSynced) {
+      emit('update', { value: valueDraft.value, comment: commentDraft.value })
+    } else {
+      emit('update', { value: valueDraft.value })
+    }
+  }
+
+  commitComment(commentDraft.value)
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', flushDrafts)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', flushDrafts)
+  flushDrafts()
+})
 </script>
 
 <template>
