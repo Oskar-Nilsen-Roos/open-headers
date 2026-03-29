@@ -530,6 +530,12 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
+  // Undo coalescing — rapid updates to the same header field (e.g. typing)
+  // are grouped into a single undo entry.
+  let lastCoalesceKey: string | null = null
+  let lastCoalesceTime = 0
+  const COALESCE_MS = 1000
+
   function updateHeader(headerId: string, updates: Partial<HeaderRule>): void {
     if (!activeProfile.value) return
 
@@ -568,7 +574,16 @@ export const useHeadersStore = defineStore('headers', () => {
       addHeaderValueToHistory(nextName, nextValue, currentComment)
     }
 
-    saveToHistory()
+    // Coalesce rapid updates to the same header+field into one undo entry.
+    const field = Object.keys(updates)[0] ?? ''
+    const coalesceKey = `${headerId}:${field}`
+    const now = Date.now()
+    if (coalesceKey !== lastCoalesceKey || now - lastCoalesceTime > COALESCE_MS) {
+      saveToHistory()
+      lastCoalesceTime = now
+    }
+    lastCoalesceKey = coalesceKey
+
     persistState()
   }
 

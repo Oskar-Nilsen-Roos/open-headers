@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -43,9 +43,6 @@ const commentInputRef = ref<ComponentPublicInstance | null>(null)
 const nameDraft = ref(props.header.name)
 const valueDraft = ref(props.header.value)
 const commentDraft = ref(props.header.comment)
-const lastCommittedName = ref(props.header.name)
-const lastCommittedValue = ref(props.header.value)
-const lastCommittedComment = ref(props.header.comment)
 
 // Whether the user intends the popover to be open (input focused / typing)
 const nameInputActive = ref(false)
@@ -57,20 +54,36 @@ const valueInputActive = ref(false)
 const nameIsSearching = ref(false)
 const valueIsSearching = ref(false)
 
-// Sync drafts when props change externally (undo/redo, etc.)
-watch(() => props.header.name, (value) => {
-  nameDraft.value = value
-  lastCommittedName.value = value
+// Sync drafts from props (undo/redo, external changes).
+// Uses a flag so the outbound draft watchers below don't echo back.
+let syncingFromProp = false
+
+watch(() => props.header.name, (v) => { syncingFromProp = true; nameDraft.value = v; syncingFromProp = false })
+watch(() => props.header.value, (v) => { syncingFromProp = true; valueDraft.value = v; syncingFromProp = false })
+watch(() => props.header.comment, (v) => { syncingFromProp = true; commentDraft.value = v; syncingFromProp = false })
+
+// Reactive persistence — emit update on every keystroke so the store is
+// always in sync. The store coalesces rapid updates for undo history.
+watch(nameDraft, (value) => {
+  if (syncingFromProp || value === props.header.name) return
+  emit('update', { name: value })
 })
 
-watch(() => props.header.value, (value) => {
-  valueDraft.value = value
-  lastCommittedValue.value = value
+watch(valueDraft, (value) => {
+  if (syncingFromProp || value === props.header.value) return
+  // Auto-sync comment from value suggestion
+  const match = props.valueSuggestions.find(s => s.value === value)
+  if (match) {
+    commentDraft.value = match.comment
+    emit('update', { value, comment: match.comment })
+  } else {
+    emit('update', { value })
+  }
 })
 
-watch(() => props.header.comment, (value) => {
-  commentDraft.value = value
-  lastCommittedComment.value = value
+watch(commentDraft, (value) => {
+  if (syncingFromProp || value === props.header.comment) return
+  emit('update', { comment: value })
 })
 
 const filteredNameSuggestions = computed(() => {
@@ -106,60 +119,15 @@ const valuePopoverOpen = computed({
   set: (val: boolean) => { valueInputActive.value = val },
 })
 
-function commitName(value: string) {
-  if (value === lastCommittedName.value) return
-  lastCommittedName.value = value
-  emit('update', { name: value })
-}
-
-function commitValue(value: string) {
-  if (value === lastCommittedValue.value) return
-  lastCommittedValue.value = value
-  emit('update', { value: value })
-}
-
-function commitComment(value: string) {
-  if (value === lastCommittedComment.value) return
-  lastCommittedComment.value = value
-  emit('update', { comment: value })
-}
-
+// Blur handlers — close popovers. Persistence is handled by the watchers above.
 function handleNameBlur() {
   nameInputActive.value = false
   nameIsSearching.value = false
-  commitName(nameDraft.value)
-}
-
-function syncCommentFromSuggestion(value: string): boolean {
-  const match = props.valueSuggestions.find(s => s.value === value)
-  if (match) {
-    commentDraft.value = match.comment
-    lastCommittedComment.value = match.comment
-    return true
-  }
-  return false
 }
 
 function handleValueBlur() {
   valueInputActive.value = false
   valueIsSearching.value = false
-  const changed = valueDraft.value !== lastCommittedValue.value
-  if (changed) {
-    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
-    lastCommittedValue.value = valueDraft.value
-    if (commentSynced) {
-      // Emit value + comment together so it's a single undo step
-      emit('update', { value: valueDraft.value, comment: commentDraft.value })
-    } else {
-      emit('update', { value: valueDraft.value })
-    }
-  } else {
-    commitValue(valueDraft.value)
-  }
-}
-
-function handleCommentBlur() {
-  commitComment(commentDraft.value)
 }
 
 // Flag to prevent Enter keydown from blurring after a dropdown selection
@@ -168,8 +136,7 @@ let skipNextEnterBlur = false
 
 function applyNameSuggestion(suggestion: string) {
   skipNextEnterBlur = true
-  nameDraft.value = suggestion
-  commitName(suggestion)
+  nameDraft.value = suggestion // triggers the watch → emits update
   nameInputActive.value = false
   nameIsSearching.value = false
   focusRef(valueInputRef)
@@ -177,12 +144,9 @@ function applyNameSuggestion(suggestion: string) {
 
 function applyValueSuggestion(suggestion: ValueSuggestion) {
   skipNextEnterBlur = true
-  valueDraft.value = suggestion.value
+  // Set comment first so the valueDraft watcher can pick it up via suggestion sync
   commentDraft.value = suggestion.comment
-  // Single emit for both value + comment so it's one undo step
-  lastCommittedValue.value = suggestion.value
-  lastCommittedComment.value = suggestion.comment
-  emit('update', { value: suggestion.value, comment: suggestion.comment })
+  valueDraft.value = suggestion.value // triggers the watch → emits update with comment
   valueInputActive.value = false
   valueIsSearching.value = false
   focusRef(commentInputRef)
@@ -216,64 +180,6 @@ function blurActiveElement() {
   }
 }
 
-// Flush uncommitted drafts to the store — called on lifecycle events (popup
-// dismissed) and onBeforeUnmount so in-progress edits are never lost.
-function flushDrafts() {
-  commitName(nameDraft.value)
-
-  const valueChanged = valueDraft.value !== lastCommittedValue.value
-  if (valueChanged) {
-    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
-    lastCommittedValue.value = valueDraft.value
-    if (commentSynced) {
-      emit('update', { value: valueDraft.value, comment: commentDraft.value })
-    } else {
-      emit('update', { value: valueDraft.value })
-    }
-  }
-
-  commitComment(commentDraft.value)
-}
-
-function handleVisibilityChange() {
-  if (document.visibilityState === 'hidden') {
-    flushDrafts()
-  }
-}
-
-// Debounced flush — safety net for browsers (e.g. Arc) that may not fire
-// any lifecycle events when dismissing extension popups.
-let flushTimer: ReturnType<typeof setTimeout> | null = null
-
-function scheduleFlush() {
-  if (flushTimer) clearTimeout(flushTimer)
-  flushTimer = setTimeout(flushDrafts, 500)
-}
-
-// Watch drafts for uncommitted changes and schedule a debounced flush.
-watch([nameDraft, valueDraft, commentDraft], () => {
-  if (
-    nameDraft.value !== lastCommittedName.value ||
-    valueDraft.value !== lastCommittedValue.value ||
-    commentDraft.value !== lastCommittedComment.value
-  ) {
-    scheduleFlush()
-  }
-})
-
-onMounted(() => {
-  window.addEventListener('beforeunload', flushDrafts)
-  window.addEventListener('pagehide', flushDrafts)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-
-onBeforeUnmount(() => {
-  if (flushTimer) clearTimeout(flushTimer)
-  window.removeEventListener('beforeunload', flushDrafts)
-  window.removeEventListener('pagehide', flushDrafts)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-  flushDrafts()
-})
 </script>
 
 <template>
@@ -415,7 +321,6 @@ onBeforeUnmount(() => {
       v-model="commentDraft"
       :placeholder="t('placeholder_comment')"
       class="w-32 h-8 text-sm text-muted-foreground"
-      @blur="handleCommentBlur"
       @keydown.enter="blurActiveElement"
     />
 

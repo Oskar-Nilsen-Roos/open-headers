@@ -101,13 +101,11 @@ describe('UrlFilterRow', () => {
     expect(wrapper.emitted('update')?.[0]).toEqual(['filter-1', { matchType: 'regex' }])
   })
 
-  it('emits update when pattern input blurs with changed value', async () => {
+  it('emits update immediately on pattern input (no blur required)', async () => {
     const wrapper = mountComponent(createFilter())
     const inputs = wrapper.findAll('input')
     const patternInput = inputs[1]! // First is checkbox, second is pattern CommandInput
     await patternInput.setValue('example.com')
-    expect(wrapper.emitted('update')).toBeFalsy()
-    await patternInput.trigger('blur')
 
     expect(wrapper.emitted('update')).toBeTruthy()
     expect(wrapper.emitted('update')?.[0]).toEqual(['filter-1', { pattern: 'example.com' }])

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { mount, VueWrapper } from '@vue/test-utils'
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
 
@@ -137,61 +137,61 @@ describe('HeaderRow', () => {
       expect(wrapper.emitted('toggle')?.length).toBe(1)
     })
 
-    it('emits update with name when name input blurs', async () => {
-      const header = createHeader()
+    it('emits update with name immediately on input', async () => {
+      const header = createHeader({ name: '' })
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const nameInput = inputs[1]!
+      const nameInput = wrapper.findAll('input')[1]!
       await nameInput.setValue('New-Header-Name')
-      expect(wrapper.emitted('update')).toBeFalsy()
-      await nameInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'New-Header-Name' }])
     })
 
-    it('emits update with value when value input blurs', async () => {
-      const header = createHeader()
+    it('emits update with value immediately on input', async () => {
+      const header = createHeader({ value: '' })
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const valueInput = inputs[2]!
+      const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('new-value')
-      await valueInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-value' }])
     })
 
-    it('auto-fills comment when value matches a known suggestion on blur', async () => {
+    it('auto-fills comment when value matches a known suggestion', async () => {
       const header = createHeader({ value: '' })
       const wrapper = mountComponent(header, {
         valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
       })
 
-      const inputs = wrapper.findAll('input')
-      const valueInput = inputs[2]!
+      const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('Bearer token')
-      await valueInput.trigger('blur')
 
       const updates = wrapper.emitted('update')
       expect(updates).toBeTruthy()
-      // Single emit with both value and comment
       expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
     })
 
-    it('emits update with comment when comment input blurs', async () => {
-      const header = createHeader()
+    it('emits update with comment immediately on input', async () => {
+      const header = createHeader({ comment: '' })
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const commentInput = inputs[3]!
+      const commentInput = wrapper.findAll('input')[3]!
       await commentInput.setValue('new comment')
-      await commentInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'new comment' }])
+    })
+
+    it('does not emit update when value matches current prop', async () => {
+      const header = createHeader({ name: 'Same' })
+      const wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('Same')
+
+      expect(wrapper.emitted('update')).toBeFalsy()
     })
 
     it('emits duplicate when duplicate button is clicked', async () => {
@@ -227,225 +227,66 @@ describe('HeaderRow', () => {
     })
   })
 
-  describe('popup dismissal — flush uncommitted drafts (issue #51)', () => {
-    let wrapper: VueWrapper
-
-    afterEach(() => {
-      wrapper?.unmount()
-    })
-
-    it('flushes uncommitted name on beforeunload', async () => {
+  describe('reactive persistence — no blur required (issue #51)', () => {
+    it('persists name without blur (popup dismissal safe)', async () => {
       const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
+      const wrapper = mountComponent(header)
 
       const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-New-Name')
-      // No blur — popup dismissed
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      window.dispatchEvent(new Event('beforeunload'))
+      await nameInput.setValue('X-Persisted')
+      // No blur needed — update emitted immediately
 
       expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-New-Name' }])
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Persisted' }])
     })
 
-    it('flushes uncommitted value on beforeunload', async () => {
+    it('persists value without blur (popup dismissal safe)', async () => {
       const header = createHeader({ value: '' })
-      wrapper = mountComponent(header)
+      const wrapper = mountComponent(header)
 
       const valueInput = wrapper.findAll('input')[2]!
-      await valueInput.setValue('new-secret-value')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      window.dispatchEvent(new Event('beforeunload'))
+      await valueInput.setValue('secret-token')
 
       expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-secret-value' }])
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'secret-token' }])
     })
 
-    it('flushes uncommitted comment on beforeunload', async () => {
+    it('persists comment without blur (popup dismissal safe)', async () => {
       const header = createHeader({ comment: '' })
-      wrapper = mountComponent(header)
+      const wrapper = mountComponent(header)
 
       const commentInput = wrapper.findAll('input')[3]!
       await commentInput.setValue('important note')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      window.dispatchEvent(new Event('beforeunload'))
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'important note' }])
     })
 
-    it('does not emit update on beforeunload if nothing changed', () => {
-      const header = createHeader()
-      wrapper = mountComponent(header)
+    it('emits multiple updates for sequential keystrokes', async () => {
+      const header = createHeader({ name: '' })
+      const wrapper = mountComponent(header)
 
-      window.dispatchEvent(new Event('beforeunload'))
-
-      expect(wrapper.emitted('update')).toBeFalsy()
-    })
-
-    it('auto-fills comment from value suggestion on beforeunload', async () => {
-      const header = createHeader({ value: '' })
-      wrapper = mountComponent(header, {
-        valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
-      })
-
-      const valueInput = wrapper.findAll('input')[2]!
-      await valueInput.setValue('Bearer token')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      window.dispatchEvent(new Event('beforeunload'))
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('A')
+      await nameInput.setValue('AB')
+      await nameInput.setValue('ABC')
 
       const updates = wrapper.emitted('update')
-      expect(updates).toBeTruthy()
-      expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
+      expect(updates?.length).toBe(3)
+      expect(updates?.[0]).toEqual([{ name: 'A' }])
+      expect(updates?.[1]).toEqual([{ name: 'AB' }])
+      expect(updates?.[2]).toEqual([{ name: 'ABC' }])
     })
 
-    it('flushes uncommitted drafts on component unmount', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
+    it('does not echo prop changes back as updates', async () => {
+      const header = createHeader({ name: 'Original' })
+      const wrapper = mountComponent(header)
 
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Unmount-Test')
+      // Simulate external change (undo/redo) by updating the prop
+      await wrapper.setProps({ header: { ...header, name: 'From-Undo' } })
+
+      // Should NOT emit update (this was a prop sync, not user input)
       expect(wrapper.emitted('update')).toBeFalsy()
-
-      wrapper.unmount()
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Unmount-Test' }])
-    })
-
-    it('removes beforeunload listener on unmount (no double-flush)', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Once')
-
-      wrapper.unmount()
-      // Listener should be removed — second beforeunload should not emit again
-      window.dispatchEvent(new Event('beforeunload'))
-
-      const updates = wrapper.emitted('update')
-      expect(updates?.length).toBe(1)
-    })
-
-    it('flushes uncommitted drafts on visibilitychange to hidden', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Hidden')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
-      document.dispatchEvent(new Event('visibilitychange'))
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Hidden' }])
-    })
-
-    it('does not flush on visibilitychange to visible', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Visible')
-
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-      document.dispatchEvent(new Event('visibilitychange'))
-
-      // Only the debounced flush should eventually fire, not the visibility handler
-      expect(wrapper.emitted('update')).toBeFalsy()
-    })
-
-    it('flushes uncommitted drafts on pagehide', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-PageHide')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      window.dispatchEvent(new Event('pagehide'))
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-PageHide' }])
-    })
-  })
-
-  describe('debounced auto-flush on input (Arc safety net)', () => {
-    let wrapper: VueWrapper
-
-    beforeEach(() => {
-      vi.useFakeTimers()
-    })
-
-    afterEach(() => {
-      wrapper?.unmount()
-      vi.useRealTimers()
-    })
-
-    it('auto-flushes uncommitted draft after 500ms', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Debounced')
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      vi.advanceTimersByTime(500)
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Debounced' }])
-    })
-
-    it('does not auto-flush before 500ms', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Early')
-
-      vi.advanceTimersByTime(300)
-
-      expect(wrapper.emitted('update')).toBeFalsy()
-    })
-
-    it('resets debounce timer on subsequent input', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-First')
-      vi.advanceTimersByTime(400) // Almost there
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      await nameInput.setValue('X-Second') // Reset timer
-      vi.advanceTimersByTime(400) // 400ms after second input
-      expect(wrapper.emitted('update')).toBeFalsy()
-
-      vi.advanceTimersByTime(100) // 500ms after second input
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Second' }])
-    })
-
-    it('clears debounce timer on unmount', async () => {
-      const header = createHeader({ name: '' })
-      wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Timer')
-
-      wrapper.unmount()
-      // onBeforeUnmount flushes immediately and clears the timer
-      const updateCount = wrapper.emitted('update')?.length ?? 0
-
-      vi.advanceTimersByTime(1000) // Timer should not fire
-      expect(wrapper.emitted('update')?.length ?? 0).toBe(updateCount)
     })
   })
 })

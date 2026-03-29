@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue'
+import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -42,15 +42,18 @@ const emit = defineEmits<{
 
 const patternInputRef = ref<ComponentPublicInstance | null>(null)
 const patternDraft = ref(props.filter.pattern)
-const lastCommittedPattern = ref(props.filter.pattern)
 
 const patternInputActive = ref(false)
 const patternIsSearching = ref(false)
 
-// Sync draft when props change externally (undo/redo, etc.)
-watch(() => props.filter.pattern, (value) => {
-  patternDraft.value = value
-  lastCommittedPattern.value = value
+// Sync draft from props (undo/redo, external changes).
+let syncingFromProp = false
+watch(() => props.filter.pattern, (v) => { syncingFromProp = true; patternDraft.value = v; syncingFromProp = false })
+
+// Reactive persistence — emit update on every keystroke.
+watch(patternDraft, (value) => {
+  if (syncingFromProp || value === props.filter.pattern) return
+  emit('update', props.filter.id, { pattern: value })
 })
 
 const matchType = computed<UrlFilterMatchType>(() => props.filter.matchType ?? 'dnr_url_filter')
@@ -90,21 +93,13 @@ const patternPopoverOpen = computed({
   set: (val: boolean) => { patternInputActive.value = val },
 })
 
-function commitPattern(value: string) {
-  if (value === lastCommittedPattern.value) return
-  lastCommittedPattern.value = value
-  emit('update', props.filter.id, { pattern: value })
-}
-
 function handlePatternBlur() {
   patternInputActive.value = false
   patternIsSearching.value = false
-  commitPattern(patternDraft.value)
 }
 
 function applyPatternSuggestion(suggestion: string) {
-  patternDraft.value = suggestion
-  commitPattern(suggestion)
+  patternDraft.value = suggestion // triggers the watch → emits update
   patternInputActive.value = false
   patternIsSearching.value = false
 }
@@ -147,45 +142,6 @@ function blurActiveElement() {
   }
 }
 
-// Flush uncommitted pattern draft on popup dismissal or component teardown.
-function flushDrafts() {
-  commitPattern(patternDraft.value)
-}
-
-function handleVisibilityChange() {
-  if (document.visibilityState === 'hidden') {
-    flushDrafts()
-  }
-}
-
-// Debounced flush — safety net for browsers (e.g. Arc) that may not fire
-// any lifecycle events when dismissing extension popups.
-let flushTimer: ReturnType<typeof setTimeout> | null = null
-
-function scheduleFlush() {
-  if (flushTimer) clearTimeout(flushTimer)
-  flushTimer = setTimeout(flushDrafts, 500)
-}
-
-watch(patternDraft, () => {
-  if (patternDraft.value !== lastCommittedPattern.value) {
-    scheduleFlush()
-  }
-})
-
-onMounted(() => {
-  window.addEventListener('beforeunload', flushDrafts)
-  window.addEventListener('pagehide', flushDrafts)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-
-onBeforeUnmount(() => {
-  if (flushTimer) clearTimeout(flushTimer)
-  window.removeEventListener('beforeunload', flushDrafts)
-  window.removeEventListener('pagehide', flushDrafts)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-  flushDrafts()
-})
 </script>
 
 <template>
