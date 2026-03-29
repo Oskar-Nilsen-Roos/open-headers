@@ -120,13 +120,6 @@ function commitName(value: string) {
   clearDraft(props.header.id)
 }
 
-function commitValue(value: string) {
-  if (value === lastCommittedValue.value) return
-  lastCommittedValue.value = value
-  emit('update', { value: value })
-  clearDraft(props.header.id)
-}
-
 function commitComment(value: string) {
   if (value === lastCommittedComment.value) return
   lastCommittedComment.value = value
