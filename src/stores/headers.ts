@@ -4,6 +4,7 @@ import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePref
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
 import { COMMON_REQUEST_HEADER_NAMES, getCanonicalHeaderName, normalizeHeaderKey } from '@/lib/header-suggestions'
+import { consumeDirtyDrafts } from '@/lib/dirtyDrafts'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -395,6 +396,26 @@ export const useHeadersStore = defineStore('headers', () => {
       }
 
       hydrateHeaderSuggestions(state)
+
+      // Recover dirty drafts saved by fire-and-forget backup (e.g. popup
+      // destroyed in Arc without lifecycle events firing).
+      const dirtyDrafts = await consumeDirtyDrafts()
+      for (const [itemId, fields] of Object.entries(dirtyDrafts)) {
+        // Try headers first
+        for (const profile of profiles.value) {
+          const header = profile.headers.find(h => h.id === itemId)
+          if (header) {
+            Object.assign(header, fields)
+            break
+          }
+          // Try URL filters
+          const filter = profile.urlFilters?.find(f => f.id === itemId)
+          if (filter) {
+            Object.assign(filter, fields)
+            break
+          }
+        }
+      }
 
       // Initialize history
       history.value = [getState()]

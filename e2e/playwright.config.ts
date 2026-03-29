@@ -12,7 +12,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'bun run e2e/test-server.ts',
+    command: 'bun run test-server.ts',
     port: Number(process.env.TEST_SERVER_PORT) || 3456,
     reuseExistingServer: true,
   },

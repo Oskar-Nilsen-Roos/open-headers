@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { mount, VueWrapper } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
+import * as dirtyDrafts from '@/lib/dirtyDrafts'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
@@ -141,8 +142,7 @@ describe('HeaderRow', () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const nameInput = inputs[1]!
+      const nameInput = wrapper.findAll('input')[1]!
       await nameInput.setValue('New-Header-Name')
       expect(wrapper.emitted('update')).toBeFalsy()
       await nameInput.trigger('blur')
@@ -155,8 +155,7 @@ describe('HeaderRow', () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const valueInput = inputs[2]!
+      const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('new-value')
       await valueInput.trigger('blur')
 
@@ -170,14 +169,12 @@ describe('HeaderRow', () => {
         valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
       })
 
-      const inputs = wrapper.findAll('input')
-      const valueInput = inputs[2]!
+      const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('Bearer token')
       await valueInput.trigger('blur')
 
       const updates = wrapper.emitted('update')
       expect(updates).toBeTruthy()
-      // Single emit with both value and comment
       expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
     })
 
@@ -185,8 +182,7 @@ describe('HeaderRow', () => {
       const header = createHeader()
       const wrapper = mountComponent(header)
 
-      const inputs = wrapper.findAll('input')
-      const commentInput = inputs[3]!
+      const commentInput = wrapper.findAll('input')[3]!
       await commentInput.setValue('new comment')
       await commentInput.trigger('blur')
 
@@ -224,6 +220,99 @@ describe('HeaderRow', () => {
 
       const dragHandle = wrapper.find('[data-swapy-handle]')
       expect(dragHandle.exists()).toBe(true)
+    })
+  })
+
+  describe('popup dismissal — lifecycle flush + dirty draft backup (issue #51)', () => {
+    let wrapper: VueWrapper
+
+    afterEach(() => {
+      wrapper?.unmount()
+    })
+
+    it('flushes uncommitted name on beforeunload', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-New-Name')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-New-Name' }])
+    })
+
+    it('flushes on visibilitychange to hidden', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Hidden')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Hidden' }])
+    })
+
+    it('flushes on pagehide', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-PageHide')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('pagehide'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-PageHide' }])
+    })
+
+    it('flushes on component unmount', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Unmount')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      wrapper.unmount()
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Unmount' }])
+    })
+
+    it('saves dirty draft to storage on every input keystroke', async () => {
+      const spy = vi.spyOn(dirtyDrafts, 'saveDraft')
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('A')
+      await nameInput.setValue('AB')
+
+      expect(spy).toHaveBeenCalledWith('test-header-id', 'name', 'A')
+      expect(spy).toHaveBeenCalledWith('test-header-id', 'name', 'AB')
+      spy.mockRestore()
+    })
+
+    it('clears dirty draft on blur commit', async () => {
+      const spy = vi.spyOn(dirtyDrafts, 'clearDraft')
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Committed')
+      await nameInput.trigger('blur')
+
+      expect(spy).toHaveBeenCalledWith('test-header-id')
+      spy.mockRestore()
     })
   })
 })

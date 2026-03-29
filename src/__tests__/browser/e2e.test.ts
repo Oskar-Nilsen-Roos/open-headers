@@ -328,6 +328,86 @@ test.describe('Persistence', () => {
   })
 })
 
+test.describe('Input persistence on popup dismissal (issue #51)', () => {
+  test('should persist header name when page unloads without blur', async ({ page }) => {
+    // Don't use addInitScript — we need localStorage to survive reload
+    await page.goto(BASE_URL)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await page.getByTestId('footer-add').click()
+    const nameInput = page.locator('input[placeholder="Header name"]')
+    await nameInput.fill('X-Persisted-Name')
+    // Do NOT blur or press Tab — simulate popup being dismissed with focus in the field
+
+    // Reload simulates popup close + reopen (beforeunload fires, then state is reloaded)
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await expect(page.locator('input[placeholder="Header name"]')).toHaveValue('X-Persisted-Name')
+  })
+
+  test('should persist header value when page unloads without blur', async ({ page }) => {
+    await page.goto(BASE_URL)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await page.getByTestId('footer-add').click()
+    const nameInput = page.locator('input[placeholder="Header name"]')
+    await nameInput.fill('Authorization')
+    await nameInput.press('Tab')
+
+    const valueInput = page.locator('input[placeholder="Value"]')
+    await valueInput.fill('Bearer secret-token')
+    // Value input still has focus — do NOT blur
+
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await expect(page.locator('input[placeholder="Header name"]')).toHaveValue('Authorization')
+    await expect(page.locator('input[placeholder="Value"]')).toHaveValue('Bearer secret-token')
+  })
+
+  test('should persist comment when page unloads without blur', async ({ page }) => {
+    await page.goto(BASE_URL)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await page.getByTestId('footer-add').click()
+    const commentInput = page.locator('input[placeholder="Comment"]')
+    await commentInput.fill('My important note')
+    // Comment input still has focus — do NOT blur
+
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await expect(page.locator('input[placeholder="Comment"]')).toHaveValue('My important note')
+  })
+
+  test('should persist url filter pattern when page unloads without blur', async ({ page }) => {
+    await page.goto(BASE_URL)
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await page.getByRole('tab', { name: 'URL filters' }).click()
+    await page.getByTestId('footer-add').click()
+
+    const patternInput = page.locator('[data-testid="url-filter-row"] input[type="text"]')
+    await patternInput.fill('*.example.com/*')
+    // Pattern input still has focus — do NOT blur
+
+    await page.reload()
+    await page.waitForSelector('[data-swapy-slot]')
+
+    await page.getByRole('tab', { name: 'URL filters' }).click()
+    await expect(page.locator('[data-testid="url-filter-row"] input[type="text"]')).toHaveValue('*.example.com/*')
+  })
+})
+
 test.describe('Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
     await setupCleanState(page)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, type ComponentPublicInstance } from 'vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
+import { saveDraft, clearDraft } from '@/lib/dirtyDrafts'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -73,6 +74,12 @@ watch(() => props.header.comment, (value) => {
   lastCommittedComment.value = value
 })
 
+// Fire-and-forget draft backup — writes to storage on every keystroke so
+// the value survives even if the popup is destroyed without any events.
+watch(nameDraft, (v) => { if (v !== lastCommittedName.value) saveDraft(props.header.id, 'name', v) })
+watch(valueDraft, (v) => { if (v !== lastCommittedValue.value) saveDraft(props.header.id, 'value', v) })
+watch(commentDraft, (v) => { if (v !== lastCommittedComment.value) saveDraft(props.header.id, 'comment', v) })
+
 const filteredNameSuggestions = computed(() => {
   const suggestions = props.nameSuggestions ?? []
   if (!nameIsSearching.value) return suggestions
@@ -110,18 +117,14 @@ function commitName(value: string) {
   if (value === lastCommittedName.value) return
   lastCommittedName.value = value
   emit('update', { name: value })
-}
-
-function commitValue(value: string) {
-  if (value === lastCommittedValue.value) return
-  lastCommittedValue.value = value
-  emit('update', { value: value })
+  clearDraft(props.header.id)
 }
 
 function commitComment(value: string) {
   if (value === lastCommittedComment.value) return
   lastCommittedComment.value = value
   emit('update', { comment: value })
+  clearDraft(props.header.id)
 }
 
 function handleNameBlur() {
@@ -148,13 +151,11 @@ function handleValueBlur() {
     const commentSynced = syncCommentFromSuggestion(valueDraft.value)
     lastCommittedValue.value = valueDraft.value
     if (commentSynced) {
-      // Emit value + comment together so it's a single undo step
       emit('update', { value: valueDraft.value, comment: commentDraft.value })
     } else {
       emit('update', { value: valueDraft.value })
     }
-  } else {
-    commitValue(valueDraft.value)
+    clearDraft(props.header.id)
   }
 }
 
@@ -179,10 +180,10 @@ function applyValueSuggestion(suggestion: ValueSuggestion) {
   skipNextEnterBlur = true
   valueDraft.value = suggestion.value
   commentDraft.value = suggestion.comment
-  // Single emit for both value + comment so it's one undo step
   lastCommittedValue.value = suggestion.value
   lastCommittedComment.value = suggestion.comment
   emit('update', { value: suggestion.value, comment: suggestion.comment })
+  clearDraft(props.header.id)
   valueInputActive.value = false
   valueIsSearching.value = false
   focusRef(commentInputRef)
@@ -215,6 +216,43 @@ function blurActiveElement() {
     document.activeElement.blur()
   }
 }
+
+// Flush uncommitted drafts — called on lifecycle events as a secondary
+// safety net (the primary is the fire-and-forget draft backup above).
+function flushDrafts() {
+  commitName(nameDraft.value)
+
+  const valueChanged = valueDraft.value !== lastCommittedValue.value
+  if (valueChanged) {
+    const commentSynced = syncCommentFromSuggestion(valueDraft.value)
+    lastCommittedValue.value = valueDraft.value
+    if (commentSynced) {
+      emit('update', { value: valueDraft.value, comment: commentDraft.value })
+    } else {
+      emit('update', { value: valueDraft.value })
+    }
+    clearDraft(props.header.id)
+  }
+
+  commitComment(commentDraft.value)
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') flushDrafts()
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', flushDrafts)
+  window.addEventListener('pagehide', flushDrafts)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', flushDrafts)
+  window.removeEventListener('pagehide', flushDrafts)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  flushDrafts()
+})
 </script>
 
 <template>
