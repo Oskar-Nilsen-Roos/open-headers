@@ -216,7 +216,7 @@ function blurActiveElement() {
   }
 }
 
-// Flush uncommitted drafts to the store — called on beforeunload (popup
+// Flush uncommitted drafts to the store — called on lifecycle events (popup
 // dismissed) and onBeforeUnmount so in-progress edits are never lost.
 function flushDrafts() {
   commitName(nameDraft.value)
@@ -235,12 +235,43 @@ function flushDrafts() {
   commitComment(commentDraft.value)
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    flushDrafts()
+  }
+}
+
+// Debounced flush — safety net for browsers (e.g. Arc) that may not fire
+// any lifecycle events when dismissing extension popups.
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleFlush() {
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = setTimeout(flushDrafts, 500)
+}
+
+// Watch drafts for uncommitted changes and schedule a debounced flush.
+watch([nameDraft, valueDraft, commentDraft], () => {
+  if (
+    nameDraft.value !== lastCommittedName.value ||
+    valueDraft.value !== lastCommittedValue.value ||
+    commentDraft.value !== lastCommittedComment.value
+  ) {
+    scheduleFlush()
+  }
+})
+
 onMounted(() => {
   window.addEventListener('beforeunload', flushDrafts)
+  window.addEventListener('pagehide', flushDrafts)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
+  if (flushTimer) clearTimeout(flushTimer)
   window.removeEventListener('beforeunload', flushDrafts)
+  window.removeEventListener('pagehide', flushDrafts)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   flushDrafts()
 })
 </script>

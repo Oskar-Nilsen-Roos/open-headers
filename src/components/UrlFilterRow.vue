@@ -152,12 +152,38 @@ function flushDrafts() {
   commitPattern(patternDraft.value)
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    flushDrafts()
+  }
+}
+
+// Debounced flush — safety net for browsers (e.g. Arc) that may not fire
+// any lifecycle events when dismissing extension popups.
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+function scheduleFlush() {
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = setTimeout(flushDrafts, 500)
+}
+
+watch(patternDraft, () => {
+  if (patternDraft.value !== lastCommittedPattern.value) {
+    scheduleFlush()
+  }
+})
+
 onMounted(() => {
   window.addEventListener('beforeunload', flushDrafts)
+  window.addEventListener('pagehide', flushDrafts)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
+  if (flushTimer) clearTimeout(flushTimer)
   window.removeEventListener('beforeunload', flushDrafts)
+  window.removeEventListener('pagehide', flushDrafts)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   flushDrafts()
 })
 </script>

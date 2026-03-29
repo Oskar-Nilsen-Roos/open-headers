@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { mount, VueWrapper } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
@@ -330,6 +330,122 @@ describe('HeaderRow', () => {
 
       const updates = wrapper.emitted('update')
       expect(updates?.length).toBe(1)
+    })
+
+    it('flushes uncommitted drafts on visibilitychange to hidden', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Hidden')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Hidden' }])
+    })
+
+    it('does not flush on visibilitychange to visible', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Visible')
+
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+
+      // Only the debounced flush should eventually fire, not the visibility handler
+      expect(wrapper.emitted('update')).toBeFalsy()
+    })
+
+    it('flushes uncommitted drafts on pagehide', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-PageHide')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('pagehide'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-PageHide' }])
+    })
+  })
+
+  describe('debounced auto-flush on input (Arc safety net)', () => {
+    let wrapper: VueWrapper
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      wrapper?.unmount()
+      vi.useRealTimers()
+    })
+
+    it('auto-flushes uncommitted draft after 500ms', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Debounced')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      vi.advanceTimersByTime(500)
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Debounced' }])
+    })
+
+    it('does not auto-flush before 500ms', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Early')
+
+      vi.advanceTimersByTime(300)
+
+      expect(wrapper.emitted('update')).toBeFalsy()
+    })
+
+    it('resets debounce timer on subsequent input', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-First')
+      vi.advanceTimersByTime(400) // Almost there
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      await nameInput.setValue('X-Second') // Reset timer
+      vi.advanceTimersByTime(400) // 400ms after second input
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      vi.advanceTimersByTime(100) // 500ms after second input
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Second' }])
+    })
+
+    it('clears debounce timer on unmount', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Timer')
+
+      wrapper.unmount()
+      // onBeforeUnmount flushes immediately and clears the timer
+      const updateCount = wrapper.emitted('update')?.length ?? 0
+
+      vi.advanceTimersByTime(1000) // Timer should not fire
+      expect(wrapper.emitted('update')?.length ?? 0).toBe(updateCount)
     })
   })
 })
