@@ -4,6 +4,7 @@ import type { Profile, HeaderRule, AppState, UrlFilter, HeaderType, DarkModePref
 import { createEmptyProfile, createEmptyHeader, DEFAULT_PROFILE_COLORS, isModHeaderFormat, convertModHeaderProfile, generateId } from '../types'
 import { getMessageForPreference, setLanguagePreference as setI18nLanguagePreference } from '@/i18n'
 import { COMMON_REQUEST_HEADER_NAMES, getCanonicalHeaderName, normalizeHeaderKey } from '@/lib/header-suggestions'
+import { consumeDirtyDrafts } from '@/lib/dirtyDrafts'
 
 const STORAGE_KEY = 'openheaders_state'
 const MAX_HISTORY = 50
@@ -396,6 +397,26 @@ export const useHeadersStore = defineStore('headers', () => {
 
       hydrateHeaderSuggestions(state)
 
+      // Recover dirty drafts saved by fire-and-forget backup (e.g. popup
+      // destroyed in Arc without lifecycle events firing).
+      const dirtyDrafts = await consumeDirtyDrafts()
+      for (const [itemId, fields] of Object.entries(dirtyDrafts)) {
+        // Try headers first
+        for (const profile of profiles.value) {
+          const header = profile.headers.find(h => h.id === itemId)
+          if (header) {
+            Object.assign(header, fields)
+            break
+          }
+          // Try URL filters
+          const filter = profile.urlFilters?.find(f => f.id === itemId)
+          if (filter) {
+            Object.assign(filter, fields)
+            break
+          }
+        }
+      }
+
       // Initialize history
       history.value = [getState()]
       historyIndex.value = 0
@@ -530,12 +551,6 @@ export const useHeadersStore = defineStore('headers', () => {
     persistState()
   }
 
-  // Undo coalescing — rapid updates to the same header field (e.g. typing)
-  // are grouped into a single undo entry.
-  let lastCoalesceKey: string | null = null
-  let lastCoalesceTime = 0
-  const COALESCE_MS = 1000
-
   function updateHeader(headerId: string, updates: Partial<HeaderRule>): void {
     if (!activeProfile.value) return
 
@@ -574,16 +589,7 @@ export const useHeadersStore = defineStore('headers', () => {
       addHeaderValueToHistory(nextName, nextValue, currentComment)
     }
 
-    // Coalesce rapid updates to the same header+field into one undo entry.
-    const field = Object.keys(updates)[0] ?? ''
-    const coalesceKey = `${headerId}:${field}`
-    const now = Date.now()
-    if (coalesceKey !== lastCoalesceKey || now - lastCoalesceTime > COALESCE_MS) {
-      saveToHistory()
-      lastCoalesceTime = now
-    }
-    lastCoalesceKey = coalesceKey
-
+    saveToHistory()
     persistState()
   }
 

@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { mount, VueWrapper } from '@vue/test-utils'
 import HeaderRow from '@/components/HeaderRow.vue'
 import type { HeaderRule, ValueSuggestion } from '@/types'
+import * as dirtyDrafts from '@/lib/dirtyDrafts'
 
 // Mock lucide-vue-next icons
 vi.mock('lucide-vue-next', () => ({
@@ -137,29 +138,32 @@ describe('HeaderRow', () => {
       expect(wrapper.emitted('toggle')?.length).toBe(1)
     })
 
-    it('emits update with name immediately on input', async () => {
-      const header = createHeader({ name: '' })
+    it('emits update with name when name input blurs', async () => {
+      const header = createHeader()
       const wrapper = mountComponent(header)
 
       const nameInput = wrapper.findAll('input')[1]!
       await nameInput.setValue('New-Header-Name')
+      expect(wrapper.emitted('update')).toBeFalsy()
+      await nameInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'New-Header-Name' }])
     })
 
-    it('emits update with value immediately on input', async () => {
-      const header = createHeader({ value: '' })
+    it('emits update with value when value input blurs', async () => {
+      const header = createHeader()
       const wrapper = mountComponent(header)
 
       const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('new-value')
+      await valueInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'new-value' }])
     })
 
-    it('auto-fills comment when value matches a known suggestion', async () => {
+    it('auto-fills comment when value matches a known suggestion on blur', async () => {
       const header = createHeader({ value: '' })
       const wrapper = mountComponent(header, {
         valueSuggestions: [{ value: 'Bearer token', comment: 'Prod key' }],
@@ -167,31 +171,23 @@ describe('HeaderRow', () => {
 
       const valueInput = wrapper.findAll('input')[2]!
       await valueInput.setValue('Bearer token')
+      await valueInput.trigger('blur')
 
       const updates = wrapper.emitted('update')
       expect(updates).toBeTruthy()
       expect(updates?.[0]).toEqual([{ value: 'Bearer token', comment: 'Prod key' }])
     })
 
-    it('emits update with comment immediately on input', async () => {
-      const header = createHeader({ comment: '' })
+    it('emits update with comment when comment input blurs', async () => {
+      const header = createHeader()
       const wrapper = mountComponent(header)
 
       const commentInput = wrapper.findAll('input')[3]!
       await commentInput.setValue('new comment')
+      await commentInput.trigger('blur')
 
       expect(wrapper.emitted('update')).toBeTruthy()
       expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'new comment' }])
-    })
-
-    it('does not emit update when value matches current prop', async () => {
-      const header = createHeader({ name: 'Same' })
-      const wrapper = mountComponent(header)
-
-      const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('Same')
-
-      expect(wrapper.emitted('update')).toBeFalsy()
     })
 
     it('emits duplicate when duplicate button is clicked', async () => {
@@ -227,66 +223,96 @@ describe('HeaderRow', () => {
     })
   })
 
-  describe('reactive persistence — no blur required (issue #51)', () => {
-    it('persists name without blur (popup dismissal safe)', async () => {
+  describe('popup dismissal — lifecycle flush + dirty draft backup (issue #51)', () => {
+    let wrapper: VueWrapper
+
+    afterEach(() => {
+      wrapper?.unmount()
+    })
+
+    it('flushes uncommitted name on beforeunload', async () => {
       const header = createHeader({ name: '' })
-      const wrapper = mountComponent(header)
+      wrapper = mountComponent(header)
 
       const nameInput = wrapper.findAll('input')[1]!
-      await nameInput.setValue('X-Persisted')
-      // No blur needed — update emitted immediately
+      await nameInput.setValue('X-New-Name')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('beforeunload'))
 
       expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Persisted' }])
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-New-Name' }])
     })
 
-    it('persists value without blur (popup dismissal safe)', async () => {
-      const header = createHeader({ value: '' })
-      const wrapper = mountComponent(header)
-
-      const valueInput = wrapper.findAll('input')[2]!
-      await valueInput.setValue('secret-token')
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ value: 'secret-token' }])
-    })
-
-    it('persists comment without blur (popup dismissal safe)', async () => {
-      const header = createHeader({ comment: '' })
-      const wrapper = mountComponent(header)
-
-      const commentInput = wrapper.findAll('input')[3]!
-      await commentInput.setValue('important note')
-
-      expect(wrapper.emitted('update')).toBeTruthy()
-      expect(wrapper.emitted('update')?.[0]).toEqual([{ comment: 'important note' }])
-    })
-
-    it('emits multiple updates for sequential keystrokes', async () => {
+    it('flushes on visibilitychange to hidden', async () => {
       const header = createHeader({ name: '' })
-      const wrapper = mountComponent(header)
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Hidden')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Hidden' }])
+    })
+
+    it('flushes on pagehide', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-PageHide')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      window.dispatchEvent(new Event('pagehide'))
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-PageHide' }])
+    })
+
+    it('flushes on component unmount', async () => {
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
+
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Unmount')
+      expect(wrapper.emitted('update')).toBeFalsy()
+
+      wrapper.unmount()
+
+      expect(wrapper.emitted('update')).toBeTruthy()
+      expect(wrapper.emitted('update')?.[0]).toEqual([{ name: 'X-Unmount' }])
+    })
+
+    it('saves dirty draft to storage on every input keystroke', async () => {
+      const spy = vi.spyOn(dirtyDrafts, 'saveDraft')
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
 
       const nameInput = wrapper.findAll('input')[1]!
       await nameInput.setValue('A')
       await nameInput.setValue('AB')
-      await nameInput.setValue('ABC')
 
-      const updates = wrapper.emitted('update')
-      expect(updates?.length).toBe(3)
-      expect(updates?.[0]).toEqual([{ name: 'A' }])
-      expect(updates?.[1]).toEqual([{ name: 'AB' }])
-      expect(updates?.[2]).toEqual([{ name: 'ABC' }])
+      expect(spy).toHaveBeenCalledWith('test-header-id', 'name', 'A')
+      expect(spy).toHaveBeenCalledWith('test-header-id', 'name', 'AB')
+      spy.mockRestore()
     })
 
-    it('does not echo prop changes back as updates', async () => {
-      const header = createHeader({ name: 'Original' })
-      const wrapper = mountComponent(header)
+    it('clears dirty draft on blur commit', async () => {
+      const spy = vi.spyOn(dirtyDrafts, 'clearDraft')
+      const header = createHeader({ name: '' })
+      wrapper = mountComponent(header)
 
-      // Simulate external change (undo/redo) by updating the prop
-      await wrapper.setProps({ header: { ...header, name: 'From-Undo' } })
+      const nameInput = wrapper.findAll('input')[1]!
+      await nameInput.setValue('X-Committed')
+      await nameInput.trigger('blur')
 
-      // Should NOT emit update (this was a prop sync, not user input)
-      expect(wrapper.emitted('update')).toBeFalsy()
+      expect(spy).toHaveBeenCalledWith('test-header-id')
+      spy.mockRestore()
     })
   })
 })
