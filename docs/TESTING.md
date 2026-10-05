@@ -30,10 +30,10 @@ Playwright uses the dev server from `playwright.config.ts` and runs against `htt
 
 ```
 src/__tests__/
-├── background.test.ts           # Background script logic tests
+├── rules.test.ts                # DNR session rule construction tests
 ├── store.test.ts                # Pinia store unit tests
 ├── types.test.ts                # Type factory/utility tests
-├── urlFilters.test.ts           # URL filter matching tests
+├── urlFilters.test.ts           # Request filter → DNR condition tests
 ├── components/
 │   ├── App.test.ts              # App integration tests
 │   ├── HeaderRow.test.ts        # HeaderRow component tests
@@ -54,11 +54,11 @@ src/__tests__/
 ### 1. Store Tests (`store.test.ts`)
 Covers store initialization, profile management, header operations, URL filters, undo/redo, import/export, persistence, and preferences.
 
-### 2. URL Filter Tests (`urlFilters.test.ts`)
-Validates URL matching logic for all match types and include/exclude behavior.
+### 2. Request Filter Tests (`urlFilters.test.ts`)
+Validates how each match type is translated into a declarativeNetRequest condition (checked against sample request URLs), and how include/exclude filters resolve, including the implicit "all requests" default and fail-closed handling of invalid excludes.
 
-### 3. Background Script Tests (`background.test.ts`)
-Validates DNR rule construction, header operations, and URL filter integration.
+### 3. Rule Builder Tests (`rules.test.ts`)
+Validates DNR rule construction (`src/lib/rules.ts`): header operations, one rule per include filter, allow rules for excludes, and the no-filter default.
 
 ### 4. Type Tests (`types.test.ts`)
 Validates factory helpers and ModHeader conversion behavior.

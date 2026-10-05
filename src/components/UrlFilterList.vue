@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import type { UrlFilter } from '@/types'
 import UrlFilterRow from './UrlFilterRow.vue'
 import DraggableList from './DraggableList.vue'
 import { t } from '@/i18n'
-import { Plus } from 'lucide-vue-next'
+import { hasActiveIncludeFilter } from '@/lib/urlFilters'
+import { Plus, TriangleAlert } from 'lucide-vue-next'
 
 const props = defineProps<{
   filters: UrlFilter[]
@@ -14,6 +15,8 @@ const props = defineProps<{
 const patternSuggestionsFor = (matchType: string) => {
   return props.getPatternSuggestions ? props.getPatternSuggestions(matchType) : []
 }
+
+const sendsToAllRequests = computed(() => !hasActiveIncludeFilter(props.filters))
 
 const emit = defineEmits<{
   update: [filterId: string, updates: Partial<UrlFilter>]
@@ -46,6 +49,27 @@ async function handleAdd() {
 
 <template>
   <div ref="listRef" class="flex flex-col bg-background">
+    <!-- Scope hint: warn when nothing limits where headers are sent -->
+    <div
+      v-if="sendsToAllRequests"
+      data-testid="url-filters-warning"
+      role="alert"
+      class="flex items-start gap-2 px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+    >
+      <TriangleAlert class="h-4 w-4 mt-0.5 shrink-0" />
+      <div class="text-xs leading-snug">
+        <p class="font-medium">{{ t('url_filters_warning_title') }}</p>
+        <p class="mt-0.5">{{ t('url_filters_warning_text') }}</p>
+      </div>
+    </div>
+    <p
+      v-else
+      data-testid="url-filters-help"
+      class="px-3 py-2 border-b border-border text-xs leading-snug text-muted-foreground"
+    >
+      {{ t('url_filters_help_text') }}
+    </p>
+
     <!-- Filters List -->
     <DraggableList :items="filters" @reorder="emit('reorder', $event)">
       <template #default="{ item }">

@@ -1,11 +1,11 @@
-import type { HeaderRule, AppState, Profile } from '../types'
-import { isProfileEnabledForTabUrl } from '../lib/urlFilters'
+import type { AppState, Profile } from '../types'
+import { collectRegexFilters, isRegexSupported } from '../lib/urlFilters'
+import { buildSessionRules, getEnabledHeaders } from '../lib/rules'
 import { getReadableTextColor, parseColorInputToHex } from '../lib/color'
 
 declare const process: { env?: { [key: string]: string | undefined } } | undefined
 
 const STORAGE_KEY = 'openheaders_state'
-const SESSION_RULE_ID = 1
 const DEFAULT_PROFILE_COLOR = '#7c3aed'
 const DEFAULT_ICON_PATHS: { [size: number]: string } = {
   16: 'icons/icon16.png',
@@ -21,47 +21,6 @@ const DEBUG =
   typeof process !== 'undefined' &&
   !!process.env &&
   process.env.OPENHEADERS_DEBUG === 'true'
-
-interface RuleAction {
-  type: 'modifyHeaders'
-  requestHeaders?: chrome.declarativeNetRequest.ModifyHeaderInfo[]
-  responseHeaders?: chrome.declarativeNetRequest.ModifyHeaderInfo[]
-}
-
-const RESOURCE_TYPES = [
-  'main_frame',
-  'sub_frame',
-  'stylesheet',
-  'script',
-  'image',
-  'font',
-  'object',
-  'xmlhttprequest',
-  'ping',
-  'csp_report',
-  'media',
-  'websocket',
-  'webtransport',
-  'webbundle',
-  'other',
-] satisfies Array<`${chrome.declarativeNetRequest.ResourceType}`>
-
-function headerOperationToChrome(operation: HeaderRule['operation']): chrome.declarativeNetRequest.HeaderOperation {
-  switch (operation) {
-    case 'set':
-      return chrome.declarativeNetRequest.HeaderOperation.SET
-    case 'remove':
-      return chrome.declarativeNetRequest.HeaderOperation.REMOVE
-    case 'append':
-      return chrome.declarativeNetRequest.HeaderOperation.APPEND
-    default:
-      return chrome.declarativeNetRequest.HeaderOperation.SET
-  }
-}
-
-function isHttpUrl(url: string): boolean {
-  return url.startsWith('http://') || url.startsWith('https://')
-}
 
 function normalizeProfileColor(color: string | undefined): string {
   const parsed = parseColorInputToHex(color ?? '')
@@ -149,82 +108,15 @@ function getActiveProfile(state: AppState | null): Profile | null {
   return state.profiles.find(p => p.id === state.activeProfileId) ?? null
 }
 
-function getEnabledHeaderCount(profile: Profile): number {
-  return profile.headers.filter(h => {
-    if (!h.enabled || !h.name.trim()) return false
-    if (h.operation !== 'remove' && !h.value?.trim()) return false
-    return true
-  }).length
-}
-
-function getAppliedHeaderCountForUrl(profile: Profile, tabUrl: string | undefined): number {
-  if (!tabUrl || !isHttpUrl(tabUrl)) return 0
-  if (!isProfileEnabledForTabUrl(profile, tabUrl)) return 0
-  return getEnabledHeaderCount(profile)
-}
-
 function formatBadgeCount(count: number): string {
   if (count <= 0) return ''
   return count > 99 ? '99+' : String(count)
 }
 
-/**
- * Builds a Chrome declarativeNetRequest session rule from the active profile
- * @param profile - The active profile
- * @param enabledTabIds - The tab IDs where the active profile should apply
- * @returns A Chrome extension rule to apply headers, or null if none should apply
- */
-function buildSessionRuleFromProfile(
-  profile: Profile,
-  enabledTabIds: number[]
-): chrome.declarativeNetRequest.Rule | null {
-  if (enabledTabIds.length === 0) return null
-
-  const enabledHeaders = profile.headers.filter(h => {
-    if (!h.enabled || !h.name.trim()) return false
-    // Chrome requires a value for set/append — omitting it silently rejects the entire rule
-    if (h.operation !== 'remove' && !h.value?.trim()) return false
-    return true
-  })
-  if (enabledHeaders.length === 0) return null
-
-  const requestHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
-  const responseHeaders: chrome.declarativeNetRequest.ModifyHeaderInfo[] = []
-
-  for (const header of enabledHeaders) {
-    const headerInfo: chrome.declarativeNetRequest.ModifyHeaderInfo = {
-      header: header.name,
-      operation: headerOperationToChrome(header.operation),
-      ...(header.operation !== 'remove' ? { value: header.value } : {}),
-    }
-
-    if (header.type === 'request') {
-      requestHeaders.push(headerInfo)
-    } else {
-      responseHeaders.push(headerInfo)
-    }
-  }
-
-  if (requestHeaders.length === 0 && responseHeaders.length === 0) return null
-
-  const action: RuleAction = { type: 'modifyHeaders' }
-  if (requestHeaders.length > 0) action.requestHeaders = requestHeaders
-  if (responseHeaders.length > 0) action.responseHeaders = responseHeaders
-
-  return {
-    id: SESSION_RULE_ID,
-    priority: 1,
-    action: action as chrome.declarativeNetRequest.RuleAction,
-    condition: {
-      urlFilter: '*',
-      tabIds: enabledTabIds,
-      resourceTypes: RESOURCE_TYPES,
-    },
-  }
-}
-
-const tabUrls = new Map<number, string>()
 let latestState: AppState | null = null
+// Number of enabled headers that currently have at least one session rule delivering them.
+let appliedHeaderCount = 0
+const regexSupportCache = new Map<string, boolean>()
 let clearDynamicRulesPromise: Promise<void> | null = null
 let pendingUpdate = false
 let updateInFlight: Promise<void> | null = null
@@ -249,19 +141,6 @@ function clearDynamicRulesOnce(): Promise<void> {
     })()
   }
   return clearDynamicRulesPromise
-}
-
-function computeEnabledTabIds(profile: Profile): number[] {
-  const enabled: number[] = []
-
-  for (const [tabId, url] of tabUrls.entries()) {
-    if (!isHttpUrl(url)) continue
-    if (isProfileEnabledForTabUrl(profile, url)) {
-      enabled.push(tabId)
-    }
-  }
-
-  return enabled
 }
 
 async function setActionIcon(profile: Profile | null, profileNumber: number, iconOpacity: number): Promise<void> {
@@ -289,15 +168,6 @@ async function setActionIcon(profile: Profile | null, profileNumber: number, ico
   lastAppliedIconKey = iconKey
 }
 
-async function getActiveTabUrl(): Promise<string | undefined> {
-  const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-  if (!activeTab) return undefined
-
-  if (activeTab.url) return activeTab.url
-  if (activeTab.id === undefined) return undefined
-  return tabUrls.get(activeTab.id)
-}
-
 async function setActionBadgeText(text: string): Promise<void> {
   if (text && !badgeStyleInitialized) {
     await chrome.action.setBadgeBackgroundColor({ color: BADGE_BACKGROUND_COLOR })
@@ -316,11 +186,6 @@ async function updateActionAppearanceOnce(): Promise<void> {
   try {
     const profile = getActiveProfile(latestState)
     const profileNumber = getActiveProfileNumber(latestState)
-    let appliedHeaderCount = 0
-    if (profile) {
-      const activeTabUrl = await getActiveTabUrl()
-      appliedHeaderCount = getAppliedHeaderCountForUrl(profile, activeTabUrl)
-    }
     const iconOpacity = appliedHeaderCount > 0 ? 1 : INACTIVE_ICON_OPACITY
 
     await setActionIcon(profile, profileNumber, iconOpacity)
@@ -368,42 +233,40 @@ function queueUpdateRules(): void {
   })()
 }
 
+async function supportedRegexFilters(profile: Profile): Promise<Set<string>> {
+  const supported = new Set<string>()
+  await Promise.all(
+    collectRegexFilters(profile).map(async regex => {
+      let ok = regexSupportCache.get(regex)
+      if (ok === undefined) {
+        ok = await isRegexSupported(regex)
+        regexSupportCache.set(regex, ok)
+      }
+      if (ok) supported.add(regex)
+    })
+  )
+  return supported
+}
+
 async function updateRulesOnce(): Promise<void> {
   try {
     await clearDynamicRulesOnce()
 
-    if (!latestState) {
-      await chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: [SESSION_RULE_ID],
-      })
-      return
-    }
-
     const profile = getActiveProfile(latestState)
-    if (!profile) {
-      await chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: [SESSION_RULE_ID],
-      })
-      return
-    }
+    const supported = profile ? await supportedRegexFilters(profile) : new Set<string>()
+    const rules = profile ? buildSessionRules(profile, regex => supported.has(regex)) : []
 
-    const enabledTabIds = computeEnabledTabIds(profile)
-    const rule = buildSessionRuleFromProfile(profile, enabledTabIds)
-
+    const existing = await chrome.declarativeNetRequest.getSessionRules()
     await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [SESSION_RULE_ID],
-      addRules: rule ? [rule] : [],
+      removeRuleIds: existing.map(rule => rule.id),
+      addRules: rules,
     })
+
+    appliedHeaderCount = profile && rules.length > 0 ? getEnabledHeaders(profile).length : 0
 
     if (DEBUG) {
       // eslint-disable-next-line no-console
-      console.log(
-        'Session rules updated:',
-        rule ? 1 : 0,
-        'active;',
-        enabledTabIds.length,
-        'tab(s) matched'
-      )
+      console.log('Session rules updated:', rules.length, 'rule(s)')
     }
   } catch (error) {
     console.error('Failed to update rules:', error)
@@ -420,56 +283,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
-function updateTabUrl(tabId: number, url: string | undefined): void {
-  if (!url) return
-  tabUrls.set(tabId, url)
-  queueUpdateRules()
-}
-
-// Track tab URL changes so we can apply rules based on the top-level site (tab URL)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.url) {
-    updateTabUrl(tabId, changeInfo.url)
-    return
-  }
-
-  if (changeInfo.status === 'complete' && tab.url) {
-    updateTabUrl(tabId, tab.url)
-  }
-})
-
-chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.id && tab.url) {
-    updateTabUrl(tab.id, tab.url)
-  }
-})
-
-chrome.tabs.onRemoved.addListener((tabId) => {
-  tabUrls.delete(tabId)
-  queueUpdateRules()
-})
-
-chrome.tabs.onActivated.addListener(() => {
-  queueUpdateActionAppearance()
-})
-
 // Initialize on startup
 async function initialize(): Promise<void> {
   const result = await chrome.storage.local.get(STORAGE_KEY)
   latestState = result[STORAGE_KEY] as AppState | null
-
-  // Prime tab URL cache
-  try {
-    const tabs = await chrome.tabs.query({})
-    for (const tab of tabs) {
-      if (tab.id && tab.url) {
-        tabUrls.set(tab.id, tab.url)
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to query tabs on startup:', error)
-  }
-
   queueUpdateRules()
 }
 

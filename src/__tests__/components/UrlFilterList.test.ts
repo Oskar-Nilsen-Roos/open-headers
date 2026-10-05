@@ -52,4 +52,32 @@ describe('UrlFilterList', () => {
     expect(wrapper.emitted('update')?.[0]).toEqual(['f1', { pattern: 'x' }])
     expect(wrapper.emitted('remove')?.[0]).toEqual(['f1'])
   })
+
+  describe('scope warning', () => {
+    it('warns that headers go to all requests when there are no filters', () => {
+      const wrapper = mountComponent([])
+
+      const warning = wrapper.find('[data-testid="url-filters-warning"]')
+      expect(warning.exists()).toBe(true)
+      expect(warning.text()).toContain('all requests')
+      expect(wrapper.find('[data-testid="url-filters-help"]').exists()).toBe(false)
+    })
+
+    it('still warns when only exclude, disabled or blank filters exist', () => {
+      const wrapper = mountComponent([
+        createFilter({ id: 'a', type: 'exclude' }),
+        createFilter({ id: 'b', enabled: false }),
+        createFilter({ id: 'c', pattern: '' }),
+      ])
+
+      expect(wrapper.find('[data-testid="url-filters-warning"]').exists()).toBe(true)
+    })
+
+    it('shows the help text instead once an include filter limits the scope', () => {
+      const wrapper = mountComponent([createFilter()])
+
+      expect(wrapper.find('[data-testid="url-filters-warning"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="url-filters-help"]').text()).toContain('URL of each request')
+    })
+  })
 })

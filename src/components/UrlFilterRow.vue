@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, type ComponentPublicInstance } from 'vue'
+import { filterToCondition, isFilterActive, isRegexSupported } from '@/lib/urlFilters'
 import type { UrlFilter, UrlFilterMatchType } from '@/types'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,32 @@ watch(() => props.filter.pattern, (value) => {
 })
 
 const matchType = computed<UrlFilterMatchType>(() => props.filter.matchType ?? 'dnr_url_filter')
+
+// A non-blank pattern that cannot be turned into a rule is ignored (include) or blocks
+// the whole profile (exclude), so flag it instead of failing silently.
+const regexUnsupported = ref(false)
+const patternCondition = computed(() => filterToCondition({ ...props.filter, enabled: true }))
+const patternInvalid = computed(() => {
+  if (!isFilterActive({ ...props.filter, enabled: true })) return false
+  return patternCondition.value === null || regexUnsupported.value
+})
+const patternErrorMessage = computed(() => {
+  if (!patternInvalid.value) return ''
+  return matchType.value === 'regex' && patternCondition.value !== null
+    ? t('url_filters_invalid_regex')
+    : t('url_filters_invalid_pattern')
+})
+
+watch(
+  () => patternCondition.value?.regexFilter,
+  async (regex) => {
+    regexUnsupported.value = false
+    if (!regex) return
+    const supported = await isRegexSupported(regex)
+    if (patternCondition.value?.regexFilter === regex) regexUnsupported.value = !supported
+  },
+  { immediate: true },
+)
 
 const patternPlaceholder = computed(() => {
   switch (matchType.value) {
@@ -211,7 +238,10 @@ function blurActiveElement() {
             v-model="patternDraft"
             unstyled
             :placeholder="patternPlaceholder"
-            class="flex h-8 w-full min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            class="flex h-8 w-full min-w-0 flex-1 rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1"
+            :class="patternInvalid ? 'border-destructive focus-visible:ring-destructive' : 'border-input focus-visible:ring-ring'"
+            :title="patternErrorMessage || undefined"
+            :aria-invalid="patternInvalid || undefined"
             autocomplete="off"
             type="text"
             @focus="patternInputActive = true; patternIsSearching = false"

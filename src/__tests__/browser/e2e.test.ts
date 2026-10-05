@@ -210,7 +210,7 @@ test.describe('URL Filter Management', () => {
   })
 
   test('should show url filter row action buttons', async ({ page }) => {
-    await page.getByRole('tab', { name: 'URL filters' }).click()
+    await page.getByRole('tab', { name: 'Request filters' }).click()
     await page.getByTestId('footer-add').click()
 
     const filterRow = page.locator('[data-testid="url-filter-row"]').first()

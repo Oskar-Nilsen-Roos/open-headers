@@ -329,8 +329,6 @@ test.describe('URL Filters: match types', () => {
       urlFilters: [makeUrlFilter({ pattern: '/echo', matchType: 'path_starts_with', type: 'include' })],
     })
 
-    // Navigate FIRST to register the tab, then inject state.
-    // This ensures the tab URL is tracked before rules are built.
     await testPage.goto(`${testServerUrl}/echo`, { waitUntil: 'load' })
     await injectState(background, makeState([profile]))
     await waitForRulesUpdate(background)
@@ -355,6 +353,107 @@ test.describe('URL Filters: match types', () => {
 
     const headers = await fetchEchoHeaders(testPage, testServerUrl)
     expect(headers['x-filter-test']).toBeUndefined()
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Request filters are matched against each request URL, not the page's URL
+// ──────────────────────────────────────────────────────────────────────────────
+
+test.describe('Request filters: matched per request', () => {
+  // The test server answers on both hostnames, so a page on `localhost` can make
+  // cross-origin requests to `127.0.0.1` (the stand-in for a third party).
+  const otherHost = (testServerUrl: string) => testServerUrl.replace('localhost', '127.0.0.1')
+
+  test('include filter only sends headers to matching request URLs, not every request from the page', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-Scoped', value: 'yes', type: 'request', operation: 'set' })],
+      urlFilters: [makeUrlFilter({ pattern: '127.0.0.1', matchType: 'host_equals', type: 'include' })],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-scoped']).toBeUndefined()
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-scoped']).toBe('yes')
+  })
+
+  test('without filters headers are sent with all requests, including cross-origin ones', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-All', value: 'yes', type: 'request', operation: 'set' })],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-all']).toBe('yes')
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-all']).toBe('yes')
+  })
+
+  test('exclude-only filters send headers everywhere except the excluded requests', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-Except', value: 'yes', type: 'request', operation: 'set' })],
+      urlFilters: [makeUrlFilter({ pattern: '127.0.0.1', matchType: 'host_equals', type: 'exclude' })],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-except']).toBe('yes')
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-except']).toBeUndefined()
+  })
+
+  test('multiple include filters are OR-ed', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-Or', value: 'yes', type: 'request', operation: 'set' })],
+      urlFilters: [
+        makeUrlFilter({ pattern: 'example.com', matchType: 'host_equals', type: 'include' }),
+        makeUrlFilter({ pattern: '127.0.0.1', matchType: 'host_equals', type: 'include' }),
+      ],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-or']).toBe('yes')
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-or']).toBeUndefined()
+  })
+
+  test('regex filter (RE2) matches request URLs', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-Regex', value: 'yes', type: 'request', operation: 'set' })],
+      urlFilters: [makeUrlFilter({ pattern: '^http://127\\.0\\.0\\.1:[0-9]+/echo', matchType: 'regex', type: 'include' })],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-regex']).toBe('yes')
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-regex']).toBeUndefined()
+  })
+
+  test('glob filter is anchored to the whole request URL', async ({ background, testPage, testServerUrl }) => {
+    const profile = makeProfile({
+      headers: [makeHeader({ name: 'X-Glob', value: 'yes', type: 'request', operation: 'set' })],
+      urlFilters: [makeUrlFilter({ pattern: 'http://127.0.0.1:*/echo', matchType: 'dnr_url_filter', type: 'include' })],
+    })
+    await injectState(background, makeState([profile]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+
+    expect((await fetchEchoHeaders(testPage, otherHost(testServerUrl)))['x-glob']).toBe('yes')
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-glob']).toBeUndefined()
+  })
+
+  test('an exclude regex Chrome cannot evaluate stops all headers instead of being ignored', async ({ background, testPage, testServerUrl }) => {
+    const header = makeHeader({ name: 'X-Closed', value: 'yes', type: 'request', operation: 'set' })
+    await injectState(background, makeState([makeProfile({ headers: [header] })]))
+    await navigateAndWaitForRules(testPage, testServerUrl, background)
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-closed']).toBe('yes')
+
+    // Lookaheads are valid JavaScript but not RE2.
+    const failClosed = makeProfile({
+      headers: [header],
+      urlFilters: [makeUrlFilter({ pattern: '(?=foo)bar', matchType: 'regex', type: 'exclude' })],
+    })
+    await injectState(background, makeState([failClosed]))
+    await waitForRulesUpdate(background, 0)
+
+    expect((await fetchEchoHeaders(testPage, testServerUrl))['x-closed']).toBeUndefined()
   })
 })
 

@@ -8,7 +8,7 @@ A Chrome extension for modifying HTTP request and response headers. Built with V
 - Add, edit, duplicate, delete, and reorder headers
 - Enable/disable individual headers
 - Multiple profiles with quick switching
-- URL filters (include/exclude) to control where a profile applies
+- Request filters (include/exclude) to control which request URLs receive a profile's headers (all requests when none are set)
 - Undo/redo history for changes
 - Import/export profiles as JSON (including ModHeader imports)
 - System/Light/Dark theme preference
@@ -55,8 +55,9 @@ Then open `http://localhost:5173` in your browser to preview the popup UI.
    - Toggle enabled/disabled with the checkbox.
    - Drag the grip icon to reorder.
    - Use the row menu to duplicate or delete.
-6. For URL filters:
+6. For request filters (matched against each request's URL, not the page you are on):
    - Choose include/exclude, match type, and pattern.
+   - With no include filter, headers are sent with **all** requests, including to third-party sites; the tab shows a warning.
    - Drag the grip icon to reorder.
 7. The footer **Clear** button removes all items in the active tab.
 8. Use the profile menu (three dots) for:

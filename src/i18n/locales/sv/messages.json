@@ -28,8 +28,8 @@
     "description": "Fliketikett för svarsrubriker"
   },
   "tab_filters": {
-    "message": "URL-filter",
-    "description": "Fliketikett för URL-filter"
+    "message": "Request-filter",
+    "description": "Fliketikett för request-filter"
   },
   "headers_empty_state": {
     "message": "Inga rubriker. Klicka på + för att lägga till en.",
@@ -240,16 +240,16 @@
     "description": "Standardfilnamn för export av alla profiler"
   },
   "url_filters_title": {
-    "message": "URL-filter",
-    "description": "Titel för URL-filtersektionen"
+    "message": "Request-filter",
+    "description": "Titel för request-filtersektionen"
   },
   "url_filters_help_text": {
-    "message": "Matchas mot den aktuella flikens URL (topnivåwebbplats). Flera filter är ELLER (någon match), inte OCH; exkludera går före inkludera.",
-    "description": "Hjälptext som förklarar vad URL-filter matchas mot"
+    "message": "Matchas mot URL:en för varje request, inte sidan du befinner dig på. Flera inkluderingsfilter är ELLER (någon match), inte OCH; exkludera går före inkludera.",
+    "description": "Hjälptext som förklarar vad request-filter matchas mot"
   },
   "url_filters_empty_state": {
-    "message": "Inga URL-filter. Lägg till ett inkluderings- eller exkluderingsfilter för att styra var den här profilen används.",
-    "description": "Tomtillstånd när inga URL-filter finns"
+    "message": "Inga request-filter. Headers skickas med alla requests.",
+    "description": "Tomtillstånd när inga request-filter finns"
   },
   "button_add_include": {
     "message": "LÄGG TILL INKLUDERA",
@@ -302,5 +302,21 @@
   "url_filters_match_regex": {
     "message": "Regex",
     "description": "Matchtyp för reguljära uttryck"
+  },
+  "url_filters_warning_title": {
+    "message": "Headers skickas med alla requests",
+    "description": "Varningstitel när en profil saknar inkluderingsfilter"
+  },
+  "url_filters_warning_text": {
+    "message": "Utan ett inkluderingsfilter skickas den här profilens headers till varje webbplats en sida kommunicerar med, även tredjeparter som analys- och annonstjänster. Lägg till ett inkluderingsfilter för att begränsa dem till specifika request-URL:er.",
+    "description": "Varningstext när en profil saknar inkluderingsfilter"
+  },
+  "url_filters_invalid_pattern": {
+    "message": "Ogiltigt mönster. Ett ogiltigt inkluderingsfilter matchar ingenting; ett ogiltigt exkluderingsfilter gör att profilen inte skickar några headers alls.",
+    "description": "Tooltip för ett filter med ogiltigt mönster"
+  },
+  "url_filters_invalid_regex": {
+    "message": "Chrome kan inte använda det här mönstret. Regex måste vara RE2-kompatibelt (inga lookaheads eller backreferences).",
+    "description": "Tooltip för ett regex-filter som Chrome inte kan utvärdera"
   }
 }

@@ -9,7 +9,7 @@ A Chrome extension for modifying HTTP request and response headers, built with V
 3. [UI Composition & Flow](#ui-composition--flow)
 4. [Profile Management](#profile-management)
 5. [Header Management](#header-management)
-6. [URL Filters](#url-filters)
+6. [Request Filters](#request-filters)
 7. [Undo/Redo System](#undoredo-system)
 8. [Import/Export](#importexport)
 9. [Theme & Language Preferences](#theme--language-preferences)
@@ -44,14 +44,15 @@ src/
 ├── types/
 │   └── index.ts            # TypeScript type definitions
 ├── lib/
-│   └── urlFilters.ts       # URL filter matching logic
+│   ├── urlFilters.ts       # Request filter → declarativeNetRequest condition logic
+│   └── rules.ts            # Builds the declarativeNetRequest session rules
 ├── components/
 │   ├── ProfileSidebar.vue  # Profile selection sidebar
 │   ├── ProfileHeader.vue   # Profile header with actions
 │   ├── HeaderList.vue      # List of headers with drag/drop
 │   ├── HeaderRow.vue       # Individual header row
-│   ├── UrlFilterList.vue   # List of URL filters
-│   └── UrlFilterRow.vue    # Individual URL filter row
+│   ├── UrlFilterList.vue   # List of request filters (+ "all requests" warning)
+│   └── UrlFilterRow.vue    # Individual request filter row
 └── __tests__/              # Test files
 ```
 
@@ -82,7 +83,7 @@ interface HeaderRule {
 **UI note:** the current UI creates `set` operations and does not expose a UI control to change the operation. `remove` and `append` operations can still exist via imports.
 
 ### UrlFilter
-Represents a URL pattern filter for selective header application.
+Represents a request filter: a pattern matched against the URL of each outgoing request to decide whether headers are sent with it. (The type keeps its original `UrlFilter` name for backwards compatibility with stored profiles.)
 
 ```typescript
 interface UrlFilter {
@@ -105,7 +106,7 @@ interface UrlFilter {
 - `dnr_url_filter`: Glob-like match (`*` wildcard), matched against the full URL
 
 ### Profile
-A collection of header rules and URL filters.
+A collection of header rules and request filters.
 
 ```typescript
 interface Profile {
@@ -138,14 +139,14 @@ interface AppState {
 ### Main Layout
 - **Profile Sidebar** (left): numbered profile buttons + add profile
 - **Profile Header** (top): profile name, undo/redo, add header, export, and a “more” menu
-- **Main Tabs**: Request, Response, Filters (with enabled item counts)
+- **Main Tabs**: Request, Response, Request filters (with enabled item counts)
 - **Content Area**: list of headers or filters
 - **Sticky Footer**: Add and Clear actions for the active tab
 
 ### Tab Behavior
 - **Request tab**: shows only request headers
 - **Response tab**: shows only response headers
-- **Filters tab**: shows URL filters
+- **Request filters tab**: shows request filters
 - **Counts** reflect enabled items in the active profile
 
 ---
@@ -185,17 +186,20 @@ interface AppState {
 
 ---
 
-## URL Filters
+## Request Filters
+
+Filters decide **which requests receive the profile's headers**. They are matched against the URL of each individual request, not against the page (tab) that made it. A filter for `api.example.com` therefore applies to every request sent to `api.example.com`, whichever site triggered it, and does not apply to a third-party request made by the same page.
 
 ### UI
-- Managed in the **Filters** tab
+- Managed in the **Request filters** tab
 - Add a filter with the footer “+” button (creates an **include** filter by default)
 - Each filter row allows:
   - Enable/disable
   - Include/exclude toggle
   - Match type selection
-  - Pattern input
+  - Pattern input (highlighted red when the pattern is invalid)
   - Drag and drop reordering
+- When there is no enabled include filter, the tab shows a **warning** that headers are sent with all requests (`*`), including to third-party sites. Once an include filter exists, it shows a short explanation of how filters combine instead.
 
 **Match types:**
 - Host equals
@@ -207,16 +211,25 @@ interface AppState {
 - Advanced (glob)
 - Regex
 
-### Filter Behavior (Top‑Level Tab URL)
-- Filters are evaluated against the **current tab URL** (top‑level site URL).
-- **Exclude filters**: if any enabled exclude filter matches, the profile is disabled for that tab.
-- **Include filters**:
-  - If no enabled include filters exist, the profile applies to all tabs (except excluded ones).
-  - Otherwise, the profile applies only when at least one include filter matches.
+### Filter Behavior (Request URL)
+- **No include filters (default)**: the profile applies to **all requests** — equivalent to an include filter of `*`. This is deliberately not stored as a filter, so adding the first include filter narrows the scope immediately.
+- **Include filters**: headers are sent only with requests whose URL matches at least one enabled include filter (OR, not AND).
+- **Exclude filters**: a request matching any enabled exclude filter never receives the headers; excludes override includes. Exclude-only profiles apply to everything except the excluded requests.
+- Blank and disabled filters are ignored. A non-blank include filter that is invalid matches nothing (never everything).
+- An invalid **exclude** filter fails closed: the profile sends no headers at all, since silently ignoring it would send headers to URLs the user excluded.
+- Requests are matched regardless of which tab (if any) they come from, including service worker and extension requests.
 
 **Match type notes**:
+- **Host equals** matches the exact host on any port, not subdomains. **Host ends with** matches the host and its subdomains.
 - **Localhost** only matches the `localhost` hostname. The pattern can be empty (match any port) or a port number like `3000`.
-- **Path starts with** matches against `URL.pathname` only (query and hash are ignored).
+- **URL starts with** matches the start of the request URL; without a scheme it matches `http(s)`/`ws(s)` URLs.
+- **Path starts with** matches the URL path only (query and hash are ignored).
+- **URL contains** matches a literal substring of the URL.
+- **Advanced (glob)** uses declarativeNetRequest `urlFilter` syntax: `*` is a wildcard, `|` anchors, `^` is a separator. Patterns are anchored to the whole URL unless they already start/end with `|` or `*`.
+- **Regex** uses Chrome's RE2 syntax, which has no lookaheads or backreferences (unlike JavaScript). Matching is case-sensitive.
+
+### Changed from tab-based filtering
+Earlier versions evaluated filters against the current *tab* URL and applied the headers to every request from matching tabs. An include filter of `example.com` used to cover everything the page loaded (including third parties); it now covers only requests to `example.com`. Profiles without include filters behave as before.
 
 ---
 
@@ -227,7 +240,7 @@ interface AppState {
 - History is saved on:
   - Profile add/remove/duplicate/update/reorder
   - Header add/remove/update/toggle/duplicate/clear/reorder
-  - URL filter add/remove/update/clear/reorder
+  - Request filter add/remove/update/clear/reorder
   - Import actions
 - History is **not** saved on:
   - Profile selection (navigation only)
@@ -278,14 +291,20 @@ interface AppState {
 ### Background Script (`background/index.ts`)
 - Watches storage changes for the app state
 - Builds **declarativeNetRequest session rules** for the active profile
-- Uses `condition.tabIds` so rules apply only to matching tabs
-- Tracks tab URLs with `chrome.tabs` events
+- Rules match on the request URL; there is no per-tab state, so the background script does not track tabs
+- Replaces all of its session rules on every state change
+- Asks Chrome (`isRegexSupported`) whether regex filters are valid RE2 before using them
+- Sets the toolbar badge/icon from the number of enabled headers that currently have a rule
 - Clears any existing dynamic rules once on startup for safety
 
 ### Rule Building
 - Enabled headers with non‑empty names are converted to Chrome `ModifyHeaderInfo`
 - Request/response rules are built from header types
-- If no headers or no matched tabs exist, the session rule is removed
+- Implemented in `lib/rules.ts` (`buildSessionRules`) so the unit tests exercise the real code
+- One `modifyHeaders` rule (priority 1) per include filter, or a single catch-all (`urlFilter: '*'`) when there are none
+- One `allow` rule (priority 2) per exclude filter; Chrome ignores lower-priority `modifyHeaders` rules once an `allow` rule matches
+- Filters are translated to `urlFilter` / `regexFilter` / `requestDomains` conditions (see `filterToCondition` in `lib/urlFilters.ts`)
+- If there are no usable headers, or the filters leave nothing to apply to, all session rules are removed
 
 ---
 
@@ -294,7 +313,7 @@ interface AppState {
 Implemented with **Swapy** in:
 - Profile sidebar
 - Header list
-- URL filters list
+- Request filters list
 
 Behavior:
 - Visual feedback during drag

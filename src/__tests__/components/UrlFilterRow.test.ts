@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import UrlFilterRow from '@/components/UrlFilterRow.vue'
 import type { UrlFilter } from '@/types'
 
@@ -131,5 +131,44 @@ describe('UrlFilterRow', () => {
 
     expect(wrapper.html()).toContain('example.com')
     expect(wrapper.html()).toContain('api.test.com')
+  })
+
+  describe('pattern validation', () => {
+    const patternInput = (wrapper: ReturnType<typeof mountComponent>) => wrapper.findAll('input')[1]!
+
+    it('does not flag valid or blank patterns', async () => {
+      const valid = mountComponent(createFilter({ pattern: 'example.com' }))
+      const blank = mountComponent(createFilter({ pattern: '' }))
+      await flushPromises()
+
+      expect(patternInput(valid).attributes('aria-invalid')).toBeUndefined()
+      expect(patternInput(blank).attributes('aria-invalid')).toBeUndefined()
+    })
+
+    it('flags a pattern that cannot be turned into a rule', async () => {
+      const wrapper = mountComponent(createFilter({ matchType: 'localhost_port', pattern: 'example.com' }))
+      await flushPromises()
+
+      const input = patternInput(wrapper)
+      expect(input.attributes('aria-invalid')).toBe('true')
+      expect(input.attributes('title')).toContain('Invalid pattern')
+      expect(input.classes()).toContain('border-destructive')
+    })
+
+    it('flags a regex that Chrome cannot evaluate', async () => {
+      const wrapper = mountComponent(createFilter({ matchType: 'regex', pattern: '(unclosed' }))
+      await flushPromises()
+
+      const input = patternInput(wrapper)
+      expect(input.attributes('aria-invalid')).toBe('true')
+      expect(input.attributes('title')).toContain('RE2')
+    })
+
+    it('does not flag a valid regex', async () => {
+      const wrapper = mountComponent(createFilter({ matchType: 'regex', pattern: '^https://example\\.com/' }))
+      await flushPromises()
+
+      expect(patternInput(wrapper).attributes('aria-invalid')).toBeUndefined()
+    })
   })
 })
